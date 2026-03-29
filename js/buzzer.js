@@ -16,13 +16,22 @@ const buzzBtn = document.getElementById("buzz-btn");
 const stateText = document.getElementById("buzz-state");
 let roomId = "room-main";
 let state = {};
+let unsubState = null;
 
 function roomPath(path) {
   return `rooms/${roomId}/${path}`;
 }
 
+function syncBuzzButton() {
+  const closed = !state.buzzerOpen || Boolean(state.buzz?.userId);
+  buzzBtn.disabled = closed;
+}
+
 function bindRoom() {
-  onValue(ref(db, roomPath("state")), (snap) => {
+  if (unsubState) unsubState();
+  stateText.textContent = `Connexion à la room ${roomId}...`;
+
+  unsubState = onValue(ref(db, roomPath("state")), (snap) => {
     state = snap.val() || {};
     if (state.buzz?.userId) {
       stateText.textContent = `Premier buzz: ${state.buzz.userId}`;
@@ -31,6 +40,7 @@ function bindRoom() {
     } else {
       stateText.textContent = "Buzzer fermé (attends l'admin).";
     }
+    syncBuzzButton();
   });
 }
 

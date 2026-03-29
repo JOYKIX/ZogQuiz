@@ -2,7 +2,6 @@ import {
   db,
   ref,
   set,
-  get,
   push,
   onValue,
   update,
@@ -30,59 +29,74 @@ const buzzWinner = document.getElementById("buzz-winner");
 const overlayLink = document.getElementById("overlay-link");
 const previewCanvas = document.getElementById("preview-canvas");
 const ctx = previewCanvas.getContext("2d");
+const participantMessage = document.getElementById("participant-message");
 
 let roomId = "room-main";
 let questions = [];
+let unsubs = [];
 
 function roomPath(path) {
   return `rooms/${roomId}/${path}`;
 }
 
+function clearBindings() {
+  unsubs.forEach((u) => u());
+  unsubs = [];
+}
+
 function bindRoom() {
+  clearBindings();
+  participantMessage.textContent = `Room active: ${roomId}`;
   overlayLink.href = `overlay.html?room=${encodeURIComponent(roomId)}`;
   overlayLink.textContent = `${window.location.origin}/overlay.html?room=${roomId}`;
 
-  onValue(ref(db, roomPath("quiz/questions")), (snap) => {
-    const data = snap.val() || {};
-    questions = Object.entries(data).map(([key, v]) => ({ key, ...v }));
-    questionsList.innerHTML = "";
-    questions.forEach((q, idx) => {
-      const li = document.createElement("li");
-      li.textContent = `${idx + 1}. ${q.text} | Réponse: ${q.answer} | ${q.points} pts`;
-      const del = document.createElement("button");
-      del.textContent = "Supprimer";
-      del.onclick = async () => set(ref(db, roomPath(`quiz/questions/${q.key}`)), null);
-      li.append(" ", del);
-      questionsList.appendChild(li);
-    });
-  });
+  unsubs.push(
+    onValue(ref(db, roomPath("quiz/questions")), (snap) => {
+      const data = snap.val() || {};
+      questions = Object.entries(data).map(([key, v]) => ({ key, ...v }));
+      questionsList.innerHTML = "";
+      questions.forEach((q, idx) => {
+        const li = document.createElement("li");
+        li.textContent = `${idx + 1}. ${q.text} | Réponse: ${q.answer} | ${q.points} pts`;
+        const del = document.createElement("button");
+        del.textContent = "Supprimer";
+        del.onclick = async () => set(ref(db, roomPath(`quiz/questions/${q.key}`)), null);
+        li.append(" ", del);
+        questionsList.appendChild(li);
+      });
+    }),
+  );
 
-  onValue(ref(db, roomPath("state")), (snap) => {
-    const s = snap.val() || {};
-    const idx = s.currentQuestionIndex ?? 0;
-    currentQuestion.textContent = questions[idx]
-      ? `Question en cours: ${questions[idx].text}`
-      : "Question en cours: aucune";
-    buzzWinner.textContent = s.buzz?.userId ? `Premier buzz: ${s.buzz.userId}` : "Aucun buzz";
-  });
+  unsubs.push(
+    onValue(ref(db, roomPath("state")), (snap) => {
+      const s = snap.val() || {};
+      const idx = s.currentQuestionIndex ?? 0;
+      currentQuestion.textContent = questions[idx]
+        ? `Question en cours: ${questions[idx].text}`
+        : "Question en cours: aucune";
+      buzzWinner.textContent = s.buzz?.userId ? `Premier buzz: ${s.buzz.userId}` : "Aucun buzz";
+    }),
+  );
 
-  onValue(ref(db, roomPath("overlay")), (snap) => drawPreview(snap.val() || {}));
+  unsubs.push(onValue(ref(db, roomPath("overlay")), (snap) => drawPreview(snap.val() || {})));
 }
 
 function drawPreview(overlay) {
   ctx.fillStyle = "#111827";
   ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-  const renderText = (text, y) => {
+  const renderText = (text, y, font = "bold 32px Arial") => {
     ctx.fillStyle = overlay.textColor || "#ffffff";
-    ctx.font = "bold 32px Arial";
+    ctx.font = font;
     ctx.fillText(text, 25, y);
   };
 
   renderText(`Room: ${roomId}`, 55);
   renderText("ZogQuiz Overlay Preview", 105);
   if (overlay.bgUrl) {
-    renderText("Fond custom chargé (visible dans la page overlay)", 155);
+    renderText("Fond custom actif", 155);
+  } else {
+    renderText("Fond par défaut", 155);
   }
 }
 
@@ -130,7 +144,6 @@ document.getElementById("participant-form").addEventListener("submit", async (e)
   e.preventDefault();
   const id = document.getElementById("participant-id").value.trim();
   const password = document.getElementById("participant-password").value;
-  const message = document.getElementById("participant-message");
 
   if (!id || !password) return;
 
@@ -139,7 +152,7 @@ document.getElementById("participant-form").addEventListener("submit", async (e)
     role: "participant",
     passwordHash: await hashPassword(password),
   });
-  message.textContent = `Compte participant ${id} créé/mis à jour.`;
+  participantMessage.textContent = `Compte participant ${id} créé/mis à jour.`;
   e.target.reset();
 });
 

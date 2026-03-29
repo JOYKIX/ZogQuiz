@@ -7,28 +7,47 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <main class="container card">
-      <h1>ZogQuiz</h1>
-      <p class="muted">Connexion Admin / Participant</p>
+    <main class="container shell">
+      <section class="card hero">
+        <h1>ZogQuiz</h1>
+        <p class="muted">Plateforme quiz live pour admin, participants et overlay OBS.</p>
+        <div class="badges">
+          <span class="badge">⚡ Temps réel</span>
+          <span class="badge">🎮 Buzzer</span>
+          <span class="badge">📺 Overlay stream</span>
+        </div>
+      </section>
 
-      <form id="login-form" class="stack">
-        <label>
-          Identifiant
-          <input id="login-id" type="text" required autocomplete="username" />
-        </label>
-        <label>
-          Mot de passe
-          <input id="login-password" type="password" required autocomplete="current-password" />
-        </label>
-        <button type="submit">Se connecter</button>
-      </form>
+      <section class="card">
+        <h2>Connexion</h2>
+        <form id="login-form" class="stack">
+          <label>
+            Identifiant
+            <input id="login-id" type="text" required autocomplete="username" placeholder="Ex: Admin01" />
+          </label>
+          <label>
+            Mot de passe
+            <input id="login-password" type="password" required autocomplete="current-password" placeholder="Votre mot de passe" />
+          </label>
+          <button id="login-submit" type="submit">Se connecter</button>
+        </form>
 
-      <p id="login-message" class="message"></p>
+        <p id="login-message" class="message"></p>
+      </section>
 
       <section class="hint card subtle">
         <h2>Compte admin par défaut</h2>
-        <p><strong>ID :</strong> Admin01</p>
-        <p><strong>MDP :</strong> ZQ!Adm1n_2026#Live</p>
+        <p><strong>ID :</strong> <span id="admin-id">-</span></p>
+        <p><strong>MDP :</strong> <span id="admin-password">-</span></p>
+        <button id="fill-admin" type="button">Remplir automatiquement</button>
+      </section>
+
+      <section class="card subtle">
+        <h2>Accès rapides</h2>
+        <div class="row">
+          <a class="link-btn" href="leaderboard.html" target="_blank">Classement live</a>
+          <a class="link-btn" href="overlay.html?room=room-main" target="_blank">Overlay room-main</a>
+        </div>
       </section>
     </main>
 

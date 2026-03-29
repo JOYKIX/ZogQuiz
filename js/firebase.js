@@ -30,6 +30,11 @@ const DEFAULT_ADMIN = {
   passwordHash: "24f851ca1ef3c674977dc036712cc43537f5e4e443940e97287c9c9d83922e8f", // ZQ!Adm1n_2026#Live
 };
 
+const ADMIN_CREDENTIAL_HINT = {
+  id: "Admin01",
+  password: "ZQ!Adm1n_2026#Live",
+};
+
 export async function hashPassword(raw) {
   const data = new TextEncoder().encode(raw);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -42,6 +47,10 @@ export async function ensureDefaultAdmin() {
   if (!snap.exists()) {
     await set(adminRef, DEFAULT_ADMIN);
   }
+}
+
+export function normalizeAccountId(id) {
+  return (id || "").trim();
 }
 
 export function sessionSave(account) {
@@ -57,4 +66,4 @@ export function sessionClear() {
   localStorage.removeItem("zogquiz_session");
 }
 
-export { db, ref, set, get, push, onValue, update, remove, runTransaction };
+export { db, ref, set, get, push, onValue, update, remove, runTransaction, ADMIN_CREDENTIAL_HINT };
