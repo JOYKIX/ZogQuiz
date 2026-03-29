@@ -1,0 +1,70 @@
+:root {
+  color-scheme: dark;
+  --bg: #10131a;
+  --card: #1a1f2b;
+  --txt: #f0f4ff;
+  --muted: #97a0b8;
+  --primary: #4f8cff;
+  --danger: #c54c59;
+  --warning: #da9935;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+}
+.container { max-width: 700px; margin: 3rem auto; }
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.subtle { margin-top: 1rem; background: #151925; }
+.stack { display: grid; gap: 0.75rem; }
+label { display: grid; gap: 0.25rem; margin: 0.25rem 0; }
+input, button {
+  border-radius: 8px;
+  border: 1px solid #2f3850;
+  padding: 0.6rem;
+  font-size: 1rem;
+}
+button { background: var(--primary); color: white; border: none; cursor: pointer; }
+button.danger { background: var(--danger); }
+button.warning { background: var(--warning); }
+.muted { color: var(--muted); }
+.message { min-height: 1.2rem; }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #0f1420;
+  position: sticky;
+  top: 0;
+}
+.topbar-actions { display: flex; gap: 0.75rem; align-items: center; }
+.grid {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.span2 { grid-column: span 2; }
+.inline-form { grid-template-columns: 2fr 1fr 110px 140px; align-items: center; }
+.list { padding-left: 1rem; }
+.row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+.big { font-size: 1.35rem; font-weight: 700; }
+.buzz { width: 100%; padding: 2rem; font-size: 2rem; margin-top: 1rem; }
+.leaderboard li { padding: 0.4rem 0; border-bottom: 1px solid #2b3349; }
+#preview-canvas { width: 100%; max-width: 900px; background: #0f1420; border-radius: 10px; margin-top: .75rem; }
+.overlay-body { background: transparent; }
+#overlay-canvas { width: 100vw; height: 100vh; display: block; }
+
+@media (max-width: 900px) {
+  .span2 { grid-column: span 1; }
+  .inline-form { grid-template-columns: 1fr; }
+}

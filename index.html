@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZogQuiz - Connexion</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="container card">
+      <h1>ZogQuiz</h1>
+      <p class="muted">Connexion Admin / Participant</p>
+
+      <form id="login-form" class="stack">
+        <label>
+          Identifiant
+          <input id="login-id" type="text" required autocomplete="username" />
+        </label>
+        <label>
+          Mot de passe
+          <input id="login-password" type="password" required autocomplete="current-password" />
+        </label>
+        <button type="submit">Se connecter</button>
+      </form>
+
+      <p id="login-message" class="message"></p>
+
+      <section class="hint card subtle">
+        <h2>Compte admin par défaut</h2>
+        <p><strong>ID :</strong> Admin01</p>
+        <p><strong>MDP :</strong> ZQ!Adm1n_2026#Live</p>
+      </section>
+    </main>
+
+    <script type="module" src="js/login.js"></script>
+  </body>
+</html>

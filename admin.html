@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZogQuiz - Admin</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>ZogQuiz Admin</h1>
+      <div class="topbar-actions">
+        <span id="session-info"></span>
+        <button id="logout-btn" class="danger">Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Salon / Room</h2>
+        <label>
+          Room ID
+          <input id="room-id" type="text" value="room-main" />
+        </label>
+        <button id="load-room">Charger la room</button>
+        <p class="muted">Lien OBS overlay: <a id="overlay-link" href="#" target="_blank">-</a></p>
+      </section>
+
+      <section class="card">
+        <h2>Créer un participant</h2>
+        <form id="participant-form" class="stack">
+          <label>ID participant <input id="participant-id" required /></label>
+          <label>Mot de passe <input id="participant-password" required type="password" /></label>
+          <button type="submit">Créer / Mettre à jour</button>
+        </form>
+        <p id="participant-message" class="message"></p>
+      </section>
+
+      <section class="card span2">
+        <h2>Créateur de questions</h2>
+        <form id="question-form" class="stack inline-form">
+          <input id="q-text" placeholder="Question" required />
+          <input id="q-answer" placeholder="Réponse" required />
+          <input id="q-points" type="number" min="1" value="10" required />
+          <button type="submit">Ajouter</button>
+        </form>
+        <ul id="questions-list" class="list"></ul>
+      </section>
+
+      <section class="card span2">
+        <h2>Buzzer & contrôle live</h2>
+        <div class="row">
+          <button id="unlock-buzzer">Déverrouiller buzzer</button>
+          <button id="next-question">Question suivante</button>
+          <button id="reset-buzz" class="warning">Reset buzz</button>
+        </div>
+        <p id="current-question" class="muted"></p>
+        <p id="buzz-winner" class="big"></p>
+        <div class="row">
+          <input id="score-id" placeholder="ID participant" />
+          <input id="score-delta" type="number" value="10" />
+          <button id="apply-score">Appliquer score</button>
+        </div>
+      </section>
+
+      <section class="card span2">
+        <h2>Overlay Canvas (fond + texte)</h2>
+        <div class="row">
+          <label>URL fond <input id="overlay-bg" placeholder="https://..." /></label>
+          <label>Couleur texte <input id="overlay-color" type="color" value="#ffffff" /></label>
+          <button id="save-overlay">Sauvegarder overlay</button>
+        </div>
+        <canvas id="preview-canvas" width="900" height="250"></canvas>
+      </section>
+    </main>
+
+    <script type="module" src="js/admin.js"></script>
+  </body>
+</html>

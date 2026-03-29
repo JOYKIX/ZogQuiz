@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZogQuiz - Buzzer</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="container card">
+      <h1>Buzzer participant</h1>
+      <p id="player-info" class="muted"></p>
+      <label>Room ID <input id="room-id" value="room-main" /></label>
+      <button id="join-room">Rejoindre</button>
+
+      <button id="buzz-btn" class="buzz">BUZZ!</button>
+      <p id="buzz-state" class="message"></p>
+
+      <a href="leaderboard.html" target="_blank">Voir classement</a>
+      <button id="logout-btn" class="danger">Déconnexion</button>
+    </main>
+
+    <script type="module" src="js/buzzer.js"></script>
+  </body>
+</html>
