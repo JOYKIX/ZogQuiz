@@ -4,9 +4,10 @@ import {
   set,
   get,
   onValue,
+  push,
+  update,
   ensureRoundsSeed,
   makeTempCode,
-  ROUNDS,
 } from "./firebase.js";
 
 const authSection = document.getElementById("auth-section");
@@ -15,14 +16,28 @@ const authMessage = document.getElementById("auth-message");
 const adminEmail = document.getElementById("admin-email");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
-
-const roundsGrid = document.getElementById("rounds-grid");
 const codesList = document.getElementById("codes-list");
 const codeDuration = document.getElementById("code-duration");
 const generatedCode = document.getElementById("generated-code");
-const SESSION_KEY = "zogquiz_admin_id";
 
+const participantQuestionForm = document.getElementById("participant-question-form");
+const viewerQuestionForm = document.getElementById("viewer-question-form");
+const participantQuestionsList = document.getElementById("participant-questions-list");
+const viewerQuestionsList = document.getElementById("viewer-questions-list");
+const toggleAnswerBtn = document.getElementById("toggle-answer");
+const unlockBuzzerBtn = document.getElementById("unlock-buzzer");
+const markCorrectBtn = document.getElementById("mark-correct");
+const markWrongBtn = document.getElementById("mark-wrong");
+const roundStatus = document.getElementById("round-status");
+const buzzLive = document.getElementById("buzz-live");
+const participantsList = document.getElementById("participants-list");
+
+const SESSION_KEY = "zogquiz_admin_id";
 let currentAdminId = null;
+let liveState = null;
+let sessionsById = {};
+let participantQuestions = {};
+let viewerQuestions = {};
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
@@ -75,32 +90,14 @@ signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const adminId = normalizeAdminId(document.getElementById("signup-id").value);
-    if (!adminId) {
-      throw new Error("ID invalide.");
-    }
     const password = document.getElementById("signup-password").value;
-    if (!password) {
-      throw new Error("Mot de passe invalide.");
-    }
+    if (!adminId || !password) throw new Error("ID et mot de passe obligatoires.");
 
     const adminRef = ref(db, `admins/${adminId}`);
-    const adminSnap = await get(adminRef);
-    if (adminSnap.exists()) {
-      throw new Error("Cet ID existe déjà.");
-    }
+    if ((await get(adminRef)).exists()) throw new Error("Cet ID existe déjà.");
 
-    const passwordHash = await hashPassword(password);
-    await set(adminRef, {
-      adminId,
-      passwordHash,
-      createdAt: Date.now(),
-    });
-    setSession(adminId);
-    await ensureRoundsSeed(adminId);
-    renderRounds();
-    listenCodes();
-    showDashboard(adminId);
-    authMessage.textContent = "Compte admin créé et connecté.";
+    await set(adminRef, { adminId, passwordHash: await hashPassword(password), createdAt: Date.now() });
+    await loginSuccess(adminId, "Compte admin créé et connecté.");
   } catch (error) {
     authMessage.textContent = `Erreur création: ${error.message}`;
   }
@@ -110,38 +107,29 @@ loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const adminId = normalizeAdminId(document.getElementById("login-id").value);
-    if (!adminId) {
-      throw new Error("ID invalide.");
-    }
     const password = document.getElementById("login-password").value;
     const adminSnap = await get(ref(db, `admins/${adminId}`));
-    if (!adminSnap.exists()) {
-      throw new Error("ID inconnu.");
-    }
+    if (!adminSnap.exists()) throw new Error("ID inconnu.");
 
     const adminData = adminSnap.val() || {};
-    const expectedHash = adminData.passwordHash;
-    if (!expectedHash) {
-      throw new Error("Compte invalide (hash manquant).");
-    }
+    if ((await hashPassword(password)) !== adminData.passwordHash) throw new Error("Mot de passe incorrect.");
 
-    const passwordHash = await hashPassword(password);
-    if (passwordHash !== expectedHash) {
-      throw new Error("Mot de passe incorrect.");
-    }
-
-    setSession(adminId);
-    await ensureRoundsSeed(adminId);
-    renderRounds();
-    listenCodes();
-    showDashboard(adminId);
-    authMessage.textContent = "Connexion réussie.";
+    await loginSuccess(adminId, "Connexion réussie.");
   } catch (error) {
     authMessage.textContent = `Erreur connexion: ${error.message}`;
   }
 });
 
-document.getElementById("logout").addEventListener("click", async () => {
+async function loginSuccess(adminId, message) {
+  setSession(adminId);
+  await ensureRoundsSeed(adminId);
+  initRoundLiveListeners();
+  listenCodes();
+  showDashboard(adminId);
+  authMessage.textContent = message;
+}
+
+document.getElementById("logout").addEventListener("click", () => {
   clearSession();
   showAuth();
   authMessage.textContent = "Déconnecté.";
@@ -149,40 +137,197 @@ document.getElementById("logout").addEventListener("click", async () => {
 
 document.getElementById("generate-code").addEventListener("click", async () => {
   if (!isLoggedIn()) return;
-
   const code = makeTempCode(6);
   const minutes = Math.max(1, Number(codeDuration.value || 30));
-  const expiresAt = Date.now() + minutes * 60 * 1000;
-
   await set(ref(db, `rooms/manche1/accessCodes/${code}`), {
     code,
     active: true,
     createdBy: currentAdminId,
     createdAt: Date.now(),
-    expiresAt,
+    expiresAt: Date.now() + minutes * 60 * 1000,
   });
-
   generatedCode.textContent = `Code généré: ${code} (expire dans ${minutes} min)`;
 });
 
-function renderRounds() {
-  roundsGrid.innerHTML = "";
-  for (const round of ROUNDS) {
-    const item = document.createElement("article");
-    item.className = "round-card";
-    item.innerHTML = `<h4>${round.toUpperCase()}</h4><p>Structure prête. Contenu à ajouter ensuite.</p>`;
-    roundsGrid.appendChild(item);
+participantQuestionForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await createQuestion("participants", "participant-question", "participant-answer");
+});
+
+viewerQuestionForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await createQuestion("viewers", "viewer-question", "viewer-answer");
+});
+
+async function createQuestion(type, questionInputId, answerInputId) {
+  const questionInput = document.getElementById(questionInputId);
+  const answerInput = document.getElementById(answerInputId);
+  const question = questionInput.value.trim();
+  const answer = answerInput.value.trim();
+  if (!question || !answer) return;
+
+  const listSnap = await get(ref(db, `rooms/manche1/questions/${type}`));
+  const order = Object.keys(listSnap.val() || {}).length + 1;
+
+  const questionRef = push(ref(db, `rooms/manche1/questions/${type}`));
+  await set(questionRef, {
+    type,
+    text: question,
+    answer,
+    order,
+    createdAt: Date.now(),
+    createdBy: currentAdminId,
+  });
+
+  questionInput.value = "";
+  answerInput.value = "";
+}
+
+toggleAnswerBtn.addEventListener("click", async () => {
+  if (!liveState) return;
+  const next = !liveState.showAnswer;
+  await update(ref(db, "rooms/manche1/state"), { showAnswer: next, updatedAt: Date.now() });
+});
+
+unlockBuzzerBtn.addEventListener("click", async () => {
+  await unlockBuzzer();
+});
+
+markCorrectBtn.addEventListener("click", async () => {
+  if (!liveState?.lockedBySessionId) return;
+  const sessionId = liveState.lockedBySessionId;
+  const score = Number(sessionsById[sessionId]?.score || 0) + 1;
+  await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, lastWinAt: Date.now() });
+  await unlockBuzzer();
+});
+
+markWrongBtn.addEventListener("click", async () => {
+  if (!liveState?.lockedBySessionId || !liveState?.currentQuestionId) return;
+  const sessionId = liveState.lockedBySessionId;
+  const questionId = liveState.currentQuestionId;
+  await set(ref(db, `rooms/manche1/questionBlocks/${questionId}/${sessionId}`), true);
+  await unlockBuzzer();
+});
+
+async function unlockBuzzer() {
+  await update(ref(db, "rooms/manche1/state"), {
+    buzzerLocked: false,
+    lockedBySessionId: null,
+    lockedByNickname: "",
+    lockedAt: 0,
+    updatedAt: Date.now(),
+  });
+}
+
+function renderQuestionList(type, data, container) {
+  const entries = Object.entries(data || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+  container.innerHTML = "";
+  if (!entries.length) {
+    container.innerHTML = "<li>Aucune question.</li>";
+    return;
+  }
+
+  for (const [id, q] of entries) {
+    const li = document.createElement("li");
+    li.className = "question-item";
+    const active = liveState?.currentQuestionId === id;
+    li.innerHTML = `<strong>Q${q.order}</strong> ${q.text}<br/><span class="muted">Réponse: ${q.answer}</span>`;
+
+    const actions = document.createElement("div");
+    actions.className = "row";
+    const askBtn = document.createElement("button");
+    askBtn.className = active ? "secondary" : "";
+    askBtn.textContent = active ? "Question active" : "Passer à cette question";
+    askBtn.disabled = active;
+    askBtn.addEventListener("click", async () => {
+      await update(ref(db, "rooms/manche1/state"), {
+        currentType: type,
+        currentQuestionId: id,
+        showAnswer: false,
+        buzzerLocked: false,
+        lockedBySessionId: null,
+        lockedByNickname: "",
+        lockedAt: 0,
+        updatedAt: Date.now(),
+      });
+    });
+    actions.appendChild(askBtn);
+    li.appendChild(actions);
+    container.appendChild(li);
+  }
+}
+
+function initRoundLiveListeners() {
+  onValue(ref(db, "rooms/manche1/questions/participants"), (snap) => {
+    participantQuestions = snap.val() || {};
+    renderQuestionList("participants", participantQuestions, participantQuestionsList);
+  });
+
+  onValue(ref(db, "rooms/manche1/questions/viewers"), (snap) => {
+    viewerQuestions = snap.val() || {};
+    renderQuestionList("viewers", viewerQuestions, viewerQuestionsList);
+  });
+
+  onValue(ref(db, "rooms/manche1/state"), (snap) => {
+    liveState = snap.val() || {};
+    updateRoundStatus();
+    renderQuestionList("participants", participantQuestions, participantQuestionsList);
+    renderQuestionList("viewers", viewerQuestions, viewerQuestionsList);
+  });
+
+  onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
+    sessionsById = snap.val() || {};
+    renderParticipants();
+  });
+}
+
+async function giveManualPoint(sessionId) {
+  const score = Number(sessionsById[sessionId]?.score || 0) + 1;
+  await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, lastManualPointAt: Date.now() });
+}
+
+function renderParticipants() {
+  const entries = Object.entries(sessionsById)
+    .map(([id, s]) => ({ id, ...s, score: Number(s.score || 0) }))
+    .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
+
+  participantsList.innerHTML = "";
+  if (!entries.length) {
+    participantsList.innerHTML = "<li>Aucun participant pour le moment.</li>";
+    return;
+  }
+
+  for (const p of entries) {
+    const li = document.createElement("li");
+    li.className = "leader-item";
+    const button = document.createElement("button");
+    button.textContent = `${p.nickname || "Anonyme"} — ${p.score} pt(s)`;
+    button.addEventListener("click", () => giveManualPoint(p.id));
+    li.appendChild(button);
+    participantsList.appendChild(li);
+  }
+}
+
+function updateRoundStatus() {
+  if (!liveState) return;
+  const typeLabel = liveState.currentType === "viewers" ? "Question viewers (sans buzzer)" : "Question participants";
+  roundStatus.textContent = `${typeLabel} • Réponse ${liveState.showAnswer ? "VISIBLE" : "CACHÉE"}`;
+  toggleAnswerBtn.textContent = liveState.showAnswer ? "Masquer réponse" : "Afficher réponse";
+
+  if (liveState.buzzerLocked && liveState.lockedByNickname) {
+    buzzLive.textContent = `🔔 ${liveState.lockedByNickname} a buzzé en premier.`;
+  } else if (liveState.currentType === "viewers") {
+    buzzLive.textContent = "Question viewers en cours : buzzer désactivé.";
+  } else {
+    buzzLive.textContent = "Personne n'a buzzé.";
   }
 }
 
 function listenCodes() {
-  const codesRef = ref(db, "rooms/manche1/accessCodes");
-  onValue(codesRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    const entries = Object.values(data).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
+  onValue(ref(db, "rooms/manche1/accessCodes"), (snapshot) => {
+    const entries = Object.values(snapshot.val() || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     codesList.innerHTML = "";
-    if (entries.length === 0) {
+    if (!entries.length) {
       codesList.innerHTML = "<li>Aucun code pour le moment.</li>";
       return;
     }
@@ -198,23 +343,14 @@ function listenCodes() {
 
 async function restoreSession() {
   const savedAdminId = normalizeAdminId(localStorage.getItem(SESSION_KEY) || "");
-  if (!savedAdminId) {
-    showAuth();
-    return;
-  }
+  if (!savedAdminId) return showAuth();
 
-  const adminSnap = await get(ref(db, `admins/${savedAdminId}`));
-  if (!adminSnap.exists()) {
+  if (!(await get(ref(db, `admins/${savedAdminId}`))).exists()) {
     clearSession();
-    showAuth();
-    return;
+    return showAuth();
   }
 
-  setSession(savedAdminId);
-  await ensureRoundsSeed(savedAdminId);
-  renderRounds();
-  listenCodes();
-  showDashboard(savedAdminId);
+  await loginSuccess(savedAdminId, "Session restaurée.");
 }
 
 restoreSession().catch((error) => {

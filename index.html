@@ -10,7 +10,7 @@
     <main class="app-shell">
       <header class="hero card">
         <h1>ZogQuiz (SPA)</h1>
-        <p>Admin unique • Stockage Firebase Realtime Database • préparation des manches 1 à 5 + finale.</p>
+        <p>Contrôle complet de la manche 1 : buzzer, questions, overlay OBS et leaderboard.</p>
       </header>
 
       <section id="auth-section" class="card">
@@ -65,8 +65,64 @@
         </section>
 
         <section class="card">
-          <h3>Préparation des manches</h3>
-          <div id="rounds-grid" class="rounds-grid"></div>
+          <div class="row between">
+            <h3>Overlay OBS</h3>
+            <a class="button-link" href="overlay.html" target="_blank" rel="noopener">Ouvrir l'overlay</a>
+          </div>
+          <p class="muted">Affiche la question courante et la réponse selon le switch admin.</p>
+        </section>
+
+        <section class="card">
+          <h3>Manche 1 — Questions participants (20) & viewers (4)</h3>
+          <div class="questions-layout">
+            <form id="participant-question-form" class="stack subcard">
+              <h4>Ajouter question participants</h4>
+              <label>Question
+                <textarea id="participant-question" rows="3" required></textarea>
+              </label>
+              <label>Réponse
+                <input id="participant-answer" required />
+              </label>
+              <button type="submit">Ajouter (buzzer actif)</button>
+            </form>
+
+            <form id="viewer-question-form" class="stack subcard">
+              <h4>Ajouter question viewers</h4>
+              <label>Question
+                <textarea id="viewer-question" rows="3" required></textarea>
+              </label>
+              <label>Réponse
+                <input id="viewer-answer" required />
+              </label>
+              <button type="submit">Ajouter (sans buzzer)</button>
+            </form>
+          </div>
+
+          <div class="row controls-wrap">
+            <button id="toggle-answer" class="secondary">Afficher réponse</button>
+            <button id="unlock-buzzer" class="secondary">Unlock buzzer</button>
+            <button id="mark-correct">Réponse juste (+1)</button>
+            <button id="mark-wrong" class="danger">Réponse fausse (bloquer sur la question)</button>
+          </div>
+          <p id="round-status" class="message"></p>
+
+          <div class="questions-layout">
+            <article class="subcard">
+              <h4>Questions participants</h4>
+              <ul id="participant-questions-list" class="list"></ul>
+            </article>
+            <article class="subcard">
+              <h4>Questions viewers</h4>
+              <ul id="viewer-questions-list" class="list"></ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>Manche 1 — Buzzer live & leaderboard</h3>
+          <p id="buzz-live" class="highlight">Personne n'a buzzé.</p>
+          <p class="muted">Clique sur un participant pour lui donner +1 point manuellement.</p>
+          <ul id="participants-list" class="leaderboard"></ul>
         </section>
       </section>
     </main>
