@@ -1,33 +1,19 @@
-# ZogQuiz
+# ZogQuiz SPA (refonte)
 
-Mini plateforme de quiz temps réel (Firebase Realtime Database) avec :
-- Connexion admin / participant.
-- Création de participants par l'admin.
-- Création et gestion des questions (+ points).
-- Buzzer live.
-- Overlay canvas pour OBS via URL de room.
-- Classement en direct.
+Refonte complète vers une base SPA orientée :
+
+- **Compte admin unique** via Firebase Authentication (email/mot de passe).
+- **Connexion + création de compte** sur la page principale.
+- **Toutes les données dans Firebase Realtime Database**.
+- **buzzer.html** réservé aux invités pour la **manche 1**.
+- L'admin génère des **codes temporaires** ; l'invité entre code + pseudo pour se connecter au buzzer.
+- Structure prête pour les manches : **1, 2, 3, 4, 5 et finale**.
 
 ## Pages
-- `index.html` : login.
-- `admin.html` : créateur/gestionnaire quiz.
-- `buzzer.html` : page participant.
-- `leaderboard.html` : classement live.
-- `overlay.html?room=room-main` : overlay OBS.
 
-## Compte admin par défaut
-- ID: `Admin01`
-- MDP: `ZQ!Adm1n_2026#Live`
+- `index.html` : SPA admin (auth + génération de codes + préparation manches).
+- `buzzer.html` : page invité pour rejoindre le buzzer de la manche 1.
 
-Sur la page de connexion :
-- Les identifiants admin par défaut sont affichés.
-- Le bouton **Remplir automatiquement** pré-remplit le formulaire.
+## Lancer
 
-## Correctifs inclus
-- Connexion plus robuste avec gestion d'erreur Firebase (message clair si indisponible).
-- Fallback de connexion admin tolérant une saisie avec casse différente (`admin01`, `ADMIN01`, etc.).
-- Nettoyage des abonnements Firebase lors des changements de room pour éviter les écoutes en doublon.
-- Bouton buzz automatiquement désactivé quand le buzzer est fermé.
-
-## Lancer en local
-Utiliser un serveur statique (ex: VS Code Live Server, `python -m http.server`, etc.) puis ouvrir `index.html`.
+Servir le dossier avec un serveur statique, puis ouvrir `index.html`.

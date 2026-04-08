@@ -1,14 +1,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import {
   getDatabase,
   ref,
   set,
   get,
-  push,
   onValue,
+  push,
+  serverTimestamp,
   update,
-  remove,
-  runTransaction,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -22,48 +28,44 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getDatabase(app);
 
-const DEFAULT_ADMIN = {
-  id: "Admin01",
-  role: "admin",
-  passwordHash: "24f851ca1ef3c674977dc036712cc43537f5e4e443940e97287c9c9d83922e8f", // ZQ!Adm1n_2026#Live
-};
+export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "manche5", "finale"];
 
-const ADMIN_CREDENTIAL_HINT = {
-  id: "Admin01",
-  password: "ZQ!Adm1n_2026#Live",
-};
-
-export async function hashPassword(raw) {
-  const data = new TextEncoder().encode(raw);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-export async function ensureDefaultAdmin() {
-  const adminRef = ref(db, `accounts/${DEFAULT_ADMIN.id}`);
-  const snap = await get(adminRef);
-  if (!snap.exists()) {
-    await set(adminRef, DEFAULT_ADMIN);
+export async function ensureRoundsSeed(uid) {
+  for (const round of ROUNDS) {
+    const roundRef = ref(db, `quiz/rounds/${round}`);
+    const snap = await get(roundRef);
+    if (!snap.exists()) {
+      await set(roundRef, {
+        name: round,
+        ready: false,
+        placeholder: true,
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      });
+    }
   }
 }
 
-export function normalizeAccountId(id) {
-  return (id || "").trim();
+export function makeTempCode(size = 6) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: size }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }
 
-export function sessionSave(account) {
-  localStorage.setItem("zogquiz_session", JSON.stringify(account));
-}
-
-export function sessionGet() {
-  const raw = localStorage.getItem("zogquiz_session");
-  return raw ? JSON.parse(raw) : null;
-}
-
-export function sessionClear() {
-  localStorage.removeItem("zogquiz_session");
-}
-
-export { db, ref, set, get, push, onValue, update, remove, runTransaction, ADMIN_CREDENTIAL_HINT };
+export {
+  auth,
+  db,
+  ref,
+  set,
+  get,
+  onValue,
+  push,
+  update,
+  serverTimestamp,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+};
