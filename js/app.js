@@ -26,6 +26,14 @@ const codesList = document.getElementById("codes-list");
 const codeDuration = document.getElementById("code-duration");
 const generatedCode = document.getElementById("generated-code");
 
+function normalizeAdminId(rawId) {
+  return rawId.trim().toLowerCase();
+}
+
+function adminIdToEmail(adminId) {
+  return `${adminId}@zogquiz.local`;
+}
+
 document.getElementById("show-login").addEventListener("click", () => {
   loginForm.classList.remove("hidden");
   signupForm.classList.add("hidden");
@@ -39,10 +47,15 @@ document.getElementById("show-signup").addEventListener("click", () => {
 signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    const email = document.getElementById("signup-email").value.trim();
+    const adminId = normalizeAdminId(document.getElementById("signup-id").value);
+    if (!adminId) {
+      throw new Error("ID invalide.");
+    }
+    const email = adminIdToEmail(adminId);
     const password = document.getElementById("signup-password").value;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await set(ref(db, `admins/${cred.user.uid}`), {
+      adminId,
       email,
       createdAt: Date.now(),
     });
@@ -55,7 +68,11 @@ signupForm.addEventListener("submit", async (event) => {
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    const email = document.getElementById("login-email").value.trim();
+    const adminId = normalizeAdminId(document.getElementById("login-id").value);
+    if (!adminId) {
+      throw new Error("ID invalide.");
+    }
+    const email = adminIdToEmail(adminId);
     const password = document.getElementById("login-password").value;
     await signInWithEmailAndPassword(auth, email, password);
     authMessage.textContent = "Connexion réussie.";
@@ -134,7 +151,9 @@ onAuthStateChanged(auth, async (user) => {
 
   authSection.classList.add("hidden");
   dashboard.classList.remove("hidden");
-  adminEmail.textContent = `Connecté: ${user.email}`;
+  const adminData = adminSnap.val();
+  const displayId = adminData?.adminId || user.email?.split("@")[0] || "admin";
+  adminEmail.textContent = `Connecté: ${displayId}`;
 
   await ensureRoundsSeed(user.uid);
   renderRounds();

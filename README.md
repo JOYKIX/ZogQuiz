@@ -2,8 +2,8 @@
 
 Refonte complète vers une base SPA orientée :
 
-- **Compte admin unique** via Firebase Authentication (email/mot de passe).
-- **Connexion + création de compte** sur la page principale.
+- **Compte admin unique** via Firebase Authentication (ID/mot de passe).
+- **Connexion + création de compte** sur la page principale avec un simple ID.
 - **Toutes les données dans Firebase Realtime Database**.
 - **buzzer.html** réservé aux invités pour la **manche 1**.
 - L'admin génère des **codes temporaires** ; l'invité entre code + pseudo pour se connecter au buzzer.
