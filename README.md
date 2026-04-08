@@ -1,19 +1,33 @@
-# ZogQuiz SPA (refonte)
+# ZogQuiz SPA (refonte manche 1)
 
-Refonte complète vers une base SPA orientée :
+Application web admin + buzzer + overlay OBS pour un format type *Questions pour un champion*.
 
-- **Compte admin unique** via Firebase Authentication (ID/mot de passe).
-- **Connexion + création de compte** sur la page principale avec un simple ID.
-- **Toutes les données dans Firebase Realtime Database**.
-- **buzzer.html** réservé aux invités pour la **manche 1**.
-- L'admin génère des **codes temporaires** ; l'invité entre code + pseudo pour se connecter au buzzer.
-- Structure prête pour les manches : **1, 2, 3, 4, 5 et finale**.
+## Fonctionnalités principales
+
+- Auth admin locale (ID + mot de passe hashé SHA-256 en base).
+- Génération de codes temporaires pour connecter les participants au buzzer.
+- Création de questions/réponses pour :
+  - **questions participants** (buzzer actif)
+  - **questions viewers** (sans buzzer)
+- Pilotage live de la manche 1 :
+  - choix de la question active,
+  - bouton afficher/masquer réponse,
+  - premier buzz verrouille les autres,
+  - unlock manuel du buzzer,
+  - marquer juste (+1) / faux (bloqué sur la question en cours).
+- Leaderboard participants avec attribution manuelle de points au clic.
+- Overlay OBS (`overlay.html`) synchronisé en temps réel avec la question active et la réponse.
 
 ## Pages
 
-- `index.html` : SPA admin (auth + génération de codes + préparation manches).
-- `buzzer.html` : page invité pour rejoindre le buzzer de la manche 1.
+- `index.html` : interface admin complète.
+- `buzzer.html` : connexion invité (code + pseudo) et buzzer live.
+- `overlay.html` : overlay pour OBS (question/réponse).
 
 ## Lancer
 
-Servir le dossier avec un serveur statique, puis ouvrir `index.html`.
+Servir le dossier avec un serveur statique, puis ouvrir :
+
+- `index.html` pour l'admin,
+- `buzzer.html` côté participant,
+- `overlay.html` dans OBS (source navigateur).

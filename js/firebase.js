@@ -6,8 +6,8 @@ import {
   get,
   onValue,
   push,
-  serverTimestamp,
   update,
+  runTransaction,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -39,6 +39,21 @@ export async function ensureRoundsSeed(uid) {
       });
     }
   }
+
+  const stateRef = ref(db, "rooms/manche1/state");
+  const stateSnap = await get(stateRef);
+  if (!stateSnap.exists()) {
+    await set(stateRef, {
+      currentType: "participants",
+      currentQuestionId: null,
+      showAnswer: false,
+      buzzerLocked: false,
+      lockedBySessionId: null,
+      lockedByNickname: "",
+      lockedAt: 0,
+      updatedAt: Date.now(),
+    });
+  }
 }
 
 export function makeTempCode(size = 6) {
@@ -46,13 +61,4 @@ export function makeTempCode(size = 6) {
   return Array.from({ length: size }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }
 
-export {
-  db,
-  ref,
-  set,
-  get,
-  onValue,
-  push,
-  update,
-  serverTimestamp,
-};
+export { db, ref, set, get, onValue, push, update, runTransaction };
