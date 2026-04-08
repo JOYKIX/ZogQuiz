@@ -1,12 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import {
   getDatabase,
   ref,
   set,
@@ -28,7 +21,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getDatabase(app);
 
 export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "manche5", "finale"];
@@ -55,7 +47,6 @@ export function makeTempCode(size = 6) {
 }
 
 export {
-  auth,
   db,
   ref,
   set,
@@ -64,8 +55,4 @@ export {
   push,
   update,
   serverTimestamp,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
 };
