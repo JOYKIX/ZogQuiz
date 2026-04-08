@@ -3,54 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZogQuiz - Connexion</title>
+    <title>ZogQuiz SPA - Admin</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <main class="container shell">
-      <section class="card hero">
-        <h1>ZogQuiz</h1>
-        <p class="muted">Plateforme quiz live pour admin, participants et overlay OBS.</p>
-        <div class="badges">
-          <span class="badge">⚡ Temps réel</span>
-          <span class="badge">🎮 Buzzer</span>
-          <span class="badge">📺 Overlay stream</span>
-        </div>
-      </section>
+    <main class="app-shell">
+      <header class="hero card">
+        <h1>ZogQuiz (SPA)</h1>
+        <p>Admin unique • Firebase Auth + Realtime Database • préparation des manches 1 à 5 + finale.</p>
+      </header>
 
-      <section class="card">
-        <h2>Connexion</h2>
+      <section id="auth-section" class="card">
+        <h2>Connexion / Création de compte admin</h2>
+        <div class="row">
+          <button id="show-login" class="secondary">Connexion</button>
+          <button id="show-signup" class="secondary">Créer un compte</button>
+        </div>
+
         <form id="login-form" class="stack">
-          <label>
-            Identifiant
-            <input id="login-id" type="text" required autocomplete="username" placeholder="Ex: Admin01" />
+          <label>Email
+            <input id="login-email" type="email" required autocomplete="email" />
           </label>
-          <label>
-            Mot de passe
-            <input id="login-password" type="password" required autocomplete="current-password" placeholder="Votre mot de passe" />
+          <label>Mot de passe
+            <input id="login-password" type="password" required autocomplete="current-password" />
           </label>
-          <button id="login-submit" type="submit">Se connecter</button>
+          <button type="submit">Se connecter</button>
         </form>
 
-        <p id="login-message" class="message"></p>
+        <form id="signup-form" class="stack hidden">
+          <label>Email
+            <input id="signup-email" type="email" required autocomplete="email" />
+          </label>
+          <label>Mot de passe
+            <input id="signup-password" type="password" minlength="6" required autocomplete="new-password" />
+          </label>
+          <button type="submit">Créer le compte admin</button>
+        </form>
+        <p id="auth-message" class="message"></p>
       </section>
 
-      <section class="hint card subtle">
-        <h2>Compte admin par défaut</h2>
-        <p><strong>ID :</strong> <span id="admin-id">-</span></p>
-        <p><strong>MDP :</strong> <span id="admin-password">-</span></p>
-        <button id="fill-admin" type="button">Remplir automatiquement</button>
-      </section>
-
-      <section class="card subtle">
-        <h2>Accès rapides</h2>
-        <div class="row">
-          <a class="link-btn" href="leaderboard.html" target="_blank">Classement live</a>
-          <a class="link-btn" href="overlay.html?room=room-main" target="_blank">Overlay room-main</a>
+      <section id="dashboard" class="hidden">
+        <div class="card">
+          <div class="row between">
+            <h2>Espace admin</h2>
+            <button id="logout" class="danger">Déconnexion</button>
+          </div>
+          <p id="admin-email" class="muted"></p>
         </div>
+
+        <section class="card">
+          <h3>Manche 1 — Buzzer invité (codes temporaires)</h3>
+          <p>Génère un code temporaire. L'invité l'utilise sur <code>buzzer.html</code> avec son pseudo.</p>
+          <div class="row">
+            <label>Durée (minutes)
+              <input id="code-duration" type="number" min="1" max="120" value="30" />
+            </label>
+            <button id="generate-code">Générer un code</button>
+          </div>
+          <p id="generated-code" class="highlight"></p>
+          <ul id="codes-list" class="list"></ul>
+        </section>
+
+        <section class="card">
+          <h3>Préparation des manches</h3>
+          <div id="rounds-grid" class="rounds-grid"></div>
+        </section>
       </section>
     </main>
 
-    <script type="module" src="js/login.js"></script>
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>

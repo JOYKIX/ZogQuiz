@@ -3,21 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZogQuiz - Buzzer</title>
+    <title>ZogQuiz - Buzzer invité (Manche 1)</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <main class="container card">
-      <h1>Buzzer participant</h1>
-      <p id="player-info" class="muted"></p>
-      <label>Room ID <input id="room-id" value="room-main" /></label>
-      <button id="join-room">Rejoindre</button>
+    <main class="app-shell">
+      <section class="card">
+        <h1>Manche 1 — Buzzer invité</h1>
+        <p>Entre le code temporaire donné par l'admin et ton pseudo.</p>
+        <form id="guest-form" class="stack">
+          <label>Code temporaire
+            <input id="guest-code" required maxlength="8" />
+          </label>
+          <label>Pseudo
+            <input id="guest-nickname" required maxlength="24" />
+          </label>
+          <button type="submit">Se connecter au buzzer</button>
+        </form>
+        <p id="guest-message" class="message"></p>
+      </section>
 
-      <button id="buzz-btn" class="buzz">BUZZ!</button>
-      <p id="buzz-state" class="message"></p>
-
-      <a href="leaderboard.html" target="_blank">Voir classement</a>
-      <button id="logout-btn" class="danger">Déconnexion</button>
+      <section id="buzzer-panel" class="card hidden">
+        <h2 id="guest-title"></h2>
+        <button id="buzz-btn" class="buzz">BUZZER</button>
+        <p id="buzz-feedback" class="message"></p>
+      </section>
     </main>
 
     <script type="module" src="js/buzzer.js"></script>

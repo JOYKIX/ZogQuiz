@@ -1,62 +1,58 @@
-import { db, ref, onValue, runTransaction, sessionGet, sessionClear } from "./firebase.js";
+import { db, ref, get, set, push } from "./firebase.js";
 
-const session = sessionGet();
-if (!session || session.role !== "participant") {
-  window.location.href = "index.html";
-}
-
-document.getElementById("player-info").textContent = `Connecté: ${session.id}`;
-document.getElementById("logout-btn").onclick = () => {
-  sessionClear();
-  window.location.href = "index.html";
-};
-
-const roomInput = document.getElementById("room-id");
+const guestForm = document.getElementById("guest-form");
+const guestMessage = document.getElementById("guest-message");
+const buzzerPanel = document.getElementById("buzzer-panel");
+const guestTitle = document.getElementById("guest-title");
 const buzzBtn = document.getElementById("buzz-btn");
-const stateText = document.getElementById("buzz-state");
-let roomId = "room-main";
-let state = {};
-let unsubState = null;
+const buzzFeedback = document.getElementById("buzz-feedback");
 
-function roomPath(path) {
-  return `rooms/${roomId}/${path}`;
-}
+let currentSession = null;
 
-function syncBuzzButton() {
-  const closed = !state.buzzerOpen || Boolean(state.buzz?.userId);
-  buzzBtn.disabled = closed;
-}
+guestForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const code = document.getElementById("guest-code").value.trim().toUpperCase();
+  const nickname = document.getElementById("guest-nickname").value.trim();
 
-function bindRoom() {
-  if (unsubState) unsubState();
-  stateText.textContent = `Connexion à la room ${roomId}...`;
+  if (!code || !nickname) {
+    guestMessage.textContent = "Code et pseudo obligatoires.";
+    return;
+  }
 
-  unsubState = onValue(ref(db, roomPath("state")), (snap) => {
-    state = snap.val() || {};
-    if (state.buzz?.userId) {
-      stateText.textContent = `Premier buzz: ${state.buzz.userId}`;
-    } else if (state.buzzerOpen) {
-      stateText.textContent = "Buzzer ouvert, fonce !";
-    } else {
-      stateText.textContent = "Buzzer fermé (attends l'admin).";
-    }
-    syncBuzzButton();
+  const codeSnap = await get(ref(db, `rooms/manche1/accessCodes/${code}`));
+  if (!codeSnap.exists()) {
+    guestMessage.textContent = "Code invalide.";
+    return;
+  }
+
+  const codeData = codeSnap.val();
+  const expired = Date.now() > (codeData.expiresAt || 0);
+  if (!codeData.active || expired) {
+    guestMessage.textContent = "Code expiré ou désactivé.";
+    return;
+  }
+
+  const sessionRef = push(ref(db, "rooms/manche1/guestSessions"));
+  currentSession = sessionRef.key;
+
+  await set(sessionRef, {
+    nickname,
+    code,
+    joinedAt: Date.now(),
   });
-}
 
-document.getElementById("join-room").onclick = () => {
-  roomId = roomInput.value.trim() || "room-main";
-  bindRoom();
-};
+  guestMessage.textContent = "Connecté au buzzer.";
+  guestTitle.textContent = `Connecté en tant que ${nickname}`;
+  buzzerPanel.classList.remove("hidden");
+});
 
-buzzBtn.onclick = async () => {
-  await runTransaction(ref(db, roomPath("state")), (current) => {
-    const now = current || {};
-    if (!now.buzzerOpen || now.buzz?.userId) return now;
-    now.buzz = { userId: session.id, ts: Date.now() };
-    now.buzzerOpen = false;
-    return now;
+buzzBtn.addEventListener("click", async () => {
+  if (!currentSession) return;
+
+  await push(ref(db, "rooms/manche1/buzzes"), {
+    sessionId: currentSession,
+    timestamp: Date.now(),
   });
-};
 
-bindRoom();
+  buzzFeedback.textContent = "Buzz envoyé !";
+});
