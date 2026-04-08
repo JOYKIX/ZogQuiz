@@ -1,14 +1,9 @@
 import {
-  auth,
   db,
   ref,
   set,
   get,
   onValue,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
   ensureRoundsSeed,
   makeTempCode,
   ROUNDS,
@@ -25,13 +20,45 @@ const roundsGrid = document.getElementById("rounds-grid");
 const codesList = document.getElementById("codes-list");
 const codeDuration = document.getElementById("code-duration");
 const generatedCode = document.getElementById("generated-code");
+const SESSION_KEY = "zogquiz_admin_id";
+
+let currentAdminId = null;
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
 }
 
-function adminIdToEmail(adminId) {
-  return `${adminId}@zogquiz.local`;
+async function hashPassword(password) {
+  const data = new TextEncoder().encode(password);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function isLoggedIn() {
+  return Boolean(currentAdminId);
+}
+
+function setSession(adminId) {
+  currentAdminId = adminId;
+  localStorage.setItem(SESSION_KEY, adminId);
+}
+
+function clearSession() {
+  currentAdminId = null;
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function showDashboard(adminId) {
+  authSection.classList.add("hidden");
+  dashboard.classList.remove("hidden");
+  adminEmail.textContent = `Connecté: ${adminId}`;
+}
+
+function showAuth() {
+  authSection.classList.remove("hidden");
+  dashboard.classList.add("hidden");
 }
 
 document.getElementById("show-login").addEventListener("click", () => {
@@ -51,14 +78,28 @@ signupForm.addEventListener("submit", async (event) => {
     if (!adminId) {
       throw new Error("ID invalide.");
     }
-    const email = adminIdToEmail(adminId);
     const password = document.getElementById("signup-password").value;
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await set(ref(db, `admins/${cred.user.uid}`), {
+    if (!password) {
+      throw new Error("Mot de passe invalide.");
+    }
+
+    const adminRef = ref(db, `admins/${adminId}`);
+    const adminSnap = await get(adminRef);
+    if (adminSnap.exists()) {
+      throw new Error("Cet ID existe déjà.");
+    }
+
+    const passwordHash = await hashPassword(password);
+    await set(adminRef, {
       adminId,
-      email,
+      passwordHash,
       createdAt: Date.now(),
     });
+    setSession(adminId);
+    await ensureRoundsSeed(adminId);
+    renderRounds();
+    listenCodes();
+    showDashboard(adminId);
     authMessage.textContent = "Compte admin créé et connecté.";
   } catch (error) {
     authMessage.textContent = `Erreur création: ${error.message}`;
@@ -72,9 +113,28 @@ loginForm.addEventListener("submit", async (event) => {
     if (!adminId) {
       throw new Error("ID invalide.");
     }
-    const email = adminIdToEmail(adminId);
     const password = document.getElementById("login-password").value;
-    await signInWithEmailAndPassword(auth, email, password);
+    const adminSnap = await get(ref(db, `admins/${adminId}`));
+    if (!adminSnap.exists()) {
+      throw new Error("ID inconnu.");
+    }
+
+    const adminData = adminSnap.val() || {};
+    const expectedHash = adminData.passwordHash;
+    if (!expectedHash) {
+      throw new Error("Compte invalide (hash manquant).");
+    }
+
+    const passwordHash = await hashPassword(password);
+    if (passwordHash !== expectedHash) {
+      throw new Error("Mot de passe incorrect.");
+    }
+
+    setSession(adminId);
+    await ensureRoundsSeed(adminId);
+    renderRounds();
+    listenCodes();
+    showDashboard(adminId);
     authMessage.textContent = "Connexion réussie.";
   } catch (error) {
     authMessage.textContent = `Erreur connexion: ${error.message}`;
@@ -82,12 +142,13 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 document.getElementById("logout").addEventListener("click", async () => {
-  await signOut(auth);
+  clearSession();
+  showAuth();
+  authMessage.textContent = "Déconnecté.";
 });
 
 document.getElementById("generate-code").addEventListener("click", async () => {
-  const user = auth.currentUser;
-  if (!user) return;
+  if (!isLoggedIn()) return;
 
   const code = makeTempCode(6);
   const minutes = Math.max(1, Number(codeDuration.value || 30));
@@ -96,7 +157,7 @@ document.getElementById("generate-code").addEventListener("click", async () => {
   await set(ref(db, `rooms/manche1/accessCodes/${code}`), {
     code,
     active: true,
-    createdBy: user.uid,
+    createdBy: currentAdminId,
     createdAt: Date.now(),
     expiresAt,
   });
@@ -135,27 +196,29 @@ function listenCodes() {
   });
 }
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    authSection.classList.remove("hidden");
-    dashboard.classList.add("hidden");
+async function restoreSession() {
+  const savedAdminId = normalizeAdminId(localStorage.getItem(SESSION_KEY) || "");
+  if (!savedAdminId) {
+    showAuth();
     return;
   }
 
-  const adminSnap = await get(ref(db, `admins/${user.uid}`));
+  const adminSnap = await get(ref(db, `admins/${savedAdminId}`));
   if (!adminSnap.exists()) {
-    authMessage.textContent = "Ce compte n'est pas admin.";
-    await signOut(auth);
+    clearSession();
+    showAuth();
     return;
   }
 
-  authSection.classList.add("hidden");
-  dashboard.classList.remove("hidden");
-  const adminData = adminSnap.val();
-  const displayId = adminData?.adminId || user.email?.split("@")[0] || "admin";
-  adminEmail.textContent = `Connecté: ${displayId}`;
-
-  await ensureRoundsSeed(user.uid);
+  setSession(savedAdminId);
+  await ensureRoundsSeed(savedAdminId);
   renderRounds();
   listenCodes();
+  showDashboard(savedAdminId);
+}
+
+restoreSession().catch((error) => {
+  clearSession();
+  showAuth();
+  authMessage.textContent = `Erreur session: ${error.message}`;
 });
