@@ -20,6 +20,8 @@ const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
 const showLoginBtn = document.getElementById("show-login");
 const showSignupBtn = document.getElementById("show-signup");
+const breadcrumb = document.getElementById("breadcrumb");
+const toast = document.getElementById("toast");
 
 const codesList = document.getElementById("codes-list");
 const codeDuration = document.getElementById("code-duration");
@@ -39,11 +41,13 @@ const roundStatus = document.getElementById("round-status");
 const buzzLive = document.getElementById("buzz-live");
 const activeQuestion = document.getElementById("active-question");
 const participantsList = document.getElementById("participants-list");
+const m1ParticipantsList = document.getElementById("m1-participants-list");
 const quickLeaderboard = document.getElementById("quick-leaderboard");
 const scoreboardPreview = document.getElementById("scoreboard-preview");
 const overlayFontSizeInput = document.getElementById("overlay-font-size");
 
 const sessionStatus = document.getElementById("session-status");
+const activeRoundStatus = document.getElementById("active-round-status");
 const currentQuestionStatus = document.getElementById("current-question-status");
 const buzzerStatus = document.getElementById("buzzer-status");
 const lastBuzzStatus = document.getElementById("last-buzz-status");
@@ -56,16 +60,29 @@ const m2QuestionsList = document.getElementById("m2-questions-list");
 const m2ParticipantsList = document.getElementById("m2-participants-list");
 const m2LiveStatus = document.getElementById("m2-live-status");
 
-const sideLinks = Array.from(document.querySelectorAll(".side-link"));
-const sectionPanels = Array.from(document.querySelectorAll("[data-section-panel]"));
+const workspaceLinks = Array.from(document.querySelectorAll(".nav-item"));
+const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
+const quickNavBtns = Array.from(document.querySelectorAll(".quick-nav"));
 const roundTabs = Array.from(document.querySelectorAll(".round-tab"));
-const roundPanels = Array.from(document.querySelectorAll(".round-panel"));
+const roundPanels = Array.from(document.querySelectorAll(".round-shell"));
+const roundSectionTabs = Array.from(document.querySelectorAll(".subnav-tab"));
+const roundSectionPanels = Array.from(document.querySelectorAll("[data-round-section-panel]"));
 
 const SESSION_KEY = "zogquiz_admin_id";
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 
 let currentAdminId = null;
 let activeRound = "manche1";
+let activeWorkspace = "dashboard";
+const activeRoundSectionByRound = {
+  manche1: "overview",
+  manche2: "overview",
+  manche3: "overview",
+  manche4: "overview",
+  manche5: "overview",
+  finale: "overview",
+};
+
 let liveState = null;
 let overlaySettings = { questionFontSizePx: 72 };
 let codeCleanupLock = false;
@@ -77,6 +94,15 @@ let manche2State = null;
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
+}
+
+function showToast(text, type = "success") {
+  if (!toast) return;
+  toast.textContent = text;
+  toast.classList.remove("hidden", "error");
+  if (type === "error") toast.classList.add("error");
+  window.clearTimeout(showToast.timer);
+  showToast.timer = window.setTimeout(() => toast.classList.add("hidden"), 2200);
 }
 
 function setMessage(target, text, type = "default") {
@@ -124,26 +150,48 @@ function showAuth() {
   sessionStatus.textContent = "Hors ligne";
 }
 
-function activateSection(section) {
-  sideLinks.forEach((btn) => {
-    const isActive = btn.dataset.section === section;
+function workspaceLabel(workspace) {
+  if (workspace === "dashboard") return "Dashboard global";
+  if (workspace === "players") return "Joueurs & invités";
+  if (workspace === "broadcast") return "Overlays & diffusion";
+  return `Pilotage • ${formatRound(activeRound)}`;
+}
+
+function formatRound(round) {
+  return round === "finale" ? "Finale" : round.replace("manche", "Manche ");
+}
+
+function activateWorkspace(workspace) {
+  activeWorkspace = workspace;
+  workspaceLinks.forEach((btn) => btn.classList.toggle("active", btn.dataset.workspace === workspace));
+  workspacePanels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.workspacePanel !== workspace));
+  breadcrumb.textContent = workspaceLabel(workspace);
+}
+
+function activateRoundSection(round, section) {
+  activeRoundSectionByRound[round] = section;
+  roundSectionTabs.forEach((btn) => {
+    const isActive = btn.dataset.round === round && btn.dataset.roundSection === section;
     btn.classList.toggle("active", isActive);
   });
-  sectionPanels.forEach((panel) => {
-    panel.classList.toggle("hidden", panel.dataset.sectionPanel !== section);
+  roundSectionPanels.forEach((panel) => {
+    const [panelRound, panelSection] = panel.dataset.roundSectionPanel.split(":");
+    const visible = panelRound === round && panelSection === section;
+    panel.classList.toggle("hidden", !visible);
   });
 }
 
 async function setActiveRound(round) {
   activeRound = round;
+  activeRoundStatus.textContent = formatRound(round);
   roundTabs.forEach((btn) => {
     const isActive = btn.dataset.round === round;
     btn.classList.toggle("active", isActive);
     btn.setAttribute("aria-selected", String(isActive));
   });
-  roundPanels.forEach((panel) => {
-    panel.classList.toggle("hidden", panel.dataset.roundPanel !== round);
-  });
+  roundPanels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.roundPanel !== round));
+  activateRoundSection(round, activeRoundSectionByRound[round] || "overview");
+  if (activeWorkspace === "rounds") breadcrumb.textContent = workspaceLabel("rounds");
 
   if (isLoggedIn()) {
     await update(ref(db, "quiz/state"), {
@@ -154,17 +202,19 @@ async function setActiveRound(round) {
   }
 }
 
-for (const btn of sideLinks) {
-  btn.addEventListener("click", () => activateSection(btn.dataset.section));
-}
+workspaceLinks.forEach((btn) => btn.addEventListener("click", () => activateWorkspace(btn.dataset.workspace)));
+quickNavBtns.forEach((btn) => btn.addEventListener("click", () => activateWorkspace(btn.dataset.workspaceTarget)));
 
-for (const btn of roundTabs) {
-  btn.addEventListener("click", async () => {
-    await setActiveRound(btn.dataset.round);
-  });
-}
+roundTabs.forEach((btn) => btn.addEventListener("click", async () => {
+  await setActiveRound(btn.dataset.round);
+}));
 
-activateSection("overview");
+roundSectionTabs.forEach((btn) => {
+  btn.addEventListener("click", () => activateRoundSection(btn.dataset.round, btn.dataset.roundSection));
+});
+
+activateWorkspace("dashboard");
+activateRoundSection("manche1", "overview");
 
 showLoginBtn.addEventListener("click", () => {
   loginForm.classList.remove("hidden");
@@ -237,6 +287,7 @@ document.getElementById("generate-code").addEventListener("click", async () => {
     expiresAt: Date.now() + minutes * 60 * 1000,
   });
   setMessage(generatedCode, `Code ${code} actif ${minutes} min.`, "success");
+  showToast(`Code ${code} généré`);
 });
 
 participantQuestionForm.addEventListener("submit", async (event) => {
@@ -260,22 +311,26 @@ toggleAnswerBtn.addEventListener("click", async () => {
     showAnswer: !liveState.showAnswer,
     updatedAt: Date.now(),
   });
+  showToast("Affichage de réponse mis à jour");
 });
 
 unlockBuzzerBtn.addEventListener("click", async () => {
   await unlockBuzzer();
+  showToast("Buzzer déverrouillé");
 });
 
 markCorrectBtn.addEventListener("click", async () => {
   if (!liveState?.lockedBySessionId) return;
   await updateParticipantScore(liveState.lockedBySessionId, 1);
   await unlockBuzzer();
+  showToast("Point attribué");
 });
 
 markWrongBtn.addEventListener("click", async () => {
   if (!liveState?.lockedBySessionId || !liveState?.currentQuestionId) return;
   await set(ref(db, `rooms/manche1/questionBlocks/${liveState.currentQuestionId}/${liveState.lockedBySessionId}`), true);
   await unlockBuzzer();
+  showToast("Réponse marquée incorrecte", "error");
 });
 
 overlayFontSizeInput.addEventListener("change", async () => {
@@ -316,6 +371,7 @@ async function createRound1Question(type, questionInputId, answerInputId) {
 
   questionInput.value = "";
   answerInput.value = "";
+  showToast("Question ajoutée");
 }
 
 async function createRound2Question() {
@@ -352,6 +408,7 @@ async function createRound2Question() {
 
   m2QuestionForm.reset();
   setMessage(m2LiveStatus, "Question ajoutée.", "success");
+  showToast("Question manche 2 ajoutée");
 }
 
 function readFileAsDataURL(file) {
@@ -433,7 +490,7 @@ function renderCodes(codesMap) {
 
   codesList.innerHTML = "";
   if (!entries.length) {
-    codesList.innerHTML = "<li>Aucun code actif.</li>";
+    codesList.innerHTML = "<li class='empty-state'>Aucun code actif.</li>";
     return;
   }
 
@@ -480,7 +537,7 @@ function renderLeaderboardList(target, entries, emptyText, includeActions = fals
   target.innerHTML = "";
 
   if (!entries.length) {
-    target.innerHTML = `<li>${emptyText}</li>`;
+    target.innerHTML = `<li class="empty-state">${emptyText}</li>`;
     return;
   }
 
@@ -497,7 +554,7 @@ function renderLeaderboardList(target, entries, emptyText, includeActions = fals
       actionWrap.className = "score-actions";
       for (const delta of actions) {
         const button = document.createElement("button");
-        button.className = delta < 0 ? "danger mini-btn" : "secondary mini-btn";
+        button.className = delta < 0 ? "btn btn-danger mini-btn" : "btn btn-secondary mini-btn";
         button.textContent = `${delta > 0 ? "+" : ""}${delta}`;
         button.disabled = p.score <= 0 && delta < 0;
         button.addEventListener("click", () => updateParticipantScore(p.id, delta));
@@ -516,6 +573,7 @@ function renderParticipants() {
     .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
 
   renderLeaderboardList(participantsList, entries, "Aucun participant.", true, [-1, 1]);
+  renderLeaderboardList(m1ParticipantsList, entries, "Aucun participant.", true, [-1, 1]);
   renderLeaderboardList(quickLeaderboard, entries.slice(0, 5), "Le classement apparaîtra ici.");
   renderLeaderboardList(scoreboardPreview, entries.slice(0, 5), "Le classement apparaîtra ici.");
 }
@@ -533,7 +591,7 @@ function renderRound1QuestionList(type, data, container) {
   container.innerHTML = "";
 
   if (!entries.length) {
-    container.innerHTML = "<li>Aucune question.</li>";
+    container.innerHTML = "<li class='empty-state'>Aucune question.</li>";
     return;
   }
 
@@ -554,7 +612,7 @@ function renderRound1QuestionList(type, data, container) {
     actions.className = "row question-actions";
 
     const askBtn = document.createElement("button");
-    askBtn.className = isActive ? "secondary" : "";
+    askBtn.className = isActive ? "btn btn-secondary" : "btn btn-primary";
     askBtn.textContent = isActive ? "En direct" : "Lancer";
     askBtn.disabled = isActive;
     askBtn.addEventListener("click", async () => {
@@ -569,15 +627,16 @@ function renderRound1QuestionList(type, data, container) {
         lockedAt: 0,
         updatedAt: Date.now(),
       });
-      activateSection("live");
+      activateRoundSection("manche1", "live");
+      showToast("Question lancée en live");
     });
 
     const editBtn = document.createElement("button");
-    editBtn.className = "secondary";
+    editBtn.className = "btn btn-secondary";
     editBtn.textContent = "Modifier";
 
     const deleteBtn = document.createElement("button");
-    deleteBtn.className = "danger";
+    deleteBtn.className = "btn btn-danger";
     deleteBtn.textContent = "Supprimer";
     deleteBtn.addEventListener("click", async () => {
       await deleteRound1Question(type, id);
@@ -587,7 +646,7 @@ function renderRound1QuestionList(type, data, container) {
     li.appendChild(actions);
 
     const editor = document.createElement("form");
-    editor.className = "question-editor hidden";
+    editor.className = "question-editor hidden stack";
     const textArea = document.createElement("textarea");
     textArea.rows = 2;
     textArea.required = true;
@@ -601,10 +660,11 @@ function renderRound1QuestionList(type, data, container) {
     editorActions.className = "row";
     const saveBtn = document.createElement("button");
     saveBtn.type = "submit";
+    saveBtn.className = "btn btn-primary";
     saveBtn.textContent = "Enregistrer";
     const cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
-    cancelBtn.className = "secondary";
+    cancelBtn.className = "btn btn-secondary";
     cancelBtn.textContent = "Annuler";
     editorActions.append(saveBtn, cancelBtn);
 
@@ -622,6 +682,7 @@ function renderRound1QuestionList(type, data, container) {
         updatedBy: currentAdminId,
       });
       editor.classList.add("hidden");
+      showToast("Question mise à jour");
     });
 
     li.appendChild(editor);
@@ -647,6 +708,7 @@ async function deleteRound1Question(type, questionId) {
     });
     await clearBuzzData();
   }
+  showToast("Question supprimée", "error");
 }
 
 function renderRound2Questions() {
@@ -654,7 +716,7 @@ function renderRound2Questions() {
   m2QuestionsList.innerHTML = "";
 
   if (!entries.length) {
-    m2QuestionsList.innerHTML = "<li>Aucune question.</li>";
+    m2QuestionsList.innerHTML = "<li class='empty-state'>Aucune question.</li>";
     return;
   }
 
@@ -676,7 +738,7 @@ function renderRound2Questions() {
     actions.className = "row question-actions";
 
     const liveBtn = document.createElement("button");
-    liveBtn.className = isActive ? "secondary" : "";
+    liveBtn.className = isActive ? "btn btn-secondary" : "btn btn-primary";
     liveBtn.textContent = isActive ? "Affichée" : "Afficher";
     liveBtn.disabled = isActive;
     liveBtn.addEventListener("click", async () => {
@@ -686,14 +748,15 @@ function renderRound2Questions() {
         updatedBy: currentAdminId,
       });
       await setActiveRound("manche2");
+      showToast("Question manche 2 affichée");
     });
 
     const editBtn = document.createElement("button");
-    editBtn.className = "secondary";
+    editBtn.className = "btn btn-secondary";
     editBtn.textContent = "Modifier";
 
     const deleteBtn = document.createElement("button");
-    deleteBtn.className = "danger";
+    deleteBtn.className = "btn btn-danger";
     deleteBtn.textContent = "Supprimer";
 
     deleteBtn.addEventListener("click", async () => {
@@ -706,13 +769,14 @@ function renderRound2Questions() {
           updatedBy: currentAdminId,
         });
       }
+      showToast("Question manche 2 supprimée", "error");
     });
 
     actions.append(liveBtn, editBtn, deleteBtn);
     li.appendChild(actions);
 
     const editor = document.createElement("form");
-    editor.className = "question-editor hidden";
+    editor.className = "question-editor hidden stack";
 
     const workInput = document.createElement("input");
     workInput.required = true;
@@ -730,10 +794,11 @@ function renderRound2Questions() {
     editorActions.className = "row";
     const saveBtn = document.createElement("button");
     saveBtn.type = "submit";
+    saveBtn.className = "btn btn-primary";
     saveBtn.textContent = "Enregistrer";
     const cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
-    cancelBtn.className = "secondary";
+    cancelBtn.className = "btn btn-secondary";
     cancelBtn.textContent = "Annuler";
     editorActions.append(saveBtn, cancelBtn);
 
@@ -766,6 +831,7 @@ function renderRound2Questions() {
       await update(ref(db, `rooms/manche2/questions/${id}`), payload);
       setMessage(m2LiveStatus, "Question modifiée.", "success");
       editor.classList.add("hidden");
+      showToast("Question manche 2 mise à jour");
     });
 
     li.appendChild(editor);
