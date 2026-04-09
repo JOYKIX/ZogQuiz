@@ -24,7 +24,8 @@ body {
   justify-items: center;
 }
 
-#m1-question {
+#m1-question,
+#m3-overlay-question {
   margin: 0;
   font-size: 72px;
   line-height: 1.2;
@@ -36,6 +37,19 @@ body {
   color: var(--accent);
   font-size: clamp(1.5rem, 3vw, 2.6rem);
   font-weight: 700;
+}
+
+.m3-overlay-meta {
+  margin: 0;
+  font-size: clamp(1rem, 1.8vw, 1.6rem);
+  color: #d8ecff;
+}
+
+.m3-overlay-timer {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  font-weight: 800;
+  letter-spacing: .03em;
 }
 
 .hidden { display: none; }

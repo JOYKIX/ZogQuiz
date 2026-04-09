@@ -9,10 +9,12 @@ let state = null;
 function render() {
   const active = state?.activeQuestionId ? questions[state.activeQuestionId] : null;
   if (!active?.imageDataUrl) {
+    imageNode.removeAttribute("src");
     imageNode.classList.add("hidden");
     emptyNode.classList.remove("hidden");
     return;
   }
+
   imageNode.src = active.imageDataUrl;
   imageNode.classList.remove("hidden");
   emptyNode.classList.add("hidden");

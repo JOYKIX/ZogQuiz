@@ -388,3 +388,37 @@ textarea:focus-visible {
   object-fit: contain;
   border-radius: 12px;
 }
+
+.overlay-round2-body {
+  margin: 0;
+  min-height: 100vh;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+
+.overlay-round2-shell {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.overlay-round2-empty {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+.overlay-round2-shell .m2-overlay-image {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  border: 0;
+  border-radius: 0;
+}
+
+.overlay-settings-block {
+  border-top: 1px dashed var(--line-soft);
+  padding-top: .7rem;
+}

@@ -50,7 +50,8 @@ const participantsList = $("participants-list");
 const m1ParticipantsList = $("m1-participants-list");
 const quickLeaderboard = $("quick-leaderboard");
 const scoreboardPreview = $("scoreboard-preview");
-const overlayFontSizeInput = $("overlay-font-size");
+const overlayRound1FontSizeInput = $("overlay-round1-font-size");
+const overlayRound1ColorInput = $("overlay-round1-text-color");
 
 const sessionStatus = $("session-status");
 const activeRoundStatus = $("active-round-status");
@@ -62,6 +63,7 @@ const m2QuestionForm = $("m2-question-form");
 const m2ImageInput = $("m2-image");
 const m2WorkInput = $("m2-work");
 const m2LocationInput = $("m2-location");
+const m2QuestionTextInput = $("m2-question-text");
 const m2QuestionsList = $("m2-questions-list");
 const m2ParticipantsList = $("m2-participants-list");
 const m2LiveStatus = $("m2-live-status");
@@ -82,6 +84,8 @@ const m3ResetBtn = $("m3-reset");
 const m3PassBtn = $("m3-pass");
 const m3CorrectBtn = $("m3-correct");
 const m3NextBtn = $("m3-next");
+const overlayRound3FontSizeInput = $("overlay-round3-font-size");
+const overlayRound3ColorInput = $("overlay-round3-text-color");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -101,7 +105,8 @@ let activeWorkspace = "dashboard";
 const activeRoundSectionByRound = { manche1: "overview", manche2: "overview", manche3: "overview", manche4: "overview", manche5: "overview", finale: "overview" };
 
 let liveState = null;
-let overlaySettings = { questionFontSizePx: 72 };
+let round1OverlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
+let round3OverlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
 let codeCleanupLock = false;
 let sessionsById = {};
 let participantQuestions = {};
@@ -320,8 +325,12 @@ buzzMinusBtn.addEventListener("click", async () => {
   showToast("-1 point");
 });
 
-overlayFontSizeInput.addEventListener("change", async () => saveOverlayFontSize(overlayFontSizeInput.value));
-overlayFontSizeInput.addEventListener("blur", async () => saveOverlayFontSize(overlayFontSizeInput.value));
+overlayRound1FontSizeInput.addEventListener("change", async () => saveRound1OverlaySettings());
+overlayRound1FontSizeInput.addEventListener("blur", async () => saveRound1OverlaySettings());
+overlayRound1ColorInput.addEventListener("input", async () => saveRound1OverlaySettings());
+overlayRound3FontSizeInput.addEventListener("change", async () => saveRound3OverlaySettings());
+overlayRound3FontSizeInput.addEventListener("blur", async () => saveRound3OverlaySettings());
+overlayRound3ColorInput.addEventListener("input", async () => saveRound3OverlaySettings());
 
 m3ThemeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -370,6 +379,7 @@ async function createRound2Question() {
   const file = m2ImageInput.files?.[0];
   const work = m2WorkInput.value.trim();
   const location = m2LocationInput.value.trim();
+  const questionText = m2QuestionTextInput.value.trim();
   if (!file || !work || !location) return;
   if (!file.type.startsWith("image/")) return setMessage(m2LiveStatus, "Image invalide.", "error");
   if (file.size > MAX_IMAGE_SIZE) return setMessage(m2LiveStatus, "Image trop lourde (3 Mo max).", "error");
@@ -379,7 +389,7 @@ async function createRound2Question() {
   const listSnap = await get(ref(db, "rooms/manche2/questions"));
   const order = Object.keys(listSnap.val() || {}).length + 1;
   const questionRef = push(ref(db, "rooms/manche2/questions"));
-  await set(questionRef, { imageDataUrl, work, location, fileName: file.name, mimeType: file.type, order, createdAt: Date.now(), createdBy: currentAdminId });
+  await set(questionRef, { imageDataUrl, work, location, questionText, fileName: file.name, mimeType: file.type, order, createdAt: Date.now(), createdBy: currentAdminId });
   m2QuestionForm.reset();
   setMessage(m2LiveStatus, "Image ajoutée.", "success");
 }
@@ -442,9 +452,15 @@ function initListeners() {
   });
 
   onValue(ref(db, "rooms/manche1/overlaySettings"), (snap) => {
-    const settings = snap.val() || {};
-    overlaySettings = { questionFontSizePx: Math.max(24, Math.min(180, Number(settings.questionFontSizePx || 72))) };
-    overlayFontSizeInput.value = String(overlaySettings.questionFontSizePx);
+    round1OverlaySettings = normalizeOverlaySettings(snap.val() || {}, 72);
+    overlayRound1FontSizeInput.value = String(round1OverlaySettings.questionFontSizePx);
+    overlayRound1ColorInput.value = round1OverlaySettings.questionColor;
+  });
+
+  onValue(ref(db, "rooms/manche3/overlaySettings"), (snap) => {
+    round3OverlaySettings = normalizeOverlaySettings(snap.val() || {}, 72);
+    overlayRound3FontSizeInput.value = String(round3OverlaySettings.questionFontSizePx);
+    overlayRound3ColorInput.value = round3OverlaySettings.questionColor;
   });
 
   onValue(ref(db, "rooms/manche2/questions"), (snap) => { manche2Questions = snap.val() || {}; renderRound2Questions(); });
@@ -559,10 +575,33 @@ function renderRound1QuestionList(type, data, container) {
     deleteBtn.className = "btn btn-danger";
     deleteBtn.textContent = "Supprimer";
     deleteBtn.addEventListener("click", async () => deleteRound1Question(type, id));
-    actions.append(askBtn, deleteBtn);
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-secondary";
+    editBtn.textContent = "Éditer";
+    editBtn.addEventListener("click", async () => editRound1Question(type, id, q));
+
+    actions.append(askBtn, editBtn, deleteBtn);
     li.appendChild(actions);
     container.appendChild(li);
   }
+}
+
+async function editRound1Question(type, questionId, currentQuestion) {
+  const text = window.prompt("Modifier le texte de la question", currentQuestion?.text || "");
+  if (text === null) return;
+  const answer = window.prompt("Modifier la réponse", currentQuestion?.answer || "");
+  if (answer === null) return;
+  const nextText = text.trim();
+  const nextAnswer = answer.trim();
+  if (!nextText || !nextAnswer) return showToast("Question et réponse obligatoires.", "error");
+  await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), {
+    text: nextText,
+    answer: nextAnswer,
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+  showToast("Question mise à jour");
 }
 
 async function deleteRound1Question(type, questionId) {
@@ -599,7 +638,7 @@ function renderRound2Questions() {
     const li = document.createElement("li");
     const isActive = manche2State?.activeQuestionId === id;
     li.className = "question-item";
-    li.innerHTML = `<div class="question-head"><strong>Q${item.order || "?"}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><img src="${item.imageDataUrl}" alt="Question manche 2" class="m2-thumb" /><p><strong>Œuvre :</strong> ${item.work}</p><p><strong>Lieu :</strong> ${item.location}</p>`;
+    li.innerHTML = `<div class="question-head"><strong>Q${item.order || "?"}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><img src="${item.imageDataUrl}" alt="Question manche 2" class="m2-thumb" /><p><strong>Œuvre :</strong> ${item.work}</p><p><strong>Lieu :</strong> ${item.location}</p><p><strong>Question :</strong> ${item.questionText || "—"}</p>`;
     const actions = document.createElement("div");
     actions.className = "row";
 
@@ -623,10 +662,35 @@ function renderRound2Questions() {
       }
     });
 
-    actions.append(liveBtn, deleteBtn);
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-secondary";
+    editBtn.textContent = "Éditer";
+    editBtn.addEventListener("click", async () => editRound2Question(id, item));
+
+    actions.append(liveBtn, editBtn, deleteBtn);
     li.appendChild(actions);
     m2QuestionsList.appendChild(li);
   }
+}
+
+async function editRound2Question(questionId, item) {
+  const work = window.prompt("Modifier l'œuvre", item.work || "");
+  if (work === null) return;
+  const location = window.prompt("Modifier le lieu", item.location || "");
+  if (location === null) return;
+  const questionText = window.prompt("Modifier le texte de la question (optionnel)", item.questionText || "");
+  if (questionText === null) return;
+  const nextWork = work.trim();
+  const nextLocation = location.trim();
+  if (!nextWork || !nextLocation) return showToast("Œuvre et lieu obligatoires.", "error");
+  await update(ref(db, `rooms/manche2/questions/${questionId}`), {
+    work: nextWork,
+    location: nextLocation,
+    questionText: questionText.trim(),
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+  showToast("Question manche 2 mise à jour");
 }
 
 function refreshRound1Snapshot() {
@@ -774,11 +838,15 @@ function renderRound3Themes() {
         item.className = "row";
         const label = document.createElement("span");
         label.textContent = `${idx + 1}. ${q.text}`;
+        const edit = document.createElement("button");
+        edit.className = "btn btn-secondary mini-btn";
+        edit.textContent = "Éditer";
+        edit.addEventListener("click", async () => editRound3Question(themeId, questionId, q));
         const del = document.createElement("button");
         del.className = "btn btn-danger mini-btn";
         del.textContent = "Suppr.";
         del.addEventListener("click", async () => remove(ref(db, `rooms/manche3/themes/${themeId}/questions/${questionId}`)));
-        item.append(label, del);
+        item.append(label, edit, del);
         qList.appendChild(item);
       });
     }
@@ -808,6 +876,19 @@ function renderRound3Themes() {
     li.append(addForm, qList, actions);
     m3ThemeList.appendChild(li);
   }
+}
+
+async function editRound3Question(themeId, questionId, currentQuestion) {
+  const text = window.prompt("Modifier la question", currentQuestion?.text || "");
+  if (text === null) return;
+  const nextText = text.trim();
+  if (!nextText) return showToast("Le texte de la question est obligatoire.", "error");
+  await update(ref(db, `rooms/manche3/themes/${themeId}/questions/${questionId}`), {
+    text: nextText,
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+  showToast("Question manche 3 mise à jour");
 }
 
 function renderRound3State() {
@@ -889,14 +970,51 @@ async function cleanupExpiredCodes(codesMap) {
   finally { codeCleanupLock = false; }
 }
 
-async function saveOverlayFontSize(value) {
+function clampOverlayFontSize(value, fallback = 72) {
   const px = Number(value);
-  if (!Number.isFinite(px)) return;
-  const clamped = Math.max(24, Math.min(180, Math.round(px)));
-  overlayFontSizeInput.value = String(clamped);
-  if (overlaySettings.questionFontSizePx === clamped) return;
-  overlaySettings.questionFontSizePx = clamped;
-  await update(ref(db, "rooms/manche1/overlaySettings"), { questionFontSizePx: clamped, updatedAt: Date.now() });
+  if (!Number.isFinite(px)) return fallback;
+  return Math.max(24, Math.min(180, Math.round(px)));
+}
+
+function sanitizeOverlayColor(value, fallback = "#ffffff") {
+  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+function normalizeOverlaySettings(settings, fallbackFontSize = 72) {
+  return {
+    questionFontSizePx: clampOverlayFontSize(settings.questionFontSizePx, fallbackFontSize),
+    questionColor: sanitizeOverlayColor(settings.questionColor, "#ffffff"),
+  };
+}
+
+async function saveRound1OverlaySettings() {
+  const nextSettings = normalizeOverlaySettings({
+    questionFontSizePx: overlayRound1FontSizeInput.value,
+    questionColor: overlayRound1ColorInput.value,
+  }, round1OverlaySettings.questionFontSizePx || 72);
+  overlayRound1FontSizeInput.value = String(nextSettings.questionFontSizePx);
+  overlayRound1ColorInput.value = nextSettings.questionColor;
+  if (
+    round1OverlaySettings.questionFontSizePx === nextSettings.questionFontSizePx
+    && round1OverlaySettings.questionColor === nextSettings.questionColor
+  ) return;
+  round1OverlaySettings = nextSettings;
+  await update(ref(db, "rooms/manche1/overlaySettings"), { ...nextSettings, updatedAt: Date.now() });
+}
+
+async function saveRound3OverlaySettings() {
+  const nextSettings = normalizeOverlaySettings({
+    questionFontSizePx: overlayRound3FontSizeInput.value,
+    questionColor: overlayRound3ColorInput.value,
+  }, round3OverlaySettings.questionFontSizePx || 72);
+  overlayRound3FontSizeInput.value = String(nextSettings.questionFontSizePx);
+  overlayRound3ColorInput.value = nextSettings.questionColor;
+  if (
+    round3OverlaySettings.questionFontSizePx === nextSettings.questionFontSizePx
+    && round3OverlaySettings.questionColor === nextSettings.questionColor
+  ) return;
+  round3OverlaySettings = nextSettings;
+  await update(ref(db, "rooms/manche3/overlaySettings"), { ...nextSettings, updatedAt: Date.now() });
 }
 
 async function restoreSession() {

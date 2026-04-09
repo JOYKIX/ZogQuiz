@@ -87,6 +87,26 @@ export async function ensureRoundsSeed(uid) {
       updatedAt: Date.now(),
     });
   }
+
+  const manche1OverlayRef = ref(db, "rooms/manche1/overlaySettings");
+  if (!(await get(manche1OverlayRef)).exists()) {
+    await set(manche1OverlayRef, {
+      questionFontSizePx: 72,
+      questionColor: "#ffffff",
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
+  const manche3OverlayRef = ref(db, "rooms/manche3/overlaySettings");
+  if (!(await get(manche3OverlayRef)).exists()) {
+    await set(manche3OverlayRef, {
+      questionFontSizePx: 72,
+      questionColor: "#ffffff",
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
 }
 
 export function makeTempCode(size = 6) {
