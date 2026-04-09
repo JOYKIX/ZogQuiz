@@ -235,10 +235,13 @@
                 <article class="panel subpanel stack">
                   <h3>Overlay manche 1</h3>
                   <label>Taille du texte (px)
-                    <input id="overlay-font-size" type="number" min="24" max="180" step="1" value="72" />
+                    <input id="overlay-round1-font-size" type="number" min="24" max="180" step="1" value="72" />
+                  </label>
+                  <label>Couleur du texte
+                    <input id="overlay-round1-text-color" type="color" value="#ffffff" />
                   </label>
                   <div class="row">
-                    <a class="btn btn-secondary" href="manche1.html" target="_blank" rel="noopener">Ouvrir overlay manche 1</a>
+                    <a class="btn btn-secondary" href="overlay-round1.html" target="_blank" rel="noopener">Ouvrir overlay manche 1</a>
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                   </div>
                 </article>
@@ -271,6 +274,9 @@
                   </label>
                   <label>Lieu
                     <input id="m2-location" required maxlength="180" />
+                  </label>
+                  <label>Question (optionnel)
+                    <input id="m2-question-text" maxlength="240" placeholder="Ex: Où se trouve cette œuvre ?" />
                   </label>
                   <button type="submit" class="btn btn-primary">Ajouter</button>
                 </form>
@@ -343,6 +349,15 @@
                   <div class="row">
                     <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Ouvrir overlay manche 3</a>
                   </div>
+                  <div class="stack overlay-settings-block">
+                    <h4>Personnalisation overlay manche 3</h4>
+                    <label>Taille du texte (px)
+                      <input id="overlay-round3-font-size" type="number" min="24" max="180" step="1" value="72" />
+                    </label>
+                    <label>Couleur du texte
+                      <input id="overlay-round3-text-color" type="color" value="#ffffff" />
+                    </label>
+                  </div>
                 </article>
               </div>
             </section>
@@ -370,7 +385,7 @@
                 <div class="row">
                   <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
                   <a class="btn btn-secondary" href="overlay.html" target="_blank" rel="noopener">Overlay général</a>
-                  <a class="btn btn-secondary" href="manche1.html" target="_blank" rel="noopener">Overlay manche 1</a>
+                  <a class="btn btn-secondary" href="overlay-round1.html" target="_blank" rel="noopener">Overlay manche 1</a>
                   <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Overlay manche 2</a>
                   <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Overlay manche 3</a>
                 </div>
