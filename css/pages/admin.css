@@ -1,0 +1,40 @@
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+.stat-card,
+.metric-card {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: rgba(8, 12, 18, 0.45);
+  padding: 0.66rem;
+  min-height: 82px;
+  display: grid;
+  align-content: space-between;
+  gap: 0.25rem;
+}
+
+.stat-card .muted {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.66rem;
+}
+
+.overlay-settings-block {
+  margin-top: 0.2rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.round-shell [data-round-section-panel="manche3:live"] .subpanel {
+  min-height: 100%;
+}
+
+.m2-thumb {
+  width: min(340px, 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  margin: 0.5rem 0;
+}
