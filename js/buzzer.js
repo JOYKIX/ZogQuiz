@@ -1,4 +1,4 @@
-import { db, ref, get, set, push, onValue, runTransaction } from "./firebase.js";
+import { db, ref, get, set, push, onValue, runTransaction, remove } from "./firebase.js";
 
 const guestForm = document.getElementById("guest-form");
 const guestMessage = document.getElementById("guest-message");
@@ -12,6 +12,10 @@ let currentNickname = "";
 let liveState = null;
 let currentQuestionBlocked = false;
 
+function normalizeNickname(nickname) {
+  return nickname.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
 guestForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const code = document.getElementById("guest-code").value.trim().toUpperCase();
@@ -22,25 +26,43 @@ guestForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const codeSnap = await get(ref(db, `rooms/manche1/accessCodes/${code}`));
+  const codeRef = ref(db, `rooms/manche1/accessCodes/${code}`);
+  const codeSnap = await get(codeRef);
   if (!codeSnap.exists()) return (guestMessage.textContent = "Code invalide.");
 
   const codeData = codeSnap.val();
   const expired = Date.now() > (codeData.expiresAt || 0);
-  if (!codeData.active || expired) return (guestMessage.textContent = "Code expiré ou désactivé.");
+  if (!codeData.active || expired) {
+    if (expired) {
+      await remove(codeRef);
+    }
+    return (guestMessage.textContent = "Code expiré ou désactivé.");
+  }
 
-  const sessionRef = push(ref(db, "rooms/manche1/guestSessions"));
-  currentSession = sessionRef.key;
+  const nicknameKey = normalizeNickname(nickname);
+  if (!nicknameKey) {
+    guestMessage.textContent = "Pseudo invalide.";
+    return;
+  }
+
+  const sessionRef = ref(db, `rooms/manche1/guestSessions/${nicknameKey}`);
+  const existingSnap = await get(sessionRef);
+  const existing = existingSnap.val() || {};
+
+  currentSession = nicknameKey;
   currentNickname = nickname;
 
   await set(sessionRef, {
     nickname,
     code,
-    joinedAt: Date.now(),
-    score: 0,
+    joinedAt: existing.joinedAt || Date.now(),
+    reconnectAt: Date.now(),
+    score: Number(existing.score || 0),
   });
 
-  guestMessage.textContent = "Connecté au buzzer.";
+  guestMessage.textContent = existingSnap.exists()
+    ? "Reconnecté au buzzer avec ton profil existant."
+    : "Connecté au buzzer.";
   guestTitle.textContent = `Connecté en tant que ${nickname}`;
   buzzerPanel.classList.remove("hidden");
   watchLiveState();
@@ -88,6 +110,13 @@ function refreshButtonState() {
 
 buzzBtn.addEventListener("click", async () => {
   if (!currentSession || !liveState || liveState.currentType === "viewers") return;
+
+  const blockedSnap = await get(ref(db, `rooms/manche1/questionBlocks/${liveState.currentQuestionId}/${currentSession}`));
+  if (blockedSnap.exists()) {
+    currentQuestionBlocked = true;
+    refreshButtonState();
+    return;
+  }
 
   const stateRef = ref(db, "rooms/manche1/state");
   const tx = await runTransaction(stateRef, (state) => {

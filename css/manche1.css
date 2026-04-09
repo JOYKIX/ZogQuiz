@@ -1,0 +1,38 @@
+:root {
+  color-scheme: dark;
+  --text: #ffffff;
+  --accent: #63f0c4;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: transparent;
+  font-family: Inter, system-ui, Arial, sans-serif;
+  color: var(--text);
+}
+
+.m1-overlay-shell {
+  width: 100vw;
+  min-height: 100vh;
+  padding: 4vh 4vw;
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.85);
+}
+
+#m1-question {
+  margin: 0;
+  font-size: clamp(2rem, 4.6vw, 4rem);
+  line-height: 1.2;
+}
+
+#m1-answer {
+  margin: 0;
+  color: var(--accent);
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  font-weight: 700;
+}
+
+.hidden { display: none; }
