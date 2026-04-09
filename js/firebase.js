@@ -41,9 +41,17 @@ export async function ensureRoundsSeed(uid) {
     }
   }
 
+  const quizStateRef = ref(db, "quiz/state");
+  if (!(await get(quizStateRef)).exists()) {
+    await set(quizStateRef, {
+      activeRound: "manche1",
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
   const stateRef = ref(db, "rooms/manche1/state");
-  const stateSnap = await get(stateRef);
-  if (!stateSnap.exists()) {
+  if (!(await get(stateRef)).exists()) {
     await set(stateRef, {
       currentType: "participants",
       currentQuestionId: null,
@@ -52,6 +60,15 @@ export async function ensureRoundsSeed(uid) {
       lockedBySessionId: null,
       lockedByNickname: "",
       lockedAt: 0,
+      updatedAt: Date.now(),
+    });
+  }
+
+  const manche2StateRef = ref(db, "rooms/manche2/state");
+  if (!(await get(manche2StateRef)).exists()) {
+    await set(manche2StateRef, {
+      activeQuestionId: null,
+      updatedBy: uid,
       updatedAt: Date.now(),
     });
   }

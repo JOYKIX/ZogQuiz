@@ -52,7 +52,7 @@
           <button class="side-link active" data-section="overview">Accueil</button>
           <button class="side-link" data-section="players">Joueurs & codes</button>
           <button class="side-link" data-section="questions">Questions</button>
-          <button class="side-link" data-section="live">Live / Buzzer</button>
+          <button class="side-link" data-section="live">Live / Guest</button>
           <button class="side-link" data-section="overlay">Overlay OBS</button>
           <button class="side-link" data-section="scoreboard">Scoreboard</button>
         </aside>
@@ -180,7 +180,10 @@
                   <input id="overlay-font-size" type="number" min="24" max="180" step="1" value="72" />
                 </label>
               </div>
-              <a class="button-link" href="manche1.html" target="_blank" rel="noopener">Ouvrir l’overlay manche 1</a>
+              <div class="row">
+                <a class="button-link" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
+                <a class="button-link" href="manche1.html" target="_blank" rel="noopener">Ouvrir overlay manche 1</a>
+              </div>
             </section>
 
             <section class="section-panel card hidden" data-section-panel="scoreboard">
@@ -195,21 +198,42 @@
             </section>
           </section>
 
-          <section class="round-panel hidden card" data-round-panel="manche2">
-            <h3>Manche 2</h3>
+          <section class="round-panel hidden" data-round-panel="manche2">
+            <section class="card section-panel">
+              <h2>Questions</h2>
+              <form id="m2-question-form" class="stack subcard">
+                <label>Image
+                  <input id="m2-image" type="file" accept="image/*" required />
+                </label>
+                <label>Œuvre
+                  <input id="m2-work" required maxlength="120" />
+                </label>
+                <label>Lieu exact
+                  <input id="m2-location" required maxlength="180" />
+                </label>
+                <button type="submit">Ajouter</button>
+              </form>
+              <ul id="m2-questions-list" class="list"></ul>
+            </section>
+
+            <section class="card section-panel">
+              <h2>Live</h2>
+              <div class="row">
+                <a class="button-link" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
+              </div>
+              <p id="m2-live-status" class="message"></p>
+            </section>
+
+            <section class="card section-panel">
+              <h2>Participants</h2>
+              <ul id="m2-participants-list" class="leaderboard"></ul>
+            </section>
           </section>
-          <section class="round-panel hidden card" data-round-panel="manche3">
-            <h3>Manche 3</h3>
-          </section>
-          <section class="round-panel hidden card" data-round-panel="manche4">
-            <h3>Manche 4</h3>
-          </section>
-          <section class="round-panel hidden card" data-round-panel="manche5">
-            <h3>Manche 5</h3>
-          </section>
-          <section class="round-panel hidden card" data-round-panel="finale">
-            <h3>Finale</h3>
-          </section>
+
+          <section class="round-panel hidden card" data-round-panel="manche3"><h3>Manche 3</h3></section>
+          <section class="round-panel hidden card" data-round-panel="manche4"><h3>Manche 4</h3></section>
+          <section class="round-panel hidden card" data-round-panel="manche5"><h3>Manche 5</h3></section>
+          <section class="round-panel hidden card" data-round-panel="finale"><h3>Finale</h3></section>
         </div>
       </section>
     </main>
