@@ -15,8 +15,12 @@ const authSection = document.getElementById("auth-section");
 const dashboard = document.getElementById("dashboard");
 const authMessage = document.getElementById("auth-message");
 const adminEmail = document.getElementById("admin-email");
+const logoutBtn = document.getElementById("logout");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
+const showLoginBtn = document.getElementById("show-login");
+const showSignupBtn = document.getElementById("show-signup");
+
 const codesList = document.getElementById("codes-list");
 const codeDuration = document.getElementById("code-duration");
 const generatedCode = document.getElementById("generated-code");
@@ -31,10 +35,20 @@ const markCorrectBtn = document.getElementById("mark-correct");
 const markWrongBtn = document.getElementById("mark-wrong");
 const roundStatus = document.getElementById("round-status");
 const buzzLive = document.getElementById("buzz-live");
+const activeQuestion = document.getElementById("active-question");
 const participantsList = document.getElementById("participants-list");
+const quickLeaderboard = document.getElementById("quick-leaderboard");
+const scoreboardPreview = document.getElementById("scoreboard-preview");
 
+const sessionStatus = document.getElementById("session-status");
+const currentQuestionStatus = document.getElementById("current-question-status");
+const buzzerStatus = document.getElementById("buzzer-status");
+const lastBuzzStatus = document.getElementById("last-buzz-status");
+
+const sideLinks = Array.from(document.querySelectorAll(".side-link"));
+const sectionPanels = Array.from(document.querySelectorAll("[data-section-panel]"));
 const roundTabs = Array.from(document.querySelectorAll(".round-tab"));
-const panels = Array.from(document.querySelectorAll(".round-panel"));
+const roundPanels = Array.from(document.querySelectorAll(".round-panel"));
 const menuButtons = Array.from(document.querySelectorAll(".submenu-btn"));
 const menuPanels = Array.from(document.querySelectorAll(".submenu-panel"));
 
@@ -58,6 +72,13 @@ async function hashPassword(password) {
     .join("");
 }
 
+function setMessage(target, text, type = "default") {
+  if (!target) return;
+  target.textContent = text;
+  target.classList.remove("success", "error", "loading");
+  if (type !== "default") target.classList.add(type);
+}
+
 function isLoggedIn() {
   return Boolean(currentAdminId);
 }
@@ -75,12 +96,27 @@ function clearSession() {
 function showDashboard(adminId) {
   authSection.classList.add("hidden");
   dashboard.classList.remove("hidden");
-  adminEmail.textContent = `Connecté: ${adminId}`;
+  logoutBtn.classList.remove("hidden");
+  adminEmail.textContent = `Connecté : ${adminId}`;
+  sessionStatus.textContent = "Active";
 }
 
 function showAuth() {
   authSection.classList.remove("hidden");
   dashboard.classList.add("hidden");
+  logoutBtn.classList.add("hidden");
+  adminEmail.textContent = "Hors ligne";
+  sessionStatus.textContent = "Hors ligne";
+}
+
+function activateSection(section) {
+  sideLinks.forEach((btn) => {
+    const active = btn.dataset.section === section;
+    btn.classList.toggle("active", active);
+  });
+  sectionPanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.sectionPanel !== section);
+  });
 }
 
 function activateRound(round) {
@@ -89,7 +125,7 @@ function activateRound(round) {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-selected", String(active));
   });
-  panels.forEach((panel) => {
+  roundPanels.forEach((panel) => {
     panel.classList.toggle("hidden", panel.dataset.roundPanel !== round);
   });
 }
@@ -105,6 +141,9 @@ function activateMenu(menu) {
   });
 }
 
+for (const btn of sideLinks) {
+  btn.addEventListener("click", () => activateSection(btn.dataset.section));
+}
 for (const btn of roundTabs) {
   btn.addEventListener("click", () => activateRound(btn.dataset.round));
 }
@@ -112,22 +151,28 @@ for (const btn of menuButtons) {
   btn.addEventListener("click", () => activateMenu(btn.dataset.menu));
 }
 
+activateSection("overview");
 activateRound("manche1");
 activateMenu("creation");
 
-document.getElementById("show-login").addEventListener("click", () => {
+showLoginBtn.addEventListener("click", () => {
   loginForm.classList.remove("hidden");
   signupForm.classList.add("hidden");
+  showLoginBtn.classList.add("active-auth");
+  showSignupBtn.classList.remove("active-auth");
 });
 
-document.getElementById("show-signup").addEventListener("click", () => {
+showSignupBtn.addEventListener("click", () => {
   signupForm.classList.remove("hidden");
   loginForm.classList.add("hidden");
+  showSignupBtn.classList.add("active-auth");
+  showLoginBtn.classList.remove("active-auth");
 });
 
 signupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
+    setMessage(authMessage, "Création du compte...", "loading");
     const adminId = normalizeAdminId(document.getElementById("signup-id").value);
     const password = document.getElementById("signup-password").value;
     if (!adminId || !password) throw new Error("ID et mot de passe obligatoires.");
@@ -136,15 +181,17 @@ signupForm.addEventListener("submit", async (event) => {
     if ((await get(adminRef)).exists()) throw new Error("Cet ID existe déjà.");
 
     await set(adminRef, { adminId, passwordHash: await hashPassword(password), createdAt: Date.now() });
-    await loginSuccess(adminId, "Compte admin créé et connecté.");
+    await loginSuccess(adminId, "Compte créé.");
+    setMessage(authMessage, "Compte créé.", "success");
   } catch (error) {
-    authMessage.textContent = `Erreur création: ${error.message}`;
+    setMessage(authMessage, `Impossible de créer le compte : ${error.message}`, "error");
   }
 });
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
+    setMessage(authMessage, "Connexion...", "loading");
     const adminId = normalizeAdminId(document.getElementById("login-id").value);
     const password = document.getElementById("login-password").value;
     const adminSnap = await get(ref(db, `admins/${adminId}`));
@@ -153,25 +200,25 @@ loginForm.addEventListener("submit", async (event) => {
     const adminData = adminSnap.val() || {};
     if ((await hashPassword(password)) !== adminData.passwordHash) throw new Error("Mot de passe incorrect.");
 
-    await loginSuccess(adminId, "Connexion réussie.");
+    await loginSuccess(adminId, "Connecté.");
+    setMessage(authMessage, "Connexion réussie.", "success");
   } catch (error) {
-    authMessage.textContent = `Erreur connexion: ${error.message}`;
+    setMessage(authMessage, `Connexion impossible : ${error.message}`, "error");
   }
 });
 
-async function loginSuccess(adminId, message) {
+async function loginSuccess(adminId) {
   setSession(adminId);
   await ensureRoundsSeed(adminId);
   initRoundLiveListeners();
   listenCodes();
   showDashboard(adminId);
-  authMessage.textContent = message;
 }
 
-document.getElementById("logout").addEventListener("click", () => {
+logoutBtn.addEventListener("click", () => {
   clearSession();
   showAuth();
-  authMessage.textContent = "Déconnecté.";
+  setMessage(authMessage, "Déconnecté.", "default");
 });
 
 document.getElementById("generate-code").addEventListener("click", async () => {
@@ -185,7 +232,7 @@ document.getElementById("generate-code").addEventListener("click", async () => {
     createdAt: Date.now(),
     expiresAt: Date.now() + minutes * 60 * 1000,
   });
-  generatedCode.textContent = `Code généré: ${code} (expire dans ${minutes} min)`;
+  setMessage(generatedCode, `Code ${code} actif ${minutes} min.`, "success");
 });
 
 participantQuestionForm.addEventListener("submit", async (event) => {
@@ -223,7 +270,7 @@ async function createQuestion(type, questionInputId, answerInputId) {
 }
 
 toggleAnswerBtn.addEventListener("click", async () => {
-  if (!liveState) return;
+  if (!liveState?.currentQuestionId) return;
   const next = !liveState.showAnswer;
   await update(ref(db, "rooms/manche1/state"), { showAnswer: next, updatedAt: Date.now() });
 });
@@ -262,11 +309,16 @@ async function clearBuzzData() {
   await Promise.all([remove(ref(db, "rooms/manche1/buzzes")), remove(ref(db, "rooms/manche1/questionBlocks"))]);
 }
 
+function getQuestionById(questionId) {
+  if (!questionId) return null;
+  return participantQuestions[questionId] || viewerQuestions[questionId] || null;
+}
+
 function renderQuestionList(type, data, container) {
   const entries = Object.entries(data || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
   container.innerHTML = "";
   if (!entries.length) {
-    container.innerHTML = "<li>Aucune question.</li>";
+    container.innerHTML = "<li>Aucune question pour le moment.</li>";
     return;
   }
 
@@ -280,7 +332,7 @@ function renderQuestionList(type, data, container) {
     actions.className = "row";
     const askBtn = document.createElement("button");
     askBtn.className = active ? "secondary" : "";
-    askBtn.textContent = active ? "Question active" : "Passer à cette question";
+    askBtn.textContent = active ? "Question active" : "Lancer cette question";
     askBtn.disabled = active;
     askBtn.addEventListener("click", async () => {
       await clearBuzzData();
@@ -294,6 +346,7 @@ function renderQuestionList(type, data, container) {
         lockedAt: 0,
         updatedAt: Date.now(),
       });
+      activateSection("live");
     });
     actions.appendChild(askBtn);
     li.appendChild(actions);
@@ -305,11 +358,13 @@ function initRoundLiveListeners() {
   onValue(ref(db, "rooms/manche1/questions/participants"), (snap) => {
     participantQuestions = snap.val() || {};
     renderQuestionList("participants", participantQuestions, participantQuestionsList);
+    refreshLiveSnapshot();
   });
 
   onValue(ref(db, "rooms/manche1/questions/viewers"), (snap) => {
     viewerQuestions = snap.val() || {};
     renderQuestionList("viewers", viewerQuestions, viewerQuestionsList);
+    refreshLiveSnapshot();
   });
 
   onValue(ref(db, "rooms/manche1/state"), (snap) => {
@@ -317,11 +372,13 @@ function initRoundLiveListeners() {
     updateRoundStatus();
     renderQuestionList("participants", participantQuestions, participantQuestionsList);
     renderQuestionList("viewers", viewerQuestions, viewerQuestionsList);
+    refreshLiveSnapshot();
   });
 
   onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
     sessionsById = snap.val() || {};
     renderParticipants();
+    refreshLiveSnapshot();
   });
 }
 
@@ -330,16 +387,12 @@ async function giveManualPoint(sessionId) {
   await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, lastManualPointAt: Date.now() });
 }
 
-function renderParticipants() {
-  if (!participantsList) return;
+function renderLeaderboardList(target, entries, emptyText) {
+  if (!target) return;
+  target.innerHTML = "";
 
-  const entries = Object.entries(sessionsById)
-    .map(([id, s]) => ({ id, ...s, score: Number(s.score || 0) }))
-    .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
-
-  participantsList.innerHTML = "";
   if (!entries.length) {
-    participantsList.innerHTML = "<li>Aucun participant pour le moment.</li>";
+    target.innerHTML = `<li>${emptyText}</li>`;
     return;
   }
 
@@ -347,32 +400,75 @@ function renderParticipants() {
     const li = document.createElement("li");
     li.className = "leader-item";
     const button = document.createElement("button");
-    button.textContent = `${p.nickname || "Anonyme"} — ${p.score} pt(s)`;
-    button.addEventListener("click", () => giveManualPoint(p.id));
+    button.textContent = `${p.nickname || "Anonyme"} — ${p.score} pt`;
+    button.disabled = !p.id;
+    if (p.id) button.addEventListener("click", () => giveManualPoint(p.id));
     li.appendChild(button);
-    participantsList.appendChild(li);
+    target.appendChild(li);
+  }
+}
+
+function renderParticipants() {
+  const entries = Object.entries(sessionsById)
+    .map(([id, s]) => ({ id, ...s, score: Number(s.score || 0) }))
+    .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
+
+  renderLeaderboardList(participantsList, entries, "Aucun participant pour le moment.");
+  renderLeaderboardList(quickLeaderboard, entries.slice(0, 5), "Le classement apparaîtra ici.");
+  renderLeaderboardList(scoreboardPreview, entries.slice(0, 5), "Le classement apparaîtra ici.");
+}
+
+function refreshLiveSnapshot() {
+  const question = getQuestionById(liveState?.currentQuestionId);
+  currentQuestionStatus.textContent = question ? question.text : "Aucune";
+  activeQuestion.textContent = question
+    ? `Question active : ${question.text}`
+    : "Aucune question active.";
+
+  const buzzerOpen = Boolean(liveState?.currentQuestionId) && !liveState?.buzzerLocked && liveState?.currentType !== "viewers";
+  buzzerStatus.textContent = liveState?.currentType === "viewers" ? "Désactivé (viewers)" : buzzerOpen ? "Ouvert" : "Verrouillé";
+
+  if (liveState?.lockedByNickname) {
+    lastBuzzStatus.textContent = liveState.lockedByNickname;
+  } else {
+    lastBuzzStatus.textContent = "—";
   }
 }
 
 function updateRoundStatus() {
   if (!liveState) return;
-  const typeLabel = liveState.currentType === "viewers" ? "Question viewers (sans buzzer)" : "Question participants";
-  roundStatus.textContent = `${typeLabel} • Réponse ${liveState.showAnswer ? "VISIBLE" : "CACHÉE"}`;
-  toggleAnswerBtn.textContent = liveState.showAnswer ? "Masquer réponse" : "Afficher réponse";
+  const typeLabel = liveState.currentType === "viewers" ? "Question viewers" : "Question participants";
+  const showAnswer = liveState.showAnswer ? "Réponse visible" : "Réponse cachée";
+  const buzzerState = liveState.currentType === "viewers"
+    ? "buzzer désactivé"
+    : liveState.buzzerLocked
+      ? "buzzer verrouillé"
+      : "buzzer ouvert";
+
+  setMessage(roundStatus, `${typeLabel} • ${showAnswer} • ${buzzerState}`);
+  toggleAnswerBtn.textContent = liveState.showAnswer ? "Masquer la réponse" : "Afficher la réponse";
+
+  const hasActiveQuestion = Boolean(liveState.currentQuestionId);
+  toggleAnswerBtn.disabled = !hasActiveQuestion;
+  unlockBuzzerBtn.disabled = !hasActiveQuestion || liveState.currentType === "viewers";
+  markCorrectBtn.disabled = !liveState.lockedBySessionId;
+  markWrongBtn.disabled = !liveState.lockedBySessionId || !liveState.currentQuestionId;
 
   if (liveState.buzzerLocked && liveState.lockedByNickname) {
-    buzzLive.textContent = `🔔 ${liveState.lockedByNickname} a buzzé en premier.`;
+    buzzLive.textContent = `🔔 ${liveState.lockedByNickname} a buzzé.`;
   } else if (liveState.currentType === "viewers") {
-    buzzLive.textContent = "Question viewers en cours : buzzer désactivé.";
+    buzzLive.textContent = "Mode viewers : buzzer désactivé.";
   } else {
-    buzzLive.textContent = "Personne n'a buzzé.";
+    buzzLive.textContent = "En attente d'un buzz.";
   }
 }
 
 async function cleanupExpiredCodes(codesMap) {
   if (codeCleanupLock) return;
   const now = Date.now();
-  const toDelete = Object.values(codesMap || {}).filter((item) => now > (item.expiresAt || 0)).map((item) => item.code);
+  const toDelete = Object.values(codesMap || {})
+    .filter((item) => now > (item.expiresAt || 0))
+    .map((item) => item.code);
   if (!toDelete.length) return;
 
   codeCleanupLock = true;
@@ -394,13 +490,13 @@ function listenCodes() {
 
     codesList.innerHTML = "";
     if (!entries.length) {
-      codesList.innerHTML = "<li>Aucun code actif pour le moment.</li>";
+      codesList.innerHTML = "<li>Aucun code actif.</li>";
       return;
     }
 
     for (const item of entries.slice(0, 20)) {
       const li = document.createElement("li");
-      li.textContent = `${item.code} • actif • expire le ${new Date(item.expiresAt).toLocaleString()}`;
+      li.textContent = `${item.code} • expire ${new Date(item.expiresAt).toLocaleTimeString()}`;
       codesList.appendChild(li);
     }
   });
@@ -415,11 +511,11 @@ async function restoreSession() {
     return showAuth();
   }
 
-  await loginSuccess(savedAdminId, "Session restaurée.");
+  await loginSuccess(savedAdminId);
 }
 
 restoreSession().catch((error) => {
   clearSession();
   showAuth();
-  authMessage.textContent = `Erreur session: ${error.message}`;
+  setMessage(authMessage, `Erreur session : ${error.message}`, "error");
 });
