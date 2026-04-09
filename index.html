@@ -312,29 +312,33 @@
             </section>
 
             <section class="round-shell hidden" data-round-panel="manche3">
-              <div class="two-col">
-                <article class="subpanel stack compact-panel">
-                  <h3>Joueur actif</h3>
-                  <p id="m3-active-player" class="highlight">Aucun</p>
-                  <ul id="m3-player-list" class="leaderboard"></ul>
-                </article>
+              <nav class="subnav" aria-label="Sous navigation manche 3">
+                <button class="subnav-tab active" data-round="manche3" data-round-section="overview">Vue d’ensemble</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="themes">Thèmes</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="questions">Questions</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="overlay">Overlay</button>
+              </nav>
 
-                <article class="subpanel stack compact-panel">
-                  <h3>Chrono (1:30)</h3>
-                  <p id="m3-timer" class="timer">01:30</p>
-                  <div class="row">
-                    <button id="m3-start" class="btn btn-primary">Démarrer</button>
-                    <button id="m3-pause" class="btn btn-secondary">Pause</button>
-                    <button id="m3-resume" class="btn btn-secondary">Reprendre</button>
-                    <button id="m3-reset" class="btn btn-danger">Réinitialiser</button>
-                  </div>
-                  <p id="m3-timer-status" class="message">Prêt</p>
-                </article>
-              </div>
+              <section class="round-section" data-round-section-panel="manche3:overview">
+                <div class="two-col">
+                  <article class="subpanel stack compact-panel panel live-card">
+                    <h3 class="panel-title">Joueur actif</h3>
+                    <p id="m3-active-player" class="highlight">Aucun</p>
+                    <ul id="m3-player-list" class="leaderboard"></ul>
+                  </article>
 
-              <div class="two-col">
-                <article class="subpanel stack compact-panel">
-                  <h3>Thèmes</h3>
+                  <article class="subpanel stack compact-panel panel">
+                    <h3 class="panel-title">Chrono (1:30)</h3>
+                    <p id="m3-timer" class="timer">01:30</p>
+                    <p id="m3-timer-status" class="message">Prêt</p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche3:themes">
+                <article class="subpanel stack compact-panel panel">
+                  <h3 class="panel-title">Thèmes</h3>
                   <form id="m3-theme-form" class="stack">
                     <label>Nouveau thème
                       <input id="m3-theme-name" required maxlength="80" placeholder="ex: Cinéma" />
@@ -343,21 +347,43 @@
                   </form>
                   <ul id="m3-theme-list" class="list"></ul>
                 </article>
+              </section>
 
-                <article class="subpanel stack compact-panel">
-                  <h3>Questions du tour</h3>
+              <section class="round-section hidden" data-round-section-panel="manche3:questions">
+                <article class="subpanel stack compact-panel panel">
+                  <h3 class="panel-title">Questions du tour</h3>
                   <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
                   <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
-                  <div class="row">
+                  <div class="toolbar">
                     <button id="m3-pass" class="btn btn-secondary">Passer</button>
                     <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
                     <button id="m3-next" class="btn btn-secondary">Question suivante</button>
                   </div>
+                </article>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche3:live">
+                <article class="subpanel stack compact-panel panel">
+                  <h3 class="panel-title">Pilotage en direct</h3>
+                  <p class="muted">Contrôle du chronomètre et des étapes de tour.</p>
+                  <div class="toolbar">
+                    <button id="m3-start" class="btn btn-primary">Démarrer</button>
+                    <button id="m3-pause" class="btn btn-secondary">Pause</button>
+                    <button id="m3-resume" class="btn btn-secondary">Reprendre</button>
+                    <button id="m3-reset" class="btn btn-danger">Réinitialiser</button>
+                  </div>
+                </article>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche3:overlay">
+                <article class="subpanel stack compact-panel panel">
+                  <h3 class="panel-title">Overlay manche 3</h3>
                   <div class="row">
                     <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Ouvrir overlay manche 3</a>
+                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                   </div>
                   <div class="stack overlay-settings-block">
-                    <h4>Personnalisation overlay manche 3</h4>
+                    <h4>Personnalisation</h4>
                     <label>Taille du texte (px)
                       <input id="overlay-round3-font-size" type="number" min="24" max="180" step="1" value="72" />
                     </label>
@@ -366,7 +392,7 @@
                     </label>
                   </div>
                 </article>
-              </div>
+              </section>
             </section>
 
             <section class="round-shell hidden" data-round-panel="manche4">
