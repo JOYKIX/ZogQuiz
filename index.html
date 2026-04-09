@@ -8,10 +8,11 @@
   </head>
   <body>
     <main class="app-shell">
-      <header class="app-header panel">
-        <div>
-          <p class="eyebrow">ZogQuiz • Admin</p>
+      <header class="app-header">
+        <div class="brand-block">
+          <p class="eyebrow">ZogQuiz Studio</p>
           <h1>Régie live</h1>
+          <p class="header-subtitle">Pilotage unifié des manches, joueurs, overlays et diffusion.</p>
         </div>
         <div class="session-actions">
           <span id="admin-email" class="status-chip">Hors ligne</span>
@@ -19,37 +20,45 @@
         </div>
       </header>
 
-      <section id="auth-section" class="panel auth-card">
-        <div class="auth-switch">
-          <button id="show-login" class="btn btn-ghost active-auth">Connexion</button>
-          <button id="show-signup" class="btn btn-ghost">Créer un compte</button>
-        </div>
+      <section id="auth-section" class="auth-layout">
+        <article class="auth-intro card">
+          <p class="eyebrow">Accès admin</p>
+          <h2>Bienvenue dans le cockpit ZogQuiz</h2>
+          <p>Connectez-vous pour piloter l'expérience live, les questions, les scores et la diffusion en direct.</p>
+        </article>
 
-        <form id="login-form" class="stack">
-          <label>ID admin
-            <input id="login-id" type="text" required autocomplete="username" placeholder="ex: admin_main" />
-          </label>
-          <label>Mot de passe
-            <input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••" />
-          </label>
-          <button type="submit" class="btn btn-primary">Se connecter</button>
-        </form>
+        <article class="auth-card card">
+          <div class="auth-switch">
+            <button id="show-login" class="btn btn-ghost active-auth">Connexion</button>
+            <button id="show-signup" class="btn btn-ghost">Créer un compte</button>
+          </div>
 
-        <form id="signup-form" class="stack hidden">
-          <label>ID admin
-            <input id="signup-id" type="text" required autocomplete="username" placeholder="Créer un identifiant" />
-          </label>
-          <label>Mot de passe
-            <input id="signup-password" type="password" minlength="6" required autocomplete="new-password" placeholder="6 caractères minimum" />
-          </label>
-          <button type="submit" class="btn btn-primary">Créer le compte</button>
-        </form>
-        <p id="auth-message" class="message"></p>
+          <form id="login-form" class="stack">
+            <label>ID admin
+              <input id="login-id" type="text" required autocomplete="username" placeholder="ex: admin_main" />
+            </label>
+            <label>Mot de passe
+              <input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••" />
+            </label>
+            <button type="submit" class="btn btn-primary">Se connecter</button>
+          </form>
+
+          <form id="signup-form" class="stack hidden">
+            <label>ID admin
+              <input id="signup-id" type="text" required autocomplete="username" placeholder="Créer un identifiant" />
+            </label>
+            <label>Mot de passe
+              <input id="signup-password" type="password" minlength="6" required autocomplete="new-password" placeholder="6 caractères minimum" />
+            </label>
+            <button type="submit" class="btn btn-primary">Créer le compte</button>
+          </form>
+          <p id="auth-message" class="message"></p>
+        </article>
       </section>
 
       <section id="dashboard" class="hidden dashboard-shell">
-        <aside class="sidebar panel" aria-label="Navigation principale">
-          <p class="sidebar-label">Navigation</p>
+        <aside class="sidebar" aria-label="Navigation principale">
+          <p class="sidebar-label">Espaces</p>
           <button class="nav-item active" data-workspace="dashboard">Vue live</button>
           <button class="nav-item" data-workspace="players">Joueurs</button>
           <button class="nav-item" data-workspace="rounds">Manches</button>
@@ -57,15 +66,21 @@
         </aside>
 
         <div class="content-stack">
-          <div class="context-bar panel">
+          <div class="context-bar">
             <p id="breadcrumb" class="muted">Vue live</p>
             <span class="status-chip live-chip">En direct</span>
           </div>
 
-          <section class="workspace-panel panel" data-workspace-panel="dashboard">
-            <div class="panel-head">
+          <section class="workspace-panel" data-workspace-panel="dashboard">
+            <div class="panel-head split">
               <h2>État de la session</h2>
+              <div class="row compact">
+                <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Ouvrir une manche</button>
+                <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Ouvrir overlays</button>
+                <button class="btn btn-secondary quick-nav" data-workspace-target="players">Voir joueurs</button>
+              </div>
             </div>
+
             <div class="stats-grid">
               <article class="stat-card">
                 <p class="muted">Session</p>
@@ -89,28 +104,18 @@
               </article>
             </div>
 
-            <div class="two-col">
-              <article class="panel subpanel">
-                <h3>Actions rapides</h3>
-                <div class="row">
-                  <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Ouvrir une manche</button>
-                  <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Ouvrir les overlays</button>
-                  <button class="btn btn-secondary quick-nav" data-workspace-target="players">Voir les joueurs</button>
-                </div>
-              </article>
-              <article class="panel subpanel">
-                <h3>Top 5</h3>
-                <ul id="quick-leaderboard" class="leaderboard"></ul>
-              </article>
-            </div>
+            <article class="subpanel compact-panel">
+              <h3>Top 5</h3>
+              <ul id="quick-leaderboard" class="leaderboard"></ul>
+            </article>
           </section>
 
-          <section class="workspace-panel panel hidden" data-workspace-panel="players">
+          <section class="workspace-panel hidden" data-workspace-panel="players">
             <div class="panel-head">
               <h2>Joueurs et accès invités</h2>
             </div>
             <div class="two-col">
-              <article class="panel subpanel stack">
+              <article class="subpanel stack compact-panel">
                 <h3>Codes invités</h3>
                 <div class="row">
                   <label>Durée (min)
@@ -122,14 +127,14 @@
                 <ul id="codes-list" class="list"></ul>
               </article>
 
-              <article class="panel subpanel">
+              <article class="subpanel compact-panel">
                 <h3>Participants</h3>
                 <ul id="participants-list" class="leaderboard"></ul>
               </article>
             </div>
           </section>
 
-          <section class="workspace-panel panel hidden" data-workspace-panel="rounds">
+          <section class="workspace-panel hidden" data-workspace-panel="rounds">
             <div class="panel-head">
               <h2>Contrôle des manches</h2>
             </div>
@@ -154,13 +159,13 @@
 
               <section class="round-section" data-round-section-panel="manche1:overview">
                 <div class="two-col">
-                  <article class="panel subpanel">
+                  <article class="subpanel compact-panel">
                     <h3>État manche 1</h3>
                     <p id="round-status" class="message"></p>
                     <p id="active-question" class="muted">Aucune question active.</p>
                     <p id="buzz-live" class="highlight">Aucun buzz.</p>
                   </article>
-                  <article class="panel subpanel">
+                  <article class="subpanel compact-panel">
                     <h3>Ordre des buzz</h3>
                     <ol id="buzz-order-list" class="list compact-list"></ol>
                   </article>
@@ -169,7 +174,7 @@
 
               <section class="round-section hidden" data-round-section-panel="manche1:questions">
                 <div class="two-col">
-                  <form id="participant-question-form" class="panel subpanel stack">
+                  <form id="participant-question-form" class="subpanel stack compact-panel">
                     <h3>Questions participants</h3>
                     <label>Question
                       <textarea id="participant-question" rows="3" required placeholder="Question"></textarea>
@@ -180,7 +185,7 @@
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
 
-                  <form id="viewer-question-form" class="panel subpanel stack">
+                  <form id="viewer-question-form" class="subpanel stack compact-panel">
                     <h3>Questions viewers</h3>
                     <label>Question
                       <textarea id="viewer-question" rows="3" required placeholder="Question"></textarea>
@@ -193,11 +198,11 @@
                 </div>
 
                 <div class="two-col">
-                  <article class="panel subpanel">
+                  <article class="subpanel compact-panel">
                     <h3>Liste participants</h3>
                     <ul id="participant-questions-list" class="list"></ul>
                   </article>
-                  <article class="panel subpanel">
+                  <article class="subpanel compact-panel">
                     <h3>Liste viewers</h3>
                     <ul id="viewer-questions-list" class="list"></ul>
                   </article>
@@ -205,14 +210,14 @@
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche1:participants">
-                <article class="panel subpanel">
+                <article class="subpanel compact-panel">
                   <h3>Classement manche 1</h3>
                   <ul id="m1-participants-list" class="leaderboard"></ul>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche1:live">
-                <article class="panel subpanel stack">
+                <article class="subpanel stack compact-panel">
                   <h3>Contrôle du live</h3>
                   <div class="live-buzz-card" role="status" aria-live="polite">
                     <p class="muted">Premier buzz</p>
@@ -232,7 +237,7 @@
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche1:overlay">
-                <article class="panel subpanel stack">
+                <article class="subpanel stack compact-panel">
                   <h3>Overlay manche 1</h3>
                   <label>Taille du texte (px)
                     <input id="overlay-round1-font-size" type="number" min="24" max="180" step="1" value="72" />
@@ -257,44 +262,46 @@
               </nav>
 
               <section class="round-section" data-round-section-panel="manche2:overview">
-                <article class="panel subpanel">
+                <article class="subpanel compact-panel">
                   <h3>Statut manche 2</h3>
                   <p id="m2-live-status" class="message"></p>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:questions">
-                <form id="m2-question-form" class="panel subpanel stack">
-                  <h3>Images manche 2</h3>
-                  <label>Image
-                    <input id="m2-image" type="file" accept="image/*" required />
-                  </label>
-                  <label>Œuvre
-                    <input id="m2-work" required maxlength="120" />
-                  </label>
-                  <label>Lieu
-                    <input id="m2-location" required maxlength="180" />
-                  </label>
-                  <label>Question (optionnel)
-                    <input id="m2-question-text" maxlength="240" placeholder="Ex: Où se trouve cette œuvre ?" />
-                  </label>
-                  <button type="submit" class="btn btn-primary">Ajouter</button>
-                </form>
-                <article class="panel subpanel">
-                  <h3>Banque d’images</h3>
-                  <ul id="m2-questions-list" class="list"></ul>
-                </article>
+                <div class="two-col">
+                  <form id="m2-question-form" class="subpanel stack compact-panel">
+                    <h3>Images manche 2</h3>
+                    <label>Image
+                      <input id="m2-image" type="file" accept="image/*" required />
+                    </label>
+                    <label>Œuvre
+                      <input id="m2-work" required maxlength="120" />
+                    </label>
+                    <label>Lieu
+                      <input id="m2-location" required maxlength="180" />
+                    </label>
+                    <label>Question (optionnel)
+                      <input id="m2-question-text" maxlength="240" placeholder="Ex: Où se trouve cette œuvre ?" />
+                    </label>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                  </form>
+                  <article class="subpanel compact-panel">
+                    <h3>Banque d’images</h3>
+                    <ul id="m2-questions-list" class="list"></ul>
+                  </article>
+                </div>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:participants">
-                <article class="panel subpanel">
+                <article class="subpanel compact-panel">
                   <h3>Classement manche 2</h3>
                   <ul id="m2-participants-list" class="leaderboard"></ul>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:live">
-                <article class="panel subpanel">
+                <article class="subpanel compact-panel">
                   <h3>En direct</h3>
                   <div class="row">
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
@@ -306,13 +313,13 @@
 
             <section class="round-shell hidden" data-round-panel="manche3">
               <div class="two-col">
-                <article class="panel subpanel stack">
+                <article class="subpanel stack compact-panel">
                   <h3>Joueur actif</h3>
                   <p id="m3-active-player" class="highlight">Aucun</p>
                   <ul id="m3-player-list" class="leaderboard"></ul>
                 </article>
 
-                <article class="panel subpanel stack">
+                <article class="subpanel stack compact-panel">
                   <h3>Chrono (1:30)</h3>
                   <p id="m3-timer" class="timer">01:30</p>
                   <div class="row">
@@ -326,7 +333,7 @@
               </div>
 
               <div class="two-col">
-                <article class="panel subpanel stack">
+                <article class="subpanel stack compact-panel">
                   <h3>Thèmes</h3>
                   <form id="m3-theme-form" class="stack">
                     <label>Nouveau thème
@@ -337,7 +344,7 @@
                   <ul id="m3-theme-list" class="list"></ul>
                 </article>
 
-                <article class="panel subpanel stack">
+                <article class="subpanel stack compact-panel">
                   <h3>Questions du tour</h3>
                   <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
                   <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
@@ -361,6 +368,7 @@
                 </article>
               </div>
             </section>
+
             <section class="round-shell hidden" data-round-panel="manche4">
               <h3>Manche 4</h3>
               <p class="empty-state">Section prête.</p>
@@ -375,12 +383,12 @@
             </section>
           </section>
 
-          <section class="workspace-panel panel hidden" data-workspace-panel="broadcast">
+          <section class="workspace-panel hidden" data-workspace-panel="broadcast">
             <div class="panel-head">
               <h2>Diffusion</h2>
             </div>
             <div class="two-col">
-              <article class="panel subpanel">
+              <article class="subpanel compact-panel">
                 <h3>Overlays</h3>
                 <div class="row">
                   <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
@@ -390,7 +398,7 @@
                   <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Overlay manche 3</a>
                 </div>
               </article>
-              <article class="panel subpanel">
+              <article class="subpanel compact-panel">
                 <h3>Scoreboard</h3>
                 <div class="row">
                   <a class="btn btn-secondary" href="classement.html" target="_blank" rel="noopener">Ouvrir classement</a>
