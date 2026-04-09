@@ -10,7 +10,7 @@
     <main class="app-shell">
       <header class="hero card">
         <h1>ZogQuiz (SPA)</h1>
-        <p>Contrôle complet de la manche 1 : buzzer, questions, overlay OBS et leaderboard.</p>
+        <p>Configuration multi-manches (1 à 5 + finale). La logique active est en Manche 1.</p>
       </header>
 
       <section id="auth-section" class="card">
@@ -42,7 +42,7 @@
         <p id="auth-message" class="message"></p>
       </section>
 
-      <section id="dashboard" class="hidden">
+      <section id="dashboard" class="hidden stack-lg">
         <div class="card">
           <div class="row between">
             <h2>Espace admin</h2>
@@ -51,78 +51,132 @@
           <p id="admin-email" class="muted"></p>
         </div>
 
-        <section class="card">
-          <h3>Manche 1 — Buzzer invité (codes temporaires)</h3>
-          <p>Génère un code temporaire. L'invité l'utilise sur <code>buzzer.html</code> avec son pseudo.</p>
-          <div class="row">
-            <label>Durée (minutes)
-              <input id="code-duration" type="number" min="1" max="120" value="30" />
-            </label>
-            <button id="generate-code">Générer un code</button>
+        <nav class="card round-nav" aria-label="Navigation des manches">
+          <button class="round-tab active" data-round="manche1" aria-selected="true">Manche 1</button>
+          <button class="round-tab" data-round="manche2" aria-selected="false">Manche 2</button>
+          <button class="round-tab" data-round="manche3" aria-selected="false">Manche 3</button>
+          <button class="round-tab" data-round="manche4" aria-selected="false">Manche 4</button>
+          <button class="round-tab" data-round="manche5" aria-selected="false">Manche 5</button>
+          <button class="round-tab" data-round="finale" aria-selected="false">Manche finale</button>
+        </nav>
+
+        <section class="round-panel" data-round-panel="manche1">
+          <div class="card">
+            <h3>Manche 1 — Sous-menu questions</h3>
+            <div class="submenu-nav" aria-label="Sous-menu manche 1">
+              <button class="submenu-btn active" data-menu="creation" aria-selected="true">Création</button>
+              <button class="submenu-btn" data-menu="modification" aria-selected="false">Modification</button>
+              <button class="submenu-btn" data-menu="suppression" aria-selected="false">Suppression</button>
+            </div>
+
+            <div class="submenu-panel" data-menu-panel="creation">
+              <h4>Créer des questions</h4>
+              <div class="questions-layout">
+                <form id="participant-question-form" class="stack subcard">
+                  <h4>Ajouter question participants</h4>
+                  <label>Question
+                    <textarea id="participant-question" rows="3" required></textarea>
+                  </label>
+                  <label>Réponse
+                    <input id="participant-answer" required />
+                  </label>
+                  <button type="submit">Ajouter (buzzer actif)</button>
+                </form>
+
+                <form id="viewer-question-form" class="stack subcard">
+                  <h4>Ajouter question viewers</h4>
+                  <label>Question
+                    <textarea id="viewer-question" rows="3" required></textarea>
+                  </label>
+                  <label>Réponse
+                    <input id="viewer-answer" required />
+                  </label>
+                  <button type="submit">Ajouter (sans buzzer)</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="submenu-panel hidden" data-menu-panel="modification">
+              <p class="muted">La modification passera par la sélection des questions ci-dessous (implémentation manche 1 active).</p>
+              <p class="muted">Astuce: sélectionne une question active puis ajoute la nouvelle version en création.</p>
+            </div>
+
+            <div class="submenu-panel hidden" data-menu-panel="suppression">
+              <p class="muted">La suppression sera branchée sur la même liste de questions de la manche 1.</p>
+              <p class="muted">Structure prête pour les manches suivantes.</p>
+            </div>
           </div>
-          <p id="generated-code" class="highlight"></p>
-          <ul id="codes-list" class="list"></ul>
+
+          <section class="card">
+            <h3>Manche 1 — Buzzer invité (codes temporaires)</h3>
+            <p>Les codes expirés sont automatiquement nettoyés en base.</p>
+            <div class="row">
+              <label>Durée (minutes)
+                <input id="code-duration" type="number" min="1" max="120" value="30" />
+              </label>
+              <button id="generate-code">Générer un code</button>
+            </div>
+            <p id="generated-code" class="highlight"></p>
+            <ul id="codes-list" class="list"></ul>
+          </section>
+
+          <section class="card">
+            <div class="row between">
+              <h3>Overlay OBS — Manche 1</h3>
+              <a class="button-link" href="manche1.html" target="_blank" rel="noopener">Ouvrir manche1.html</a>
+            </div>
+            <p class="muted">Fond transparent, texte seul (question + réponse si activée).</p>
+          </section>
+
+          <section class="card">
+            <h3>Manche 1 — Pilotage live</h3>
+            <div class="row controls-wrap">
+              <button id="toggle-answer" class="secondary">Afficher réponse</button>
+              <button id="unlock-buzzer" class="secondary">Unlock buzzer</button>
+              <button id="mark-correct">Réponse juste (+1)</button>
+              <button id="mark-wrong" class="danger">Réponse fausse (bloquer sur la question)</button>
+            </div>
+            <p id="round-status" class="message"></p>
+
+            <div class="questions-layout">
+              <article class="subcard">
+                <h4>Questions participants</h4>
+                <ul id="participant-questions-list" class="list"></ul>
+              </article>
+              <article class="subcard">
+                <h4>Questions viewers</h4>
+                <ul id="viewer-questions-list" class="list"></ul>
+              </article>
+            </div>
+          </section>
+
+          <section class="card">
+            <h3>Manche 1 — Buzzer live & leaderboard</h3>
+            <p id="buzz-live" class="highlight">Personne n'a buzzé.</p>
+            <p class="muted">Clique sur un participant pour lui donner +1 point manuellement.</p>
+            <ul id="participants-list" class="leaderboard"></ul>
+          </section>
         </section>
 
-        <section class="card">
-          <div class="row between">
-            <h3>Overlay OBS</h3>
-            <a class="button-link" href="overlay.html" target="_blank" rel="noopener">Ouvrir l'overlay</a>
-          </div>
-          <p class="muted">Affiche la question courante et la réponse selon le switch admin.</p>
+        <section class="round-panel hidden card" data-round-panel="manche2">
+          <h3>Manche 2</h3>
+          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
         </section>
-
-        <section class="card">
-          <h3>Manche 1 — Questions participants (20) & viewers (4)</h3>
-          <div class="questions-layout">
-            <form id="participant-question-form" class="stack subcard">
-              <h4>Ajouter question participants</h4>
-              <label>Question
-                <textarea id="participant-question" rows="3" required></textarea>
-              </label>
-              <label>Réponse
-                <input id="participant-answer" required />
-              </label>
-              <button type="submit">Ajouter (buzzer actif)</button>
-            </form>
-
-            <form id="viewer-question-form" class="stack subcard">
-              <h4>Ajouter question viewers</h4>
-              <label>Question
-                <textarea id="viewer-question" rows="3" required></textarea>
-              </label>
-              <label>Réponse
-                <input id="viewer-answer" required />
-              </label>
-              <button type="submit">Ajouter (sans buzzer)</button>
-            </form>
-          </div>
-
-          <div class="row controls-wrap">
-            <button id="toggle-answer" class="secondary">Afficher réponse</button>
-            <button id="unlock-buzzer" class="secondary">Unlock buzzer</button>
-            <button id="mark-correct">Réponse juste (+1)</button>
-            <button id="mark-wrong" class="danger">Réponse fausse (bloquer sur la question)</button>
-          </div>
-          <p id="round-status" class="message"></p>
-
-          <div class="questions-layout">
-            <article class="subcard">
-              <h4>Questions participants</h4>
-              <ul id="participant-questions-list" class="list"></ul>
-            </article>
-            <article class="subcard">
-              <h4>Questions viewers</h4>
-              <ul id="viewer-questions-list" class="list"></ul>
-            </article>
-          </div>
+        <section class="round-panel hidden card" data-round-panel="manche3">
+          <h3>Manche 3</h3>
+          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
         </section>
-
-        <section class="card">
-          <h3>Manche 1 — Buzzer live & leaderboard</h3>
-          <p id="buzz-live" class="highlight">Personne n'a buzzé.</p>
-          <p class="muted">Clique sur un participant pour lui donner +1 point manuellement.</p>
-          <ul id="participants-list" class="leaderboard"></ul>
+        <section class="round-panel hidden card" data-round-panel="manche4">
+          <h3>Manche 4</h3>
+          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
+        </section>
+        <section class="round-panel hidden card" data-round-panel="manche5">
+          <h3>Manche 5</h3>
+          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
+        </section>
+        <section class="round-panel hidden card" data-round-panel="finale">
+          <h3>Manche finale</h3>
+          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
         </section>
       </section>
     </main>

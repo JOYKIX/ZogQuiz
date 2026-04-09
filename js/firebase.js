@@ -8,6 +8,7 @@ import {
   push,
   update,
   runTransaction,
+  remove,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -61,4 +62,4 @@ export function makeTempCode(size = 6) {
   return Array.from({ length: size }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }
 
-export { db, ref, set, get, onValue, push, update, runTransaction };
+export { db, ref, set, get, onValue, push, update, runTransaction, remove };

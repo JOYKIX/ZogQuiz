@@ -6,6 +6,7 @@ import {
   onValue,
   push,
   update,
+  remove,
   ensureRoundsSeed,
   makeTempCode,
 } from "./firebase.js";
@@ -32,12 +33,18 @@ const roundStatus = document.getElementById("round-status");
 const buzzLive = document.getElementById("buzz-live");
 const participantsList = document.getElementById("participants-list");
 
+const roundTabs = Array.from(document.querySelectorAll(".round-tab"));
+const panels = Array.from(document.querySelectorAll(".round-panel"));
+const menuButtons = Array.from(document.querySelectorAll(".submenu-btn"));
+const menuPanels = Array.from(document.querySelectorAll(".submenu-panel"));
+
 const SESSION_KEY = "zogquiz_admin_id";
 let currentAdminId = null;
 let liveState = null;
 let sessionsById = {};
 let participantQuestions = {};
 let viewerQuestions = {};
+let codeCleanupLock = false;
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
@@ -75,6 +82,38 @@ function showAuth() {
   authSection.classList.remove("hidden");
   dashboard.classList.add("hidden");
 }
+
+function activateRound(round) {
+  roundTabs.forEach((btn) => {
+    const active = btn.dataset.round === round;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", String(active));
+  });
+  panels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.roundPanel !== round);
+  });
+}
+
+function activateMenu(menu) {
+  menuButtons.forEach((btn) => {
+    const active = btn.dataset.menu === menu;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", String(active));
+  });
+  menuPanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.menuPanel !== menu);
+  });
+}
+
+for (const btn of roundTabs) {
+  btn.addEventListener("click", () => activateRound(btn.dataset.round));
+}
+for (const btn of menuButtons) {
+  btn.addEventListener("click", () => activateMenu(btn.dataset.menu));
+}
+
+activateRound("manche1");
+activateMenu("creation");
 
 document.getElementById("show-login").addEventListener("click", () => {
   loginForm.classList.remove("hidden");
@@ -219,6 +258,10 @@ async function unlockBuzzer() {
   });
 }
 
+async function clearBuzzData() {
+  await Promise.all([remove(ref(db, "rooms/manche1/buzzes")), remove(ref(db, "rooms/manche1/questionBlocks"))]);
+}
+
 function renderQuestionList(type, data, container) {
   const entries = Object.entries(data || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
   container.innerHTML = "";
@@ -240,6 +283,7 @@ function renderQuestionList(type, data, container) {
     askBtn.textContent = active ? "Question active" : "Passer à cette question";
     askBtn.disabled = active;
     askBtn.addEventListener("click", async () => {
+      await clearBuzzData();
       await update(ref(db, "rooms/manche1/state"), {
         currentType: type,
         currentQuestionId: id,
@@ -323,19 +367,38 @@ function updateRoundStatus() {
   }
 }
 
+async function cleanupExpiredCodes(codesMap) {
+  if (codeCleanupLock) return;
+  const now = Date.now();
+  const toDelete = Object.values(codesMap || {}).filter((item) => now > (item.expiresAt || 0)).map((item) => item.code);
+  if (!toDelete.length) return;
+
+  codeCleanupLock = true;
+  try {
+    await Promise.all(toDelete.map((code) => remove(ref(db, `rooms/manche1/accessCodes/${code}`))));
+  } finally {
+    codeCleanupLock = false;
+  }
+}
+
 function listenCodes() {
-  onValue(ref(db, "rooms/manche1/accessCodes"), (snapshot) => {
-    const entries = Object.values(snapshot.val() || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  onValue(ref(db, "rooms/manche1/accessCodes"), async (snapshot) => {
+    const value = snapshot.val() || {};
+    await cleanupExpiredCodes(value);
+
+    const entries = Object.values(value)
+      .filter((item) => Date.now() <= (item.expiresAt || 0))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
     codesList.innerHTML = "";
     if (!entries.length) {
-      codesList.innerHTML = "<li>Aucun code pour le moment.</li>";
+      codesList.innerHTML = "<li>Aucun code actif pour le moment.</li>";
       return;
     }
 
     for (const item of entries.slice(0, 20)) {
       const li = document.createElement("li");
-      const expired = Date.now() > (item.expiresAt || 0);
-      li.textContent = `${item.code} • ${expired ? "expiré" : "actif"} • expire le ${new Date(item.expiresAt).toLocaleString()}`;
+      li.textContent = `${item.code} • actif • expire le ${new Date(item.expiresAt).toLocaleString()}`;
       codesList.appendChild(li);
     }
   });
