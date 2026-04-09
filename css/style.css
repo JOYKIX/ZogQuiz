@@ -219,9 +219,66 @@ button:disabled {
   gap: .5rem;
 }
 
-.leader-item button {
+.leader-item {
   width: 100%;
-  text-align: left;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .65rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #111a34;
+}
+
+.leader-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leader-score {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.score-actions {
+  display: inline-flex;
+  gap: .4rem;
+}
+
+.mini-btn {
+  padding: .4rem .6rem;
+  min-width: 52px;
+}
+
+.question-head {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.question-active-chip {
+  border-radius: 999px;
+  font-size: .78rem;
+  padding: .2rem .55rem;
+  background: #25403f;
+  color: var(--accent);
+}
+
+.question-text {
+  margin: .35rem 0 0;
+}
+
+.question-actions {
+  margin-top: .5rem;
+}
+
+.question-editor {
+  display: grid;
+  gap: .5rem;
+  margin-top: .65rem;
 }
 
 .sticky-actions {
@@ -261,6 +318,7 @@ button:disabled {
   border: 2px solid #3f4f8f;
   border-radius: 20px;
   padding: 1.5rem;
+  text-align: center;
 }
 .overlay-chip {
   display: inline-block;
@@ -274,11 +332,14 @@ button:disabled {
 #overlay-question {
   margin: .2rem 0;
   font-size: clamp(1.8rem, 4vw, 3.4rem);
+  text-align: center;
+  width: 100%;
 }
 #overlay-answer {
   color: var(--accent);
   font-size: clamp(1.2rem, 2.2vw, 2rem);
   margin-top: .9rem;
+  text-align: center;
 }
 
 @media (max-width: 980px) {

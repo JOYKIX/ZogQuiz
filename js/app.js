@@ -39,6 +39,7 @@ const activeQuestion = document.getElementById("active-question");
 const participantsList = document.getElementById("participants-list");
 const quickLeaderboard = document.getElementById("quick-leaderboard");
 const scoreboardPreview = document.getElementById("scoreboard-preview");
+const overlayFontSizeInput = document.getElementById("overlay-font-size");
 
 const sessionStatus = document.getElementById("session-status");
 const currentQuestionStatus = document.getElementById("current-question-status");
@@ -49,8 +50,6 @@ const sideLinks = Array.from(document.querySelectorAll(".side-link"));
 const sectionPanels = Array.from(document.querySelectorAll("[data-section-panel]"));
 const roundTabs = Array.from(document.querySelectorAll(".round-tab"));
 const roundPanels = Array.from(document.querySelectorAll(".round-panel"));
-const menuButtons = Array.from(document.querySelectorAll(".submenu-btn"));
-const menuPanels = Array.from(document.querySelectorAll(".submenu-panel"));
 
 const SESSION_KEY = "zogquiz_admin_id";
 let currentAdminId = null;
@@ -59,6 +58,7 @@ let sessionsById = {};
 let participantQuestions = {};
 let viewerQuestions = {};
 let codeCleanupLock = false;
+let overlaySettings = { questionFontSizePx: 72 };
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
@@ -130,30 +130,15 @@ function activateRound(round) {
   });
 }
 
-function activateMenu(menu) {
-  menuButtons.forEach((btn) => {
-    const active = btn.dataset.menu === menu;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-selected", String(active));
-  });
-  menuPanels.forEach((panel) => {
-    panel.classList.toggle("hidden", panel.dataset.menuPanel !== menu);
-  });
-}
-
 for (const btn of sideLinks) {
   btn.addEventListener("click", () => activateSection(btn.dataset.section));
 }
 for (const btn of roundTabs) {
   btn.addEventListener("click", () => activateRound(btn.dataset.round));
 }
-for (const btn of menuButtons) {
-  btn.addEventListener("click", () => activateMenu(btn.dataset.menu));
-}
 
 activateSection("overview");
 activateRound("manche1");
-activateMenu("creation");
 
 showLoginBtn.addEventListener("click", () => {
   loginForm.classList.remove("hidden");
@@ -269,6 +254,10 @@ async function createQuestion(type, questionInputId, answerInputId) {
   answerInput.value = "";
 }
 
+function getSafeScore(score) {
+  return Math.max(0, Number(score || 0));
+}
+
 toggleAnswerBtn.addEventListener("click", async () => {
   if (!liveState?.currentQuestionId) return;
   const next = !liveState.showAnswer;
@@ -282,7 +271,7 @@ unlockBuzzerBtn.addEventListener("click", async () => {
 markCorrectBtn.addEventListener("click", async () => {
   if (!liveState?.lockedBySessionId) return;
   const sessionId = liveState.lockedBySessionId;
-  const score = Number(sessionsById[sessionId]?.score || 0) + 1;
+  const score = getSafeScore(sessionsById[sessionId]?.score) + 1;
   await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, lastWinAt: Date.now() });
   await unlockBuzzer();
 });
@@ -326,13 +315,20 @@ function renderQuestionList(type, data, container) {
     const li = document.createElement("li");
     li.className = "question-item";
     const active = liveState?.currentQuestionId === id;
-    li.innerHTML = `<strong>Q${q.order}</strong> ${q.text}<br/><span class="muted">Réponse: ${q.answer}</span>`;
+    li.innerHTML = `
+      <div class="question-head">
+        <strong>Q${q.order}</strong>
+        ${active ? '<span class="question-active-chip">Active</span>' : ""}
+      </div>
+      <p class="question-text">${q.text}</p>
+      <p class="muted">Réponse : ${q.answer}</p>
+    `;
 
     const actions = document.createElement("div");
-    actions.className = "row";
+    actions.className = "row question-actions";
     const askBtn = document.createElement("button");
     askBtn.className = active ? "secondary" : "";
-    askBtn.textContent = active ? "Question active" : "Lancer cette question";
+    askBtn.textContent = active ? "En direct" : "Lancer";
     askBtn.disabled = active;
     askBtn.addEventListener("click", async () => {
       await clearBuzzData();
@@ -349,7 +345,61 @@ function renderQuestionList(type, data, container) {
       activateSection("live");
     });
     actions.appendChild(askBtn);
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "secondary";
+    editBtn.textContent = "Modifier";
+    actions.appendChild(editBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "danger";
+    deleteBtn.textContent = "Supprimer";
+    deleteBtn.addEventListener("click", async () => {
+      await deleteQuestion(type, id);
+    });
+    actions.appendChild(deleteBtn);
+
     li.appendChild(actions);
+
+    const editor = document.createElement("form");
+    editor.className = "question-editor hidden";
+    const editorText = document.createElement("textarea");
+    editorText.rows = 2;
+    editorText.required = true;
+    editorText.value = q.text || "";
+
+    const editorAnswer = document.createElement("input");
+    editorAnswer.required = true;
+    editorAnswer.value = q.answer || "";
+
+    const editorActions = document.createElement("div");
+    editorActions.className = "row";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "submit";
+    saveBtn.textContent = "Enregistrer";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "secondary";
+    cancelBtn.textContent = "Annuler";
+
+    editorActions.append(saveBtn, cancelBtn);
+    editor.append(editorText, editorAnswer, editorActions);
+    editBtn.addEventListener("click", () => {
+      editorText.value = q.text || "";
+      editorAnswer.value = q.answer || "";
+      editor.classList.toggle("hidden");
+    });
+    cancelBtn.addEventListener("click", () => {
+      editor.classList.add("hidden");
+    });
+    editor.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await updateQuestion(type, id, editorText.value, editorAnswer.value);
+      editor.classList.add("hidden");
+    });
+    li.appendChild(editor);
     container.appendChild(li);
   }
 }
@@ -380,11 +430,58 @@ function initRoundLiveListeners() {
     renderParticipants();
     refreshLiveSnapshot();
   });
+
+  onValue(ref(db, "rooms/manche1/overlaySettings"), (snap) => {
+    const settings = snap.val() || {};
+    overlaySettings = {
+      questionFontSizePx: Math.max(24, Math.min(180, Number(settings.questionFontSizePx || 72))),
+    };
+    overlayFontSizeInput.value = String(overlaySettings.questionFontSizePx);
+  });
 }
 
 async function giveManualPoint(sessionId) {
-  const score = Number(sessionsById[sessionId]?.score || 0) + 1;
+  const score = getSafeScore(sessionsById[sessionId]?.score) + 1;
   await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, lastManualPointAt: Date.now() });
+}
+
+async function removeManualPoint(sessionId) {
+  const score = Math.max(0, getSafeScore(sessionsById[sessionId]?.score) - 1);
+  await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, lastManualPointAt: Date.now() });
+}
+
+async function updateQuestion(type, questionId, text, answer) {
+  const nextText = text.trim();
+  const nextAnswer = answer.trim();
+  if (!nextText || !nextAnswer) return;
+  await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), {
+    text: nextText,
+    answer: nextAnswer,
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+}
+
+async function deleteQuestion(type, questionId) {
+  const confirmed = window.confirm("Supprimer cette question ?");
+  if (!confirmed) return;
+
+  const isActive = liveState?.currentQuestionId === questionId;
+  await remove(ref(db, `rooms/manche1/questions/${type}/${questionId}`));
+
+  if (isActive) {
+    await update(ref(db, "rooms/manche1/state"), {
+      currentType: "participants",
+      currentQuestionId: null,
+      showAnswer: false,
+      buzzerLocked: false,
+      lockedBySessionId: null,
+      lockedByNickname: "",
+      lockedAt: 0,
+      updatedAt: Date.now(),
+    });
+    await clearBuzzData();
+  }
 }
 
 function renderLeaderboardList(target, entries, emptyText) {
@@ -399,11 +496,28 @@ function renderLeaderboardList(target, entries, emptyText) {
   for (const p of entries) {
     const li = document.createElement("li");
     li.className = "leader-item";
-    const button = document.createElement("button");
-    button.textContent = `${p.nickname || "Anonyme"} — ${p.score} pt`;
-    button.disabled = !p.id;
-    if (p.id) button.addEventListener("click", () => giveManualPoint(p.id));
-    li.appendChild(button);
+    li.innerHTML = `
+      <span class="leader-name">${p.nickname || "Anonyme"}</span>
+      <span class="leader-score">${p.score} pt</span>
+    `;
+    if (p.id) {
+      const actions = document.createElement("div");
+      actions.className = "score-actions";
+
+      const addBtn = document.createElement("button");
+      addBtn.className = "secondary mini-btn";
+      addBtn.textContent = "+1";
+      addBtn.addEventListener("click", () => giveManualPoint(p.id));
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "danger mini-btn";
+      removeBtn.textContent = "-1";
+      removeBtn.disabled = p.score <= 0;
+      removeBtn.addEventListener("click", () => removeManualPoint(p.id));
+
+      actions.append(removeBtn, addBtn);
+      li.appendChild(actions);
+    }
     target.appendChild(li);
   }
 }
@@ -417,6 +531,29 @@ function renderParticipants() {
   renderLeaderboardList(quickLeaderboard, entries.slice(0, 5), "Le classement apparaîtra ici.");
   renderLeaderboardList(scoreboardPreview, entries.slice(0, 5), "Le classement apparaîtra ici.");
 }
+
+async function saveOverlayFontSize(value) {
+  const px = Number(value);
+  if (!Number.isFinite(px)) return;
+  const clamped = Math.max(24, Math.min(180, Math.round(px)));
+  if (overlayFontSizeInput.value !== String(clamped)) {
+    overlayFontSizeInput.value = String(clamped);
+  }
+  if (overlaySettings.questionFontSizePx === clamped) return;
+  overlaySettings.questionFontSizePx = clamped;
+  await update(ref(db, "rooms/manche1/overlaySettings"), {
+    questionFontSizePx: clamped,
+    updatedAt: Date.now(),
+  });
+}
+
+overlayFontSizeInput.addEventListener("change", async () => {
+  await saveOverlayFontSize(overlayFontSizeInput.value);
+});
+
+overlayFontSizeInput.addEventListener("blur", async () => {
+  await saveOverlayFontSize(overlayFontSizeInput.value);
+});
 
 function refreshLiveSnapshot() {
   const question = getQuestionById(liveState?.currentQuestionId);
