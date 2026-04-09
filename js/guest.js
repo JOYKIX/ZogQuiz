@@ -1,7 +1,8 @@
-import { db, ref, get, set, push, onValue, runTransaction, remove } from "./firebase.js";
+import { db, ref, get, set, push, onValue, runTransaction, remove, update } from "./firebase.js";
 
 const round1Root = document.getElementById("guest-round1");
 const round2Root = document.getElementById("guest-round2");
+const round3Root = document.getElementById("guest-round3");
 
 const guestForm = document.getElementById("guest-form");
 const guestMessage = document.getElementById("guest-message");
@@ -13,6 +14,12 @@ const buzzFeedback = document.getElementById("buzz-feedback");
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
 
+const m3GuestStatus = document.getElementById("m3-guest-status");
+const m3GuestPlayer = document.getElementById("m3-guest-player");
+const m3GuestTheme = document.getElementById("m3-guest-theme");
+const m3GuestHelp = document.getElementById("m3-guest-help");
+const m3ThemeButtons = document.getElementById("m3-theme-buttons");
+
 let activeRound = "manche1";
 let currentSession = null;
 let currentNickname = "";
@@ -21,18 +28,22 @@ let currentQuestionBlocked = false;
 let watchingRound1 = false;
 let manche2Questions = {};
 let manche2State = null;
+let round3State = null;
+let round3Themes = {};
+let sessionsById = {};
 
 function normalizeNickname(nickname) {
   return nickname.trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 function renderByRound() {
-  const round2 = activeRound === "manche2";
-  round1Root.classList.toggle("hidden", round2);
-  round2Root.classList.toggle("hidden", !round2);
-  if (round2) {
-    renderRound2();
-  }
+  const isRound2 = activeRound === "manche2";
+  const isRound3 = activeRound === "manche3";
+  round1Root.classList.toggle("hidden", isRound2 || isRound3);
+  round2Root.classList.toggle("hidden", !isRound2);
+  round3Root.classList.toggle("hidden", !isRound3);
+  if (isRound2) renderRound2();
+  if (isRound3) renderRound3();
 }
 
 function renderRound2() {
@@ -42,10 +53,60 @@ function renderRound2() {
     m2Empty.classList.remove("hidden");
     return;
   }
-
   m2Image.src = activeQuestion.imageDataUrl;
   m2Image.classList.remove("hidden");
   m2Empty.classList.add("hidden");
+}
+
+function renderRound3() {
+  const activePlayerId = round3State?.activePlayerId;
+  const activePlayerName = sessionsById[activePlayerId]?.nickname || "Aucun";
+  const activeTheme = round3Themes[round3State?.activeThemeId] || null;
+  const isCurrentPlayer = Boolean(currentSession && activePlayerId === currentSession);
+  const themeLocked = Boolean(round3State?.activeThemeId);
+
+  m3GuestPlayer.textContent = `Joueur actif : ${activePlayerName}`;
+  m3GuestTheme.textContent = `Thème actif : ${activeTheme?.name || "Aucun"}`;
+
+  if (!currentSession) {
+    m3GuestStatus.textContent = "Connectez-vous d'abord avec votre code.";
+    m3GuestHelp.textContent = "Connectez-vous pour participer.";
+  } else if (isCurrentPlayer && !themeLocked) {
+    m3GuestStatus.textContent = "À vous de choisir un thème.";
+    m3GuestHelp.textContent = "Cliquez sur un thème pour commencer.";
+  } else if (isCurrentPlayer && themeLocked) {
+    m3GuestStatus.textContent = "Thème choisi. En attente de l'admin.";
+    m3GuestHelp.textContent = "Le tour est en cours.";
+  } else {
+    m3GuestStatus.textContent = "Tour d'un autre joueur.";
+    m3GuestHelp.textContent = "Attendez votre tour.";
+  }
+
+  const themes = Object.entries(round3Themes || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+  m3ThemeButtons.innerHTML = "";
+  if (!themes.length) {
+    m3ThemeButtons.innerHTML = "<p class='muted'>Aucun thème disponible.</p>";
+    return;
+  }
+
+  for (const [id, theme] of themes) {
+    const btn = document.createElement("button");
+    btn.className = id === round3State?.activeThemeId ? "btn btn-secondary" : "btn btn-primary";
+    btn.textContent = theme.name || "Thème";
+    btn.disabled = !isCurrentPlayer || themeLocked;
+    btn.setAttribute("aria-pressed", String(id === round3State?.activeThemeId));
+    btn.addEventListener("click", async () => {
+      if (!isCurrentPlayer) return;
+      await update(ref(db, "rooms/manche3/state"), {
+        activeThemeId: id,
+        questionIndex: 0,
+        timerRemainingMs: Number(round3State?.timerRemainingMs || 90_000),
+        timerStatus: round3State?.timerStatus || "idle",
+        updatedAt: Date.now(),
+      });
+    });
+    m3ThemeButtons.appendChild(btn);
+  }
 }
 
 guestForm.addEventListener("submit", async (event) => {
@@ -53,31 +114,21 @@ guestForm.addEventListener("submit", async (event) => {
   const code = document.getElementById("guest-code").value.trim().toUpperCase();
   const nickname = document.getElementById("guest-nickname").value.trim();
 
-  if (!code || !nickname) {
-    guestMessage.textContent = "Code et pseudo obligatoires.";
-    return;
-  }
+  if (!code || !nickname) return (guestMessage.textContent = "Code et pseudo obligatoires.");
 
   const codeRef = ref(db, `rooms/manche1/accessCodes/${code}`);
   const codeSnap = await get(codeRef);
-  if (!codeSnap.exists()) {
-    guestMessage.textContent = "Code invalide.";
-    return;
-  }
+  if (!codeSnap.exists()) return (guestMessage.textContent = "Code invalide.");
 
   const codeData = codeSnap.val() || {};
   const expired = Date.now() > Number(codeData.expiresAt || 0);
   if (!codeData.active || expired) {
     if (expired) await remove(codeRef);
-    guestMessage.textContent = "Code expiré.";
-    return;
+    return (guestMessage.textContent = "Code expiré.");
   }
 
   const nicknameKey = normalizeNickname(nickname);
-  if (!nicknameKey) {
-    guestMessage.textContent = "Pseudo invalide.";
-    return;
-  }
+  if (!nicknameKey) return (guestMessage.textContent = "Pseudo invalide.");
 
   const sessionRef = ref(db, `rooms/manche1/guestSessions/${nicknameKey}`);
   const existingSnap = await get(sessionRef);
@@ -102,6 +153,7 @@ guestForm.addEventListener("submit", async (event) => {
     watchRound1State();
     watchingRound1 = true;
   }
+  renderRound3();
 });
 
 function watchRound1State() {
@@ -119,27 +171,21 @@ function watchRound1State() {
 
 function refreshButtonState() {
   if (!liveState) return;
-
   if (liveState.currentType === "viewers") {
     buzzBtn.disabled = true;
     buzzFeedback.textContent = "Mode viewers";
     return;
   }
-
   if (currentQuestionBlocked) {
     buzzBtn.disabled = true;
     buzzFeedback.textContent = "Déjà tenté";
     return;
   }
-
   if (liveState.buzzerLocked) {
     buzzBtn.disabled = liveState.lockedBySessionId !== currentSession;
-    buzzFeedback.textContent = liveState.lockedBySessionId === currentSession
-      ? "En attente admin"
-      : `${liveState.lockedByNickname || "Quelqu'un"} a buzzé`;
+    buzzFeedback.textContent = liveState.lockedBySessionId === currentSession ? "En attente admin" : `${liveState.lockedByNickname || "Quelqu'un"} a buzzé`;
     return;
   }
-
   buzzBtn.disabled = false;
   buzzFeedback.textContent = "Buzzer ouvert";
 }
@@ -193,6 +239,21 @@ onValue(ref(db, "rooms/manche2/questions"), (snap) => {
 onValue(ref(db, "rooms/manche2/state"), (snap) => {
   manche2State = snap.val() || {};
   renderRound2();
+});
+
+onValue(ref(db, "rooms/manche3/state"), (snap) => {
+  round3State = snap.val() || {};
+  renderRound3();
+});
+
+onValue(ref(db, "rooms/manche3/themes"), (snap) => {
+  round3Themes = snap.val() || {};
+  renderRound3();
+});
+
+onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
+  sessionsById = snap.val() || {};
+  renderRound3();
 });
 
 watchRound1State();
