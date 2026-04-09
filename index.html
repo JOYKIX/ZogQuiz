@@ -10,9 +10,8 @@
     <main class="app-shell">
       <header class="app-header panel">
         <div>
-          <p class="eyebrow">ZogQuiz • Admin Live Ops</p>
-          <h1>Console de pilotage live</h1>
-          <p class="muted">Préparation, diffusion et affichage public dans une interface modulaire.</p>
+          <p class="eyebrow">ZogQuiz • Admin</p>
+          <h1>Régie live</h1>
         </div>
         <div class="session-actions">
           <span id="admin-email" class="status-chip">Hors ligne</span>
@@ -51,21 +50,21 @@
       <section id="dashboard" class="hidden dashboard-shell">
         <aside class="sidebar panel" aria-label="Navigation principale">
           <p class="sidebar-label">Navigation</p>
-          <button class="nav-item active" data-workspace="dashboard">Dashboard global</button>
-          <button class="nav-item" data-workspace="players">Joueurs & invités</button>
-          <button class="nav-item" data-workspace="rounds">Pilotage par manche</button>
-          <button class="nav-item" data-workspace="broadcast">Overlays & diffusion</button>
+          <button class="nav-item active" data-workspace="dashboard">Vue live</button>
+          <button class="nav-item" data-workspace="players">Joueurs</button>
+          <button class="nav-item" data-workspace="rounds">Manches</button>
+          <button class="nav-item" data-workspace="broadcast">Overlays</button>
         </aside>
 
         <div class="content-stack">
           <div class="context-bar panel">
-            <p id="breadcrumb" class="muted">Dashboard global</p>
-            <span class="status-chip live-chip">Mode exploitation live</span>
+            <p id="breadcrumb" class="muted">Vue live</p>
+            <span class="status-chip live-chip">En direct</span>
           </div>
 
           <section class="workspace-panel panel" data-workspace-panel="dashboard">
             <div class="panel-head">
-              <h2>Vue d’ensemble session</h2>
+              <h2>État de la session</h2>
             </div>
             <div class="stats-grid">
               <article class="stat-card">
@@ -73,11 +72,11 @@
                 <p id="session-status" class="highlight">Active</p>
               </article>
               <article class="stat-card">
-                <p class="muted">Manche active</p>
+                <p class="muted">Manche</p>
                 <p id="active-round-status">Manche 1</p>
               </article>
               <article class="stat-card">
-                <p class="muted">Question en cours</p>
+                <p class="muted">Question</p>
                 <p id="current-question-status">Aucune</p>
               </article>
               <article class="stat-card">
@@ -94,13 +93,13 @@
               <article class="panel subpanel">
                 <h3>Actions rapides</h3>
                 <div class="row">
-                  <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Piloter la manche</button>
-                  <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Ouvrir diffusion</button>
-                  <button class="btn btn-secondary quick-nav" data-workspace-target="players">Gérer joueurs</button>
+                  <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Ouvrir une manche</button>
+                  <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Ouvrir les overlays</button>
+                  <button class="btn btn-secondary quick-nav" data-workspace-target="players">Voir les joueurs</button>
                 </div>
               </article>
               <article class="panel subpanel">
-                <h3>Top participants</h3>
+                <h3>Top 5</h3>
                 <ul id="quick-leaderboard" class="leaderboard"></ul>
               </article>
             </div>
@@ -108,7 +107,7 @@
 
           <section class="workspace-panel panel hidden" data-workspace-panel="players">
             <div class="panel-head">
-              <h2>Gestion joueurs & accès invités</h2>
+              <h2>Joueurs et accès invités</h2>
             </div>
             <div class="two-col">
               <article class="panel subpanel stack">
@@ -117,7 +116,7 @@
                   <label>Durée (min)
                     <input id="code-duration" type="number" min="1" max="120" value="30" />
                   </label>
-                  <button id="generate-code" class="btn btn-primary">Créer un code invité</button>
+                  <button id="generate-code" class="btn btn-primary">Créer un code</button>
                 </div>
                 <p id="generated-code" class="message"></p>
                 <ul id="codes-list" class="list"></ul>
@@ -125,7 +124,6 @@
 
               <article class="panel subpanel">
                 <h3>Participants</h3>
-                <p class="muted">Différenciation claire entre participants scoring et viewers lecture seule.</p>
                 <ul id="participants-list" class="leaderboard"></ul>
               </article>
             </div>
@@ -133,7 +131,7 @@
 
           <section class="workspace-panel panel hidden" data-workspace-panel="rounds">
             <div class="panel-head">
-              <h2>Pilotage par manche</h2>
+              <h2>Contrôle des manches</h2>
             </div>
 
             <nav class="round-nav" aria-label="Navigation des manches">
@@ -150,9 +148,8 @@
                 <button class="subnav-tab active" data-round="manche1" data-round-section="overview">Vue d’ensemble</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="questions">Questions</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="live">Pilotage live</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="live">En direct</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overlay">Overlay</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="settings">Paramètres</button>
               </nav>
 
               <section class="round-section" data-round-section-panel="manche1:overview">
@@ -164,8 +161,8 @@
                     <p id="buzz-live" class="highlight">Aucun buzz.</p>
                   </article>
                   <article class="panel subpanel">
-                    <h3>Historique & statut</h3>
-                    <p class="empty-state">Le suivi détaillé de manche est prêt. Les événements live seront consolidés ici.</p>
+                    <h3>Ordre des buzz</h3>
+                    <ol id="buzz-order-list" class="list compact-list"></ol>
                   </article>
                 </div>
               </section>
@@ -197,11 +194,11 @@
 
                 <div class="two-col">
                   <article class="panel subpanel">
-                    <h3>Banque participants</h3>
+                    <h3>Liste participants</h3>
                     <ul id="participant-questions-list" class="list"></ul>
                   </article>
                   <article class="panel subpanel">
-                    <h3>Banque viewers</h3>
+                    <h3>Liste viewers</h3>
                     <ul id="viewer-questions-list" class="list"></ul>
                   </article>
                 </div>
@@ -209,19 +206,27 @@
 
               <section class="round-section hidden" data-round-section-panel="manche1:participants">
                 <article class="panel subpanel">
-                  <h3>Participants concernés</h3>
+                  <h3>Classement manche 1</h3>
                   <ul id="m1-participants-list" class="leaderboard"></ul>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche1:live">
-                <article class="panel subpanel">
-                  <h3>Pilotage live</h3>
+                <article class="panel subpanel stack">
+                  <h3>Contrôle du live</h3>
+                  <div class="live-buzz-card" role="status" aria-live="polite">
+                    <p class="muted">Premier buzz</p>
+                    <p id="buzz-priority-name" class="live-buzz-name">Personne</p>
+                    <div class="row">
+                      <button id="buzz-plus" class="btn btn-primary" disabled>+1 point</button>
+                      <button id="buzz-minus" class="btn btn-danger" disabled>-1 point</button>
+                    </div>
+                  </div>
                   <div class="sticky-actions">
                     <button id="toggle-answer" class="btn btn-secondary">Afficher la réponse</button>
-                    <button id="unlock-buzzer" class="btn btn-secondary">Déverrouiller le buzzer</button>
-                    <button id="mark-correct" class="btn btn-primary">Donner 1 point</button>
-                    <button id="mark-wrong" class="btn btn-danger">Réponse incorrecte</button>
+                    <button id="unlock-buzzer" class="btn btn-secondary">Réouvrir le buzzer</button>
+                    <button id="mark-correct" class="btn btn-primary">Bonne réponse (+1)</button>
+                    <button id="mark-wrong" class="btn btn-danger">Mauvaise réponse</button>
                   </div>
                 </article>
               </section>
@@ -234,15 +239,8 @@
                   </label>
                   <div class="row">
                     <a class="btn btn-secondary" href="manche1.html" target="_blank" rel="noopener">Ouvrir overlay manche 1</a>
-                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest view</a>
+                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                   </div>
-                </article>
-              </section>
-
-              <section class="round-section hidden" data-round-section-panel="manche1:settings">
-                <article class="panel subpanel">
-                  <h3>Paramètres manche 1</h3>
-                  <p class="empty-state">Paramètres avancés prêts à accueillir des règles spécifiques de manche.</p>
                 </article>
               </section>
             </section>
@@ -252,8 +250,7 @@
                 <button class="subnav-tab active" data-round="manche2" data-round-section="overview">Vue d’ensemble</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="questions">Questions</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="live">Pilotage live</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="settings">Paramètres</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="live">En direct</button>
               </nav>
 
               <section class="round-section" data-round-section-panel="manche2:overview">
@@ -265,77 +262,117 @@
 
               <section class="round-section hidden" data-round-section-panel="manche2:questions">
                 <form id="m2-question-form" class="panel subpanel stack">
-                  <h3>Questions visuelles</h3>
+                  <h3>Images manche 2</h3>
                   <label>Image
                     <input id="m2-image" type="file" accept="image/*" required />
                   </label>
                   <label>Œuvre
                     <input id="m2-work" required maxlength="120" />
                   </label>
-                  <label>Lieu exact
+                  <label>Lieu
                     <input id="m2-location" required maxlength="180" />
                   </label>
                   <button type="submit" class="btn btn-primary">Ajouter</button>
                 </form>
                 <article class="panel subpanel">
-                  <h3>Banque manche 2</h3>
+                  <h3>Banque d’images</h3>
                   <ul id="m2-questions-list" class="list"></ul>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:participants">
                 <article class="panel subpanel">
-                  <h3>Participants concernés</h3>
+                  <h3>Classement manche 2</h3>
                   <ul id="m2-participants-list" class="leaderboard"></ul>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:live">
                 <article class="panel subpanel">
-                  <h3>Pilotage live</h3>
+                  <h3>En direct</h3>
                   <div class="row">
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
+                    <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Ouvrir overlay manche 2</a>
                   </div>
-                </article>
-              </section>
-
-              <section class="round-section hidden" data-round-section-panel="manche2:settings">
-                <article class="panel subpanel">
-                  <h3>Paramètres manche 2</h3>
-                  <p class="empty-state">Base prête pour scoring et variantes de règles.</p>
                 </article>
               </section>
             </section>
 
             <section class="round-shell hidden" data-round-panel="manche3">
-              <h3>Manche 3</h3>
-              <p class="empty-state">Structure prête : vue d’ensemble, questions, participants, live, overlay, paramètres.</p>
+              <div class="two-col">
+                <article class="panel subpanel stack">
+                  <h3>Joueur actif</h3>
+                  <p id="m3-active-player" class="highlight">Aucun</p>
+                  <ul id="m3-player-list" class="leaderboard"></ul>
+                </article>
+
+                <article class="panel subpanel stack">
+                  <h3>Chrono (1:30)</h3>
+                  <p id="m3-timer" class="timer">01:30</p>
+                  <div class="row">
+                    <button id="m3-start" class="btn btn-primary">Démarrer</button>
+                    <button id="m3-pause" class="btn btn-secondary">Pause</button>
+                    <button id="m3-resume" class="btn btn-secondary">Reprendre</button>
+                    <button id="m3-reset" class="btn btn-danger">Réinitialiser</button>
+                  </div>
+                  <p id="m3-timer-status" class="message">Prêt</p>
+                </article>
+              </div>
+
+              <div class="two-col">
+                <article class="panel subpanel stack">
+                  <h3>Thèmes</h3>
+                  <form id="m3-theme-form" class="stack">
+                    <label>Nouveau thème
+                      <input id="m3-theme-name" required maxlength="80" placeholder="ex: Cinéma" />
+                    </label>
+                    <button type="submit" class="btn btn-primary">Ajouter le thème</button>
+                  </form>
+                  <ul id="m3-theme-list" class="list"></ul>
+                </article>
+
+                <article class="panel subpanel stack">
+                  <h3>Questions du tour</h3>
+                  <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
+                  <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
+                  <div class="row">
+                    <button id="m3-pass" class="btn btn-secondary">Passer</button>
+                    <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
+                    <button id="m3-next" class="btn btn-secondary">Question suivante</button>
+                  </div>
+                  <div class="row">
+                    <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Ouvrir overlay manche 3</a>
+                  </div>
+                </article>
+              </div>
             </section>
             <section class="round-shell hidden" data-round-panel="manche4">
               <h3>Manche 4</h3>
-              <p class="empty-state">Structure prête : vue d’ensemble, questions, participants, live, overlay, paramètres.</p>
+              <p class="empty-state">Section prête.</p>
             </section>
             <section class="round-shell hidden" data-round-panel="manche5">
               <h3>Manche 5</h3>
-              <p class="empty-state">Structure prête : vue d’ensemble, questions, participants, live, overlay, paramètres.</p>
+              <p class="empty-state">Section prête.</p>
             </section>
             <section class="round-shell hidden" data-round-panel="finale">
-              <h3>Finale (mode spécial)</h3>
-              <p class="empty-state">Finale intégrée comme mode dédié avec architecture indépendante extensible.</p>
+              <h3>Finale</h3>
+              <p class="empty-state">Section prête.</p>
             </section>
           </section>
 
           <section class="workspace-panel panel hidden" data-workspace-panel="broadcast">
             <div class="panel-head">
-              <h2>Diffusion & affichage public</h2>
+              <h2>Diffusion</h2>
             </div>
             <div class="two-col">
               <article class="panel subpanel">
-                <h3>Overlays / guest view</h3>
+                <h3>Overlays</h3>
                 <div class="row">
-                  <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest view</a>
+                  <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
                   <a class="btn btn-secondary" href="overlay.html" target="_blank" rel="noopener">Overlay général</a>
                   <a class="btn btn-secondary" href="manche1.html" target="_blank" rel="noopener">Overlay manche 1</a>
+                  <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Overlay manche 2</a>
+                  <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Overlay manche 3</a>
                 </div>
               </article>
               <article class="panel subpanel">

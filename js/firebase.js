@@ -72,6 +72,21 @@ export async function ensureRoundsSeed(uid) {
       updatedAt: Date.now(),
     });
   }
+
+  const manche3StateRef = ref(db, "rooms/manche3/state");
+  if (!(await get(manche3StateRef)).exists()) {
+    await set(manche3StateRef, {
+      activePlayerId: null,
+      activeThemeId: null,
+      questionIndex: 0,
+      timerStatus: "idle",
+      timerRemainingMs: 90000,
+      timerEndsAt: null,
+      turnEnded: false,
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
 }
 
 export function makeTempCode(size = 6) {
