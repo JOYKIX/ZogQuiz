@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZogQuiz - Classement</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero card">
+        <h1>Classement ZogQuiz</h1>
+        <p>Page séparée des manches: leaderboard participants et leaderboard viewers Twitch.</p>
+      </header>
+
+      <section class="card">
+        <h2>Leaderboard participants</h2>
+        <p class="muted">Score du buzzer invité (manche 1).</p>
+        <ul id="participants-leaderboard" class="leaderboard"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Leaderboard viewers Twitch</h2>
+        <p class="muted">Score attribué automatiquement par le bot Twitch sur les questions viewers actives.</p>
+        <ul id="viewers-leaderboard" class="leaderboard"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="js/classement.js"></script>
+  </body>
+</html>

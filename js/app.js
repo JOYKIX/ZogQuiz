@@ -331,6 +331,8 @@ async function giveManualPoint(sessionId) {
 }
 
 function renderParticipants() {
+  if (!participantsList) return;
+
   const entries = Object.entries(sessionsById)
     .map(([id, s]) => ({ id, ...s, score: Number(s.score || 0) }))
     .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));

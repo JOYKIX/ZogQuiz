@@ -18,7 +18,8 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
   - unlock manuel du buzzer,
   - marquer juste (+1) / faux (bloqué sur la question en cours).
 - Nettoyage des données de buzz (historique + blocs) à chaque changement de question.
-- Leaderboard participants avec attribution manuelle de points au clic.
+- Leaderboard participants sur page classement dédiée.
+- Leaderboard viewers Twitch (alimenté par bot Python) sur page classement dédiée.
 - Overlay OBS spécifique manche 1 (`manche1.html`) en fond transparent texte seul.
 - Navbar des manches (1 à 5 + finale) et sous-menu manche 1 (création/modification/suppression).
 
@@ -28,6 +29,8 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
 - `buzzer.html` : connexion invité (code + pseudo) et buzzer live.
 - `manche1.html` : overlay OBS manche 1 (question/réponse).
 - `overlay.html` : ancien overlay générique (conservé).
+- `classement.html` : leaderboard participants + viewers Twitch (page séparée des manches).
+- `bot/bot.py` : bot Twitch qui lit le chat et attribue le point viewers au premier bon répondant sur la question active.
 
 ## Lancer
 
@@ -36,3 +39,19 @@ Servir le dossier avec un serveur statique, puis ouvrir :
 - `index.html` pour l'admin,
 - `buzzer.html` côté participant,
 - `manche1.html` dans OBS (source navigateur).
+
+
+## Bot viewers Twitch
+
+Configurer `bot/.env` puis lancer:
+
+```bash
+python3 bot/bot.py
+```
+
+Variables demandées:
+
+```dotenv
+TWITCH_TOKEN=oauth:
+TWITCH_CHANNEL=
+```
