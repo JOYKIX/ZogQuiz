@@ -3,189 +3,237 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZogQuiz SPA - Admin</title>
+    <title>ZogQuiz Admin</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <main class="app-shell">
-      <header class="hero card">
-        <h1>ZogQuiz (SPA)</h1>
-        <p>Configuration multi-manches (1 à 5 + finale). La logique active est en Manche 1.</p>
+      <header class="app-header card">
+        <div>
+          <p class="eyebrow">ZogQuiz</p>
+          <h1>Console admin</h1>
+          <p class="muted">Pilote la manche en direct, sans bruit.</p>
+        </div>
+        <div class="session-actions">
+          <span id="admin-email" class="status-chip">Hors ligne</span>
+          <button id="logout" class="danger hidden">Déconnexion</button>
+        </div>
       </header>
 
-      <section id="auth-section" class="card">
-        <h2>Connexion / Création de compte admin</h2>
-        <div class="row">
-          <button id="show-login" class="secondary">Connexion</button>
+      <section id="auth-section" class="card auth-card">
+        <div class="row auth-switch">
+          <button id="show-login" class="secondary active-auth">Connexion</button>
           <button id="show-signup" class="secondary">Créer un compte</button>
         </div>
 
         <form id="login-form" class="stack">
-          <label>ID
-            <input id="login-id" type="text" required autocomplete="username" />
+          <label>ID admin
+            <input id="login-id" type="text" required autocomplete="username" placeholder="ex: admin_main" />
           </label>
           <label>Mot de passe
-            <input id="login-password" type="password" required autocomplete="current-password" />
+            <input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••" />
           </label>
           <button type="submit">Se connecter</button>
         </form>
 
         <form id="signup-form" class="stack hidden">
-          <label>ID
-            <input id="signup-id" type="text" required autocomplete="username" />
+          <label>ID admin
+            <input id="signup-id" type="text" required autocomplete="username" placeholder="Créer un identifiant" />
           </label>
           <label>Mot de passe
-            <input id="signup-password" type="password" minlength="6" required autocomplete="new-password" />
+            <input id="signup-password" type="password" minlength="6" required autocomplete="new-password" placeholder="6 caractères minimum" />
           </label>
-          <button type="submit">Créer le compte admin</button>
+          <button type="submit">Créer le compte</button>
         </form>
         <p id="auth-message" class="message"></p>
       </section>
 
-      <section id="dashboard" class="hidden stack-lg">
-        <div class="card">
-          <div class="row between">
-            <h2>Espace admin</h2>
-            <button id="logout" class="danger">Déconnexion</button>
-          </div>
-          <p id="admin-email" class="muted"></p>
-        </div>
+      <section id="dashboard" class="hidden dashboard-shell">
+        <aside class="side-nav card" aria-label="Navigation principale">
+          <button class="side-link active" data-section="overview">Accueil</button>
+          <button class="side-link" data-section="players">Joueurs & codes</button>
+          <button class="side-link" data-section="questions">Questions</button>
+          <button class="side-link" data-section="live">Live / Buzzer</button>
+          <button class="side-link" data-section="overlay">Overlay OBS</button>
+          <button class="side-link" data-section="scoreboard">Scoreboard</button>
+        </aside>
 
-        <nav class="card round-nav" aria-label="Navigation des manches">
-          <button class="round-tab active" data-round="manche1" aria-selected="true">Manche 1</button>
-          <button class="round-tab" data-round="manche2" aria-selected="false">Manche 2</button>
-          <button class="round-tab" data-round="manche3" aria-selected="false">Manche 3</button>
-          <button class="round-tab" data-round="manche4" aria-selected="false">Manche 4</button>
-          <button class="round-tab" data-round="manche5" aria-selected="false">Manche 5</button>
-          <button class="round-tab" data-round="finale" aria-selected="false">Manche finale</button>
-        </nav>
+        <div class="content-stack">
+          <nav class="card round-nav" aria-label="Navigation des manches">
+            <button class="round-tab active" data-round="manche1" aria-selected="true">Manche 1</button>
+            <button class="round-tab" data-round="manche2" aria-selected="false">Manche 2</button>
+            <button class="round-tab" data-round="manche3" aria-selected="false">Manche 3</button>
+            <button class="round-tab" data-round="manche4" aria-selected="false">Manche 4</button>
+            <button class="round-tab" data-round="manche5" aria-selected="false">Manche 5</button>
+            <button class="round-tab" data-round="finale" aria-selected="false">Finale</button>
+          </nav>
 
-        <section class="round-panel" data-round-panel="manche1">
-          <div class="card">
-            <h3>Manche 1 — Sous-menu questions</h3>
-            <div class="submenu-nav" aria-label="Sous-menu manche 1">
-              <button class="submenu-btn active" data-menu="creation" aria-selected="true">Création</button>
-              <button class="submenu-btn" data-menu="modification" aria-selected="false">Modification</button>
-              <button class="submenu-btn" data-menu="suppression" aria-selected="false">Suppression</button>
-            </div>
-
-            <div class="submenu-panel" data-menu-panel="creation">
-              <h4>Créer des questions</h4>
-              <div class="questions-layout">
-                <form id="participant-question-form" class="stack subcard">
-                  <h4>Ajouter question participants</h4>
-                  <label>Question
-                    <textarea id="participant-question" rows="3" required></textarea>
-                  </label>
-                  <label>Réponse
-                    <input id="participant-answer" required />
-                  </label>
-                  <button type="submit">Ajouter (buzzer actif)</button>
-                </form>
-
-                <form id="viewer-question-form" class="stack subcard">
-                  <h4>Ajouter question viewers</h4>
-                  <label>Question
-                    <textarea id="viewer-question" rows="3" required></textarea>
-                  </label>
-                  <label>Réponse
-                    <input id="viewer-answer" required />
-                  </label>
-                  <button type="submit">Ajouter (sans buzzer)</button>
-                </form>
+          <section class="round-panel" data-round-panel="manche1">
+            <section class="section-panel card" data-section-panel="overview">
+              <h2>Dashboard live</h2>
+              <div class="stats-grid">
+                <article class="stat-card">
+                  <p class="muted">Session</p>
+                  <p id="session-status" class="highlight">Active</p>
+                </article>
+                <article class="stat-card">
+                  <p class="muted">Question en cours</p>
+                  <p id="current-question-status">Aucune</p>
+                </article>
+                <article class="stat-card">
+                  <p class="muted">Buzzer</p>
+                  <p id="buzzer-status">Verrouillé</p>
+                </article>
+                <article class="stat-card">
+                  <p class="muted">Dernier buzz</p>
+                  <p id="last-buzz-status">—</p>
+                </article>
               </div>
-            </div>
-
-            <div class="submenu-panel hidden" data-menu-panel="modification">
-              <p class="muted">La modification passera par la sélection des questions ci-dessous (implémentation manche 1 active).</p>
-              <p class="muted">Astuce: sélectionne une question active puis ajoute la nouvelle version en création.</p>
-            </div>
-
-            <div class="submenu-panel hidden" data-menu-panel="suppression">
-              <p class="muted">La suppression sera branchée sur la même liste de questions de la manche 1.</p>
-              <p class="muted">Structure prête pour les manches suivantes.</p>
-            </div>
-          </div>
-
-          <section class="card">
-            <h3>Manche 1 — Buzzer invité (codes temporaires)</h3>
-            <p>Les codes expirés sont automatiquement nettoyés en base.</p>
-            <div class="row">
-              <label>Durée (minutes)
-                <input id="code-duration" type="number" min="1" max="120" value="30" />
-              </label>
-              <button id="generate-code">Générer un code</button>
-            </div>
-            <p id="generated-code" class="highlight"></p>
-            <ul id="codes-list" class="list"></ul>
-          </section>
-
-          <section class="card">
-            <div class="row between">
-              <h3>Overlay OBS — Manche 1</h3>
-              <a class="button-link" href="manche1.html" target="_blank" rel="noopener">Ouvrir manche1.html</a>
-            </div>
-            <p class="muted">Fond transparent, texte seul (question + réponse si activée).</p>
-          </section>
-
-          <section class="card">
-            <h3>Manche 1 — Pilotage live</h3>
-            <div class="row controls-wrap">
-              <button id="toggle-answer" class="secondary">Afficher réponse</button>
-              <button id="unlock-buzzer" class="secondary">Unlock buzzer</button>
-              <button id="mark-correct">Réponse juste (+1)</button>
-              <button id="mark-wrong" class="danger">Réponse fausse (bloquer sur la question)</button>
-            </div>
-            <p id="round-status" class="message"></p>
-
-            <div class="questions-layout">
               <article class="subcard">
-                <h4>Questions participants</h4>
-                <ul id="participant-questions-list" class="list"></ul>
+                <h3>Top participants</h3>
+                <ul id="quick-leaderboard" class="list"></ul>
               </article>
+            </section>
+
+            <section class="section-panel card hidden" data-section-panel="players">
+              <h2>Joueurs & codes invités</h2>
+              <div class="stack">
+                <div class="row">
+                  <label>Durée (min)
+                    <input id="code-duration" type="number" min="1" max="120" value="30" />
+                  </label>
+                  <button id="generate-code">Créer un code invité</button>
+                </div>
+                <p id="generated-code" class="message"></p>
+              </div>
+
+              <div class="dual-col">
+                <article class="subcard">
+                  <h3>Codes actifs</h3>
+                  <ul id="codes-list" class="list"></ul>
+                </article>
+                <article class="subcard">
+                  <h3>Participants</h3>
+                  <p class="muted">Clique sur un joueur pour donner 1 point.</p>
+                  <ul id="participants-list" class="leaderboard"></ul>
+                </article>
+              </div>
+            </section>
+
+            <section class="section-panel card hidden" data-section-panel="questions">
+              <div class="row between">
+                <h2>Questions</h2>
+                <p id="question-workflow-hint" class="muted">Crée, sélectionne, puis lance la question.</p>
+              </div>
+              <div class="submenu-nav" aria-label="Sous-menu questions">
+                <button class="submenu-btn active" data-menu="creation" aria-selected="true">Créer</button>
+                <button class="submenu-btn" data-menu="modification" aria-selected="false">Modifier</button>
+                <button class="submenu-btn" data-menu="suppression" aria-selected="false">Supprimer</button>
+              </div>
+
+              <div class="submenu-panel" data-menu-panel="creation">
+                <div class="questions-layout">
+                  <form id="participant-question-form" class="stack subcard">
+                    <h3>Question participants</h3>
+                    <label>Question
+                      <textarea id="participant-question" rows="3" required placeholder="Saisis la question"></textarea>
+                    </label>
+                    <label>Réponse
+                      <input id="participant-answer" required placeholder="Réponse attendue" />
+                    </label>
+                    <button type="submit">Ajouter</button>
+                  </form>
+
+                  <form id="viewer-question-form" class="stack subcard">
+                    <h3>Question viewers</h3>
+                    <label>Question
+                      <textarea id="viewer-question" rows="3" required placeholder="Saisis la question"></textarea>
+                    </label>
+                    <label>Réponse
+                      <input id="viewer-answer" required placeholder="Réponse attendue" />
+                    </label>
+                    <button type="submit">Ajouter</button>
+                  </form>
+                </div>
+              </div>
+
+              <div class="submenu-panel hidden" data-menu-panel="modification">
+                <p class="muted">Sélectionne une question active, puis ajoute la version corrigée.</p>
+              </div>
+
+              <div class="submenu-panel hidden" data-menu-panel="suppression">
+                <p class="muted">Sélectionne une question puis supprime-la depuis la liste (à connecter).</p>
+              </div>
+
+              <div class="questions-layout">
+                <article class="subcard">
+                  <h3>Participants</h3>
+                  <ul id="participant-questions-list" class="list"></ul>
+                </article>
+                <article class="subcard">
+                  <h3>Viewers</h3>
+                  <ul id="viewer-questions-list" class="list"></ul>
+                </article>
+              </div>
+            </section>
+
+            <section class="section-panel card hidden" data-section-panel="live">
+              <h2>Pilotage live</h2>
+              <p id="round-status" class="message"></p>
+              <div class="sticky-actions">
+                <button id="toggle-answer" class="secondary">Afficher la réponse</button>
+                <button id="unlock-buzzer" class="secondary">Déverrouiller le buzzer</button>
+                <button id="mark-correct">Donner 1 point</button>
+                <button id="mark-wrong" class="danger">Réponse incorrecte</button>
+              </div>
+
               <article class="subcard">
-                <h4>Questions viewers</h4>
-                <ul id="viewer-questions-list" class="list"></ul>
+                <h3>État live</h3>
+                <p id="buzz-live" class="highlight">Aucun buzz.</p>
+                <p id="active-question" class="muted">Aucune question active.</p>
               </article>
-            </div>
+            </section>
+
+            <section class="section-panel card hidden" data-section-panel="overlay">
+              <h2>Overlay OBS</h2>
+              <p class="muted">Question + réponse pour le live.</p>
+              <a class="button-link" href="manche1.html" target="_blank" rel="noopener">Ouvrir l’overlay manche 1</a>
+            </section>
+
+            <section class="section-panel card hidden" data-section-panel="scoreboard">
+              <h2>Scoreboard</h2>
+              <p class="muted">Classement complet participants + viewers.</p>
+              <div class="row">
+                <a class="button-link" href="classement.html" target="_blank" rel="noopener">Ouvrir le classement</a>
+              </div>
+              <article class="subcard">
+                <h3>Aperçu top 5</h3>
+                <ul id="scoreboard-preview" class="leaderboard"></ul>
+              </article>
+            </section>
           </section>
 
-
-          <section class="card">
-            <div class="row between">
-              <h3>Classements</h3>
-              <a class="button-link" href="classement.html" target="_blank" rel="noopener">Ouvrir classement.html</a>
-            </div>
-            <p class="muted">Page séparée avec leaderboard participants et leaderboard viewers Twitch.</p>
+          <section class="round-panel hidden card" data-round-panel="manche2">
+            <h3>Manche 2</h3>
+            <p class="muted">Section prête.</p>
           </section>
-
-          <section class="card">
-            <h3>Manche 1 — Buzzer live</h3>
-            <p id="buzz-live" class="highlight">Personne n'a buzzé.</p>
-            <p class="muted">Le classement participants + viewers est disponible sur la page dédiée classement.</p>
+          <section class="round-panel hidden card" data-round-panel="manche3">
+            <h3>Manche 3</h3>
+            <p class="muted">Section prête.</p>
           </section>
-        </section>
-
-        <section class="round-panel hidden card" data-round-panel="manche2">
-          <h3>Manche 2</h3>
-          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
-        </section>
-        <section class="round-panel hidden card" data-round-panel="manche3">
-          <h3>Manche 3</h3>
-          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
-        </section>
-        <section class="round-panel hidden card" data-round-panel="manche4">
-          <h3>Manche 4</h3>
-          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
-        </section>
-        <section class="round-panel hidden card" data-round-panel="manche5">
-          <h3>Manche 5</h3>
-          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
-        </section>
-        <section class="round-panel hidden card" data-round-panel="finale">
-          <h3>Manche finale</h3>
-          <p class="muted">Section prête. Le câblage DB sera ajouté ensuite.</p>
-        </section>
+          <section class="round-panel hidden card" data-round-panel="manche4">
+            <h3>Manche 4</h3>
+            <p class="muted">Section prête.</p>
+          </section>
+          <section class="round-panel hidden card" data-round-panel="manche5">
+            <h3>Manche 5</h3>
+            <p class="muted">Section prête.</p>
+          </section>
+          <section class="round-panel hidden card" data-round-panel="finale">
+            <h3>Finale</h3>
+            <p class="muted">Section prête.</p>
+          </section>
+        </div>
       </section>
     </main>
 
