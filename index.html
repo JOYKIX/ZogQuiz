@@ -12,7 +12,6 @@
         <div>
           <p class="eyebrow">ZogQuiz</p>
           <h1>Console admin</h1>
-          <p class="muted">Pilote la manche en direct, sans bruit.</p>
         </div>
         <div class="session-actions">
           <span id="admin-email" class="status-chip">Hors ligne</span>
@@ -70,7 +69,7 @@
 
           <section class="round-panel" data-round-panel="manche1">
             <section class="section-panel card" data-section-panel="overview">
-              <h2>Dashboard live</h2>
+              <h2>Live</h2>
               <div class="stats-grid">
                 <article class="stat-card">
                   <p class="muted">Session</p>
@@ -114,64 +113,44 @@
                 </article>
                 <article class="subcard">
                   <h3>Participants</h3>
-                  <p class="muted">Clique sur un joueur pour donner 1 point.</p>
                   <ul id="participants-list" class="leaderboard"></ul>
                 </article>
               </div>
             </section>
 
             <section class="section-panel card hidden" data-section-panel="questions">
-              <div class="row between">
-                <h2>Questions</h2>
-                <p id="question-workflow-hint" class="muted">Crée, sélectionne, puis lance la question.</p>
-              </div>
-              <div class="submenu-nav" aria-label="Sous-menu questions">
-                <button class="submenu-btn active" data-menu="creation" aria-selected="true">Créer</button>
-                <button class="submenu-btn" data-menu="modification" aria-selected="false">Modifier</button>
-                <button class="submenu-btn" data-menu="suppression" aria-selected="false">Supprimer</button>
-              </div>
+              <h2>Questions</h2>
+              <div class="questions-layout">
+                <form id="participant-question-form" class="stack subcard">
+                  <h3>Questions participants</h3>
+                  <label>Question
+                    <textarea id="participant-question" rows="3" required placeholder="Question"></textarea>
+                  </label>
+                  <label>Réponse
+                    <input id="participant-answer" required placeholder="Réponse" />
+                  </label>
+                  <button type="submit">Ajouter</button>
+                </form>
 
-              <div class="submenu-panel" data-menu-panel="creation">
-                <div class="questions-layout">
-                  <form id="participant-question-form" class="stack subcard">
-                    <h3>Question participants</h3>
-                    <label>Question
-                      <textarea id="participant-question" rows="3" required placeholder="Saisis la question"></textarea>
-                    </label>
-                    <label>Réponse
-                      <input id="participant-answer" required placeholder="Réponse attendue" />
-                    </label>
-                    <button type="submit">Ajouter</button>
-                  </form>
-
-                  <form id="viewer-question-form" class="stack subcard">
-                    <h3>Question viewers</h3>
-                    <label>Question
-                      <textarea id="viewer-question" rows="3" required placeholder="Saisis la question"></textarea>
-                    </label>
-                    <label>Réponse
-                      <input id="viewer-answer" required placeholder="Réponse attendue" />
-                    </label>
-                    <button type="submit">Ajouter</button>
-                  </form>
-                </div>
-              </div>
-
-              <div class="submenu-panel hidden" data-menu-panel="modification">
-                <p class="muted">Sélectionne une question active, puis ajoute la version corrigée.</p>
-              </div>
-
-              <div class="submenu-panel hidden" data-menu-panel="suppression">
-                <p class="muted">Sélectionne une question puis supprime-la depuis la liste (à connecter).</p>
+                <form id="viewer-question-form" class="stack subcard">
+                  <h3>Questions viewers</h3>
+                  <label>Question
+                    <textarea id="viewer-question" rows="3" required placeholder="Question"></textarea>
+                  </label>
+                  <label>Réponse
+                    <input id="viewer-answer" required placeholder="Réponse" />
+                  </label>
+                  <button type="submit">Ajouter</button>
+                </form>
               </div>
 
               <div class="questions-layout">
                 <article class="subcard">
-                  <h3>Participants</h3>
+                  <h3>Questions participants</h3>
                   <ul id="participant-questions-list" class="list"></ul>
                 </article>
                 <article class="subcard">
-                  <h3>Viewers</h3>
+                  <h3>Questions viewers</h3>
                   <ul id="viewer-questions-list" class="list"></ul>
                 </article>
               </div>
@@ -196,13 +175,16 @@
 
             <section class="section-panel card hidden" data-section-panel="overlay">
               <h2>Overlay OBS</h2>
-              <p class="muted">Question + réponse pour le live.</p>
+              <div class="row">
+                <label>Taille du texte (px)
+                  <input id="overlay-font-size" type="number" min="24" max="180" step="1" value="72" />
+                </label>
+              </div>
               <a class="button-link" href="manche1.html" target="_blank" rel="noopener">Ouvrir l’overlay manche 1</a>
             </section>
 
             <section class="section-panel card hidden" data-section-panel="scoreboard">
               <h2>Scoreboard</h2>
-              <p class="muted">Classement complet participants + viewers.</p>
               <div class="row">
                 <a class="button-link" href="classement.html" target="_blank" rel="noopener">Ouvrir le classement</a>
               </div>
@@ -215,23 +197,18 @@
 
           <section class="round-panel hidden card" data-round-panel="manche2">
             <h3>Manche 2</h3>
-            <p class="muted">Section prête.</p>
           </section>
           <section class="round-panel hidden card" data-round-panel="manche3">
             <h3>Manche 3</h3>
-            <p class="muted">Section prête.</p>
           </section>
           <section class="round-panel hidden card" data-round-panel="manche4">
             <h3>Manche 4</h3>
-            <p class="muted">Section prête.</p>
           </section>
           <section class="round-panel hidden card" data-round-panel="manche5">
             <h3>Manche 5</h3>
-            <p class="muted">Section prête.</p>
           </section>
           <section class="round-panel hidden card" data-round-panel="finale">
             <h3>Finale</h3>
-            <p class="muted">Section prête.</p>
           </section>
         </div>
       </section>
