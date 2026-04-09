@@ -1,14 +1,17 @@
 :root {
   color-scheme: dark;
   --text: #ffffff;
-  --accent: #63f0c4;
+  --accent: #7df2cd;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background: transparent;
-  font-family: Inter, system-ui, Arial, sans-serif;
+  font-family: "Montserrat", "Arial Black", Inter, system-ui, Arial, sans-serif;
   color: var(--text);
 }
 
@@ -19,7 +22,7 @@ body {
   display: grid;
   align-content: center;
   gap: 1rem;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.82), 0 2px 8px rgba(0, 0, 0, 0.74);
   text-align: center;
   justify-items: center;
 }
@@ -27,29 +30,38 @@ body {
 #m1-question,
 #m3-overlay-question {
   margin: 0;
-  font-size: 72px;
-  line-height: 1.2;
-  max-width: min(1600px, 92vw);
+  font-size: clamp(2rem, 5.2vw, 4.8rem);
+  line-height: 1.12;
+  max-width: min(1680px, 94vw);
+  font-weight: 900;
+  letter-spacing: 0.01em;
 }
 
 #m1-answer {
   margin: 0;
   color: var(--accent);
-  font-size: clamp(1.5rem, 3vw, 2.6rem);
-  font-weight: 700;
+  font-size: clamp(1.55rem, 3vw, 2.7rem);
+  font-weight: 850;
+  letter-spacing: 0.02em;
 }
 
 .m3-overlay-meta {
   margin: 0;
-  font-size: clamp(1rem, 1.8vw, 1.6rem);
+  font-size: clamp(1rem, 1.9vw, 1.7rem);
   color: #d8ecff;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .m3-overlay-timer {
   margin: 0;
-  font-size: clamp(2rem, 4vw, 3.3rem);
-  font-weight: 800;
-  letter-spacing: .03em;
+  font-size: clamp(2.15rem, 4.2vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #b8ffe9;
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
