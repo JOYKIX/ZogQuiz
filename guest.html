@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZogQuiz Guest</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="app-shell guest-shell">
+      <section id="guest-round1" class="guest-round stack">
+        <section class="card">
+          <h1>Buzzer</h1>
+          <form id="guest-form" class="stack">
+            <label>Code
+              <input id="guest-code" required maxlength="8" />
+            </label>
+            <label>Pseudo
+              <input id="guest-nickname" required maxlength="24" />
+            </label>
+            <button type="submit">Se connecter</button>
+          </form>
+          <p id="guest-message" class="message"></p>
+        </section>
+
+        <section id="buzzer-panel" class="card hidden">
+          <h2 id="guest-title"></h2>
+          <button id="buzz-btn" class="buzz">BUZZER</button>
+          <p id="buzz-feedback" class="message"></p>
+        </section>
+      </section>
+
+      <section id="guest-round2" class="guest-round hidden">
+        <section class="card guest-image-card">
+          <p class="eyebrow">Manche 2</p>
+          <img id="m2-live-image" class="guest-image hidden" alt="Question manche 2" />
+          <p id="m2-empty" class="guest-empty">Aucune image active</p>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="js/guest.js"></script>
+  </body>
+</html>
