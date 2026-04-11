@@ -10,6 +10,7 @@ import {
   ensureRoundsSeed,
   makeTempCode,
 } from "./firebase.js";
+import { createBuzzSoundTrigger } from "./audio.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -123,6 +124,8 @@ let buzzesById = {};
 let manche3Themes = {};
 let manche3State = null;
 let m3Ticker = null;
+
+const triggerBuzzSound = createBuzzSoundTrigger();
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
@@ -447,6 +450,7 @@ function initListeners() {
   });
   onValue(ref(db, "rooms/manche1/state"), (snap) => {
     liveState = snap.val() || {};
+    triggerBuzzSound(liveState);
     updateRound1Status();
     renderRound1QuestionList("participants", participantQuestions, participantQuestionsList);
     renderRound1QuestionList("viewers", viewerQuestions, viewerQuestionsList);

@@ -1,4 +1,5 @@
 import { db, ref, onValue } from "./firebase.js";
+import { createBuzzSoundTrigger } from "./audio.js";
 
 const questionNode = document.getElementById("m1-question");
 const answerNode = document.getElementById("m1-answer");
@@ -7,6 +8,8 @@ let state = null;
 let participantsQuestions = {};
 let viewersQuestions = {};
 let overlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
+
+const triggerBuzzSound = createBuzzSoundTrigger();
 
 function applyOverlayStyle() {
   questionNode.style.fontSize = `${overlaySettings.questionFontSizePx}px`;
@@ -32,6 +35,7 @@ function render() {
 
 onValue(ref(db, "rooms/manche1/state"), (snap) => {
   state = snap.val() || null;
+  triggerBuzzSound(state);
   render();
 });
 
