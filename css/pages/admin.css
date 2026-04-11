@@ -52,3 +52,37 @@
   border: 1px solid var(--line);
   margin: 0.5rem 0;
 }
+
+.m4-word-editor {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.m4-word-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.m4-grid,
+.m4-grid-preview .m4-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.m4-word {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 18, 30, 0.88);
+  color: inherit;
+  font-weight: 700;
+}
+
+.m4-role-good { border-color: rgba(84, 201, 140, 0.8); }
+.m4-role-black { border-color: rgba(255, 72, 72, 0.9); }

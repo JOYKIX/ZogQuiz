@@ -411,22 +411,76 @@
             <section class="round-shell hidden" data-round-panel="manche4">
               <nav class="subnav" aria-label="Sous navigation manche 4">
                 <button class="subnav-tab active" data-round="manche4" data-round-section="overview">Vue d’ensemble</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="questions">Questions</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="questions">Grilles</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="overlay">Overlay</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="overlay">Suivi</button>
               </nav>
 
               <section class="round-section" data-round-section-panel="manche4:overview">
-                <article class="subpanel compact-panel">
-                  <h3>Vue d’ensemble manche 4</h3>
-                  <p class="empty-state">Cette manche est prête à être configurée.</p>
+                <article class="subpanel compact-panel stack">
+                  <h3>Manche 4 · Codenames</h3>
+                  <p id="m4-admin-message" class="message">Configurez une grille, sélectionnez les joueurs puis lancez la manche.</p>
+                  <p class="muted">Objectif : faire trouver 5 mots (mot noir = score final divisé par 2).</p>
+                  <div class="row">
+                    <p class="muted">Grille active : <strong id="m4-active-grid-label">Aucune</strong></p>
+                    <p class="muted">Indice : <strong id="m4-phase-label">Phase 1/3</strong></p>
+                  </div>
                 </article>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche4:questions"><article class="subpanel compact-panel"><p class="empty-state">Ajoutez vos questions et médias ici.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche4:participants"><article class="subpanel compact-panel"><p class="empty-state">Classement et participants à venir.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche4:live"><article class="subpanel compact-panel"><p class="empty-state">Les contrôles live seront disponibles ici.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche4:overlay"><article class="subpanel compact-panel"><p class="empty-state">Lien overlay à configurer pour cette manche.</p></article></section>
+
+              <section class="round-section hidden" data-round-section-panel="manche4:questions">
+                <div class="two-col">
+                  <article class="subpanel compact-panel stack">
+                    <h3>Créer / éditer une grille</h3>
+                    <label>Titre
+                      <input id="m4-grid-title" placeholder="Ex: Manga Légendaires" />
+                    </label>
+                    <div id="m4-word-editor" class="m4-word-editor"></div>
+                    <div class="row">
+                      <button id="m4-save-grid" class="btn btn-primary">Sauvegarder grille</button>
+                      <button id="m4-reset-grid-form" class="btn btn-secondary">Vider formulaire</button>
+                    </div>
+                    <p id="m4-grid-error" class="message"></p>
+                  </article>
+
+                  <article class="subpanel compact-panel stack">
+                    <h3>Grilles disponibles</h3>
+                    <ul id="m4-grids-list" class="list"></ul>
+                  </article>
+                </div>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche4:participants">
+                <article class="subpanel compact-panel stack">
+                  <h3>Participants autorisés</h3>
+                  <p class="muted">Coché = participe · décoché = bloqué</p>
+                  <ul id="m4-participants-list" class="leaderboard"></ul>
+                </article>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche4:live">
+                <article class="subpanel compact-panel stack">
+                  <h3>Contrôle de manche</h3>
+                  <label>Indice en cours
+                    <input id="m4-clue-input" placeholder="Ex: Ninja, 2" maxlength="80" />
+                  </label>
+                  <div class="row">
+                    <button id="m4-start" class="btn btn-primary">Lancer la manche</button>
+                    <button id="m4-next-clue" class="btn btn-secondary">Indice suivant</button>
+                    <button id="m4-finish" class="btn btn-secondary">Terminer</button>
+                    <button id="m4-reset-round" class="btn btn-danger">Reset</button>
+                  </div>
+                  <div id="m4-admin-preview" class="m4-grid-preview"></div>
+                </article>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche4:overlay">
+                <article class="subpanel compact-panel stack">
+                  <h3>Suivi joueurs</h3>
+                  <ul id="m4-progress-list" class="leaderboard"></ul>
+                </article>
+              </section>
             </section>
 
             <section class="round-shell hidden" data-round-panel="manche5">
