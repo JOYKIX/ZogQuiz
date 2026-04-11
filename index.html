@@ -130,6 +130,10 @@
               <article class="subpanel compact-panel">
                 <h3>Participants</h3>
                 <ul id="participants-list" class="leaderboard"></ul>
+                <div class="sticky-actions">
+                  <button id="reset-participants" class="btn btn-secondary">Reset participants</button>
+                  <button id="reset-all" class="btn btn-danger">Reset complet</button>
+                </div>
               </article>
             </div>
           </section>
@@ -138,6 +142,15 @@
             <div class="panel-head">
               <h2>Contrôle des manches</h2>
             </div>
+            <article class="subpanel compact-panel">
+              <div class="row">
+                <p class="muted">Manche admin : <strong id="editing-round-status">Manche 1</strong></p>
+                <p class="muted">Manche live : <strong id="live-round-status">Manche 1</strong></p>
+              </div>
+              <div class="sticky-actions">
+                <button id="push-live-round" class="btn btn-primary">Envoyer en direct</button>
+              </div>
+            </article>
 
             <nav class="round-nav" aria-label="Navigation des manches">
               <button class="round-tab active" data-round="manche1" aria-selected="true">Manche 1</button>

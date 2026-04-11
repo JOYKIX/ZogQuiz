@@ -45,9 +45,19 @@ export async function ensureRoundsSeed(uid) {
   if (!(await get(quizStateRef)).exists()) {
     await set(quizStateRef, {
       activeRound: "manche1",
+      liveRound: "manche1",
       updatedBy: uid,
       updatedAt: Date.now(),
     });
+  } else {
+    const state = (await get(quizStateRef)).val() || {};
+    if (!state.liveRound) {
+      await update(quizStateRef, {
+        liveRound: state.activeRound || "manche1",
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      });
+    }
   }
 
   const stateRef = ref(db, "rooms/manche1/state");

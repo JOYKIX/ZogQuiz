@@ -55,9 +55,14 @@ const overlayRound1ColorInput = $("overlay-round1-text-color");
 
 const sessionStatus = $("session-status");
 const activeRoundStatus = $("active-round-status");
+const editingRoundStatus = $("editing-round-status");
+const liveRoundStatus = $("live-round-status");
 const currentQuestionStatus = $("current-question-status");
 const buzzerStatus = $("buzzer-status");
 const lastBuzzStatus = $("last-buzz-status");
+const pushLiveRoundBtn = $("push-live-round");
+const resetParticipantsBtn = $("reset-participants");
+const resetAllBtn = $("reset-all");
 
 const m2QuestionForm = $("m2-question-form");
 const m2ImageInput = $("m2-image");
@@ -100,7 +105,8 @@ const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 const ROUND3_DURATION_MS = 90_000;
 
 let currentAdminId = null;
-let activeRound = "manche1";
+let editingRound = "manche1";
+let broadcastRound = "manche1";
 let activeWorkspace = "dashboard";
 const activeRoundSectionByRound = { manche1: "overview", manche2: "overview", manche3: "overview", manche4: "overview", manche5: "overview", finale: "overview" };
 
@@ -168,7 +174,7 @@ function workspaceLabel(workspace) {
   if (workspace === "dashboard") return "Vue live";
   if (workspace === "players") return "Joueurs";
   if (workspace === "broadcast") return "Overlays";
-  return `Manches • ${formatRound(activeRound)}`;
+  return `Manches • ${formatRound(editingRound)}`;
 }
 function formatRound(round) { return round === "finale" ? "Finale" : round.replace("manche", "Manche "); }
 
@@ -191,9 +197,15 @@ function activateRoundSection(round, section) {
   });
 }
 
-async function setActiveRound(round) {
-  activeRound = round;
-  activeRoundStatus.textContent = formatRound(round);
+function updateRoundIndicators() {
+  activeRoundStatus.textContent = formatRound(editingRound);
+  if (editingRoundStatus) editingRoundStatus.textContent = formatRound(editingRound);
+  if (liveRoundStatus) liveRoundStatus.textContent = formatRound(broadcastRound);
+}
+
+async function setEditingRound(round) {
+  editingRound = round;
+  updateRoundIndicators();
   roundTabs.forEach((btn) => {
     const isActive = btn.dataset.round === round;
     btn.classList.toggle("active", isActive);
@@ -202,16 +214,29 @@ async function setActiveRound(round) {
   roundPanels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.roundPanel !== round));
   activateRoundSection(round, activeRoundSectionByRound[round] || "overview");
   if (activeWorkspace === "rounds") breadcrumb.textContent = workspaceLabel("rounds");
-
-  if (isLoggedIn()) {
-    await update(ref(db, "quiz/state"), { activeRound: round, updatedAt: Date.now(), updatedBy: currentAdminId });
-  }
 }
 
 workspaceLinks.forEach((btn) => btn.addEventListener("click", () => activateWorkspace(btn.dataset.workspace)));
 quickNavBtns.forEach((btn) => btn.addEventListener("click", () => activateWorkspace(btn.dataset.workspaceTarget)));
-roundTabs.forEach((btn) => btn.addEventListener("click", async () => setActiveRound(btn.dataset.round)));
+roundTabs.forEach((btn) => btn.addEventListener("click", async () => setEditingRound(btn.dataset.round)));
 roundSectionTabs.forEach((btn) => btn.addEventListener("click", () => activateRoundSection(btn.dataset.round, btn.dataset.roundSection)));
+pushLiveRoundBtn?.addEventListener("click", async () => {
+  if (!isLoggedIn()) return;
+  await update(ref(db, "quiz/state"), { liveRound: editingRound, updatedAt: Date.now(), updatedBy: currentAdminId });
+  showToast(`${formatRound(editingRound)} envoyée en direct`);
+});
+resetParticipantsBtn?.addEventListener("click", async () => {
+  if (!isLoggedIn()) return;
+  if (!window.confirm("Réinitialiser les participants et le classement ?")) return;
+  await resetParticipantsAndLeaderboard();
+  showToast("Participants réinitialisés");
+});
+resetAllBtn?.addEventListener("click", async () => {
+  if (!isLoggedIn()) return;
+  if (!window.confirm("Confirmer le reset complet du quiz ?")) return;
+  await resetCompleteQuiz();
+  showToast("Quiz réinitialisé");
+});
 
 activateWorkspace("dashboard");
 activateRoundSection("manche1", "overview");
@@ -353,7 +378,7 @@ m3CorrectBtn.addEventListener("click", async () => round3Advance(true));
 async function loginSuccess(adminId) {
   setSession(adminId);
   await ensureRoundsSeed(adminId);
-  await setActiveRound("manche1");
+  await setEditingRound("manche1");
   initListeners();
   showDashboard(adminId);
 }
@@ -404,13 +429,10 @@ function readFileAsDataURL(file) {
 }
 
 function initListeners() {
-  onValue(ref(db, "quiz/state"), async (snap) => {
+  onValue(ref(db, "quiz/state"), (snap) => {
     const state = snap.val() || {};
-    const nextRound = state.activeRound || "manche1";
-    if (nextRound !== activeRound) {
-      activeRound = nextRound;
-      await setActiveRound(nextRound);
-    }
+    broadcastRound = state.liveRound || state.activeRound || "manche1";
+    updateRoundIndicators();
   });
 
   onValue(ref(db, "rooms/manche1/questions/participants"), (snap) => {
@@ -497,6 +519,78 @@ async function unlockBuzzer() {
 
 async function clearBuzzData() {
   await Promise.all([remove(ref(db, "rooms/manche1/buzzes")), remove(ref(db, "rooms/manche1/questionBlocks"))]);
+}
+
+async function resetParticipantsAndLeaderboard() {
+  await Promise.all([
+    remove(ref(db, "rooms/manche1/guestSessions")),
+    remove(ref(db, "rooms/manche1/buzzes")),
+    remove(ref(db, "rooms/manche1/questionBlocks")),
+    update(ref(db, "rooms/manche1/state"), {
+      buzzerLocked: false,
+      lockedBySessionId: null,
+      lockedByNickname: "",
+      lockedAt: 0,
+      updatedAt: Date.now(),
+    }),
+    update(ref(db, "rooms/manche3/state"), {
+      activePlayerId: null,
+      activeThemeId: null,
+      questionIndex: 0,
+      timerStatus: "idle",
+      timerRemainingMs: ROUND3_DURATION_MS,
+      timerEndsAt: null,
+      turnEnded: false,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
+  ]);
+}
+
+async function resetCompleteQuiz() {
+  const targetRound = "manche1";
+  await Promise.all([
+    remove(ref(db, "rooms/manche1/questions")),
+    remove(ref(db, "rooms/manche1/guestSessions")),
+    remove(ref(db, "rooms/manche1/buzzes")),
+    remove(ref(db, "rooms/manche1/questionBlocks")),
+    remove(ref(db, "rooms/manche1/accessCodes")),
+    remove(ref(db, "rooms/manche2/questions")),
+    remove(ref(db, "rooms/manche3/themes")),
+    update(ref(db, "rooms/manche1/state"), {
+      currentType: "participants",
+      currentQuestionId: null,
+      showAnswer: false,
+      buzzerLocked: false,
+      lockedBySessionId: null,
+      lockedByNickname: "",
+      lockedAt: 0,
+      updatedAt: Date.now(),
+    }),
+    update(ref(db, "rooms/manche2/state"), {
+      activeQuestionId: null,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
+    update(ref(db, "rooms/manche3/state"), {
+      activePlayerId: null,
+      activeThemeId: null,
+      questionIndex: 0,
+      timerStatus: "idle",
+      timerRemainingMs: ROUND3_DURATION_MS,
+      timerEndsAt: null,
+      turnEnded: false,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
+    update(ref(db, "quiz/state"), {
+      activeRound: targetRound,
+      liveRound: targetRound,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
+  ]);
+  await setEditingRound(targetRound);
 }
 
 async function updateParticipantScore(sessionId, delta) {
@@ -648,7 +742,7 @@ function renderRound2Questions() {
     liveBtn.disabled = isActive;
     liveBtn.addEventListener("click", async () => {
       await update(ref(db, "rooms/manche2/state"), { activeQuestionId: id, updatedAt: Date.now(), updatedBy: currentAdminId });
-      await setActiveRound("manche2");
+      await setEditingRound("manche2");
     });
 
     const deleteBtn = document.createElement("button");
@@ -1019,8 +1113,8 @@ async function saveRound3OverlaySettings() {
 
 async function restoreSession() {
   const savedAdminId = normalizeAdminId(localStorage.getItem(SESSION_KEY) || "");
-  if (!savedAdminId) { showAuth(); await setActiveRound("manche1"); return; }
-  if (!(await get(ref(db, `admins/${savedAdminId}`))).exists()) { clearSession(); showAuth(); await setActiveRound("manche1"); return; }
+  if (!savedAdminId) { showAuth(); await setEditingRound("manche1"); return; }
+  if (!(await get(ref(db, `admins/${savedAdminId}`))).exists()) { clearSession(); showAuth(); await setEditingRound("manche1"); return; }
   await loginSuccess(savedAdminId);
 }
 
