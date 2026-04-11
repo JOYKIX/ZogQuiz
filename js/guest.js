@@ -20,7 +20,7 @@ const m3GuestTheme = document.getElementById("m3-guest-theme");
 const m3GuestHelp = document.getElementById("m3-guest-help");
 const m3ThemeButtons = document.getElementById("m3-theme-buttons");
 
-let activeRound = "manche1";
+let liveRound = "manche1";
 let currentSession = null;
 let currentNickname = "";
 let liveState = null;
@@ -37,8 +37,8 @@ function normalizeNickname(nickname) {
 }
 
 function renderByRound() {
-  const isRound2 = activeRound === "manche2";
-  const isRound3 = activeRound === "manche3";
+  const isRound2 = liveRound === "manche2";
+  const isRound3 = liveRound === "manche3";
   round1Root.classList.toggle("hidden", isRound2 || isRound3);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
@@ -227,7 +227,8 @@ buzzBtn.addEventListener("click", async () => {
 });
 
 onValue(ref(db, "quiz/state"), (snap) => {
-  activeRound = snap.val()?.activeRound || "manche1";
+  const state = snap.val() || {};
+  liveRound = state.liveRound || state.activeRound || "manche1";
   renderByRound();
 });
 
