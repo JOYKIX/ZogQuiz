@@ -4,7 +4,19 @@
 @import url("./pages/admin.css");
 @import url("./pages/guest.css");
 
-/* Overlays */
+.hero {
+  padding: var(--space-4);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.card {
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Unified overlay styles */
 .overlay-body,
 .overlay-round2-body {
   margin: 0;
@@ -16,48 +28,89 @@
   font-family: Manrope, Inter, system-ui, sans-serif;
 }
 
-.overlay-shell { width: min(92vw, 1600px); }
+.overlay-shell { width: min(94vw, 1640px); }
 
-.overlay-card {
-  background: linear-gradient(145deg, rgba(5, 8, 14, 0.82), rgba(8, 11, 18, 0.66));
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 20px;
-  padding: 1.2rem 1.35rem;
-  backdrop-filter: blur(4px);
+.overlay-card,
+.m1-overlay-shell {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 22px;
+  backdrop-filter: blur(5px);
+  background: linear-gradient(140deg, rgba(4, 8, 16, 0.84), rgba(10, 15, 24, 0.62));
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.45);
 }
 
-.overlay-card h1 {
-  font-size: clamp(2.2rem, 5vw, 5rem);
+.overlay-card {
+  padding: 1.3rem 1.5rem;
+}
+
+.overlay-card h1,
+#m1-question,
+#m3-overlay-question {
+  font-size: clamp(2.2rem, 5vw, 5.1rem);
   line-height: 1.03;
+  letter-spacing: -0.014em;
   font-weight: 800;
-  letter-spacing: -0.015em;
   text-wrap: balance;
   text-shadow: 0 8px 24px rgba(0, 0, 0, 0.68);
 }
 
-.overlay-card #overlay-answer { margin-top: 0.65rem; font-size: clamp(1.35rem, 2.4vw, 2.1rem); font-weight: 700; }
+.overlay-card #overlay-answer,
+#m1-answer {
+  margin-top: 0.66rem;
+  color: #8cf5dc;
+  font-size: clamp(1.35rem, 2.5vw, 2.6rem);
+  font-weight: 700;
+}
 
 .overlay-chip {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.27rem 0.62rem;
+  padding: 0.26rem 0.62rem;
   border: 1px solid rgba(255, 255, 255, 0.46);
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.58rem;
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   font-weight: 700;
 }
 
-.overlay-meta { font-size: 1.2rem; margin-top: 0.2rem; font-weight: 700; }
-.overlay-timer { margin-top: 0.72rem; font-size: 2.7rem; letter-spacing: 0.04em; font-weight: 800; }
+.overlay-meta,
+.m3-overlay-meta {
+  margin: 0;
+  font-size: clamp(1.02rem, 1.9vw, 1.62rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.overlay-timer,
+.m3-overlay-timer {
+  margin-top: 0.72rem;
+  color: #ceffe7;
+  font-size: clamp(2.35rem, 4.35vw, 3.9rem);
+  letter-spacing: 0.06em;
+  font-weight: 800;
+}
+
+.m1-overlay-shell {
+  width: min(96vw, 1900px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 4vh 4vw;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.9rem;
+  text-align: center;
+  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.86), 0 3px 8px rgba(0, 0, 0, 0.7);
+}
 
 .m2-overlay-image { width: 100%; max-height: 85vh; object-fit: contain; border-radius: 10px; }
 .overlay-round2-shell { width: 100vw; height: 100vh; display: grid; place-items: center; }
 
 .overlay-round2-empty {
   margin: 0;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.88);
   font-size: clamp(1.1rem, 2.2vw, 2rem);
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -66,15 +119,3 @@
 }
 
 .overlay-round2-shell .m2-overlay-image { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
-
-.hero {
-  padding: 1.2rem;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.card {
-  padding: var(--space-4);
-  display: grid;
-  gap: var(--space-3);
-}
