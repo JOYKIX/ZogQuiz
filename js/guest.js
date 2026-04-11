@@ -1,4 +1,5 @@
 import { db, ref, get, set, push, onValue, runTransaction, remove, update } from "./firebase.js";
+import { createBuzzSoundTrigger } from "./audio.js";
 
 const round1Root = document.getElementById("guest-round1");
 const round2Root = document.getElementById("guest-round2");
@@ -31,6 +32,8 @@ let manche2State = null;
 let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
+
+const triggerBuzzSound = createBuzzSoundTrigger();
 
 function normalizeNickname(nickname) {
   return nickname.trim().toLowerCase().replace(/\s+/g, "-");
@@ -159,6 +162,7 @@ guestForm.addEventListener("submit", async (event) => {
 function watchRound1State() {
   onValue(ref(db, "rooms/manche1/state"), async (snap) => {
     liveState = snap.val() || {};
+    triggerBuzzSound(liveState);
     if (!liveState.currentQuestionId || !currentSession) {
       currentQuestionBlocked = false;
     } else {
