@@ -1,9 +1,11 @@
 import { db, ref, get, set, push, onValue, runTransaction, remove, update } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
+import { initManche4Guest } from "./manche4.js";
 
 const round1Root = document.getElementById("guest-round1");
 const round2Root = document.getElementById("guest-round2");
 const round3Root = document.getElementById("guest-round3");
+const round4Root = document.getElementById("guest-round4");
 
 const guestForm = document.getElementById("guest-form");
 const guestMessage = document.getElementById("guest-message");
@@ -42,9 +44,11 @@ function normalizeNickname(nickname) {
 function renderByRound() {
   const isRound2 = liveRound === "manche2";
   const isRound3 = liveRound === "manche3";
-  round1Root.classList.toggle("hidden", isRound2 || isRound3);
+  const isRound4 = liveRound === "manche4";
+  round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
+  round4Root.classList.toggle("hidden", !isRound4);
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
 }
@@ -260,6 +264,8 @@ onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
   sessionsById = snap.val() || {};
   renderRound3();
 });
+
+initManche4Guest({ getCurrentSession: () => currentSession });
 
 watchRound1State();
 watchingRound1 = true;

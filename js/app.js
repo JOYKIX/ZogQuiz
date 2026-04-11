@@ -11,6 +11,7 @@ import {
   makeTempCode,
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
+import { initManche4Admin } from "./manche4.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -243,6 +244,13 @@ resetAllBtn?.addEventListener("click", async () => {
 
 activateWorkspace("dashboard");
 activateRoundSection("manche1", "overview");
+
+initManche4Admin({
+  getCurrentAdminId: () => currentAdminId,
+  setMessage,
+  showToast,
+  activateRoundSection,
+});
 
 showLoginBtn.addEventListener("click", () => {
   loginForm.classList.remove("hidden");
@@ -548,6 +556,16 @@ async function resetParticipantsAndLeaderboard() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
+    update(ref(db, "rooms/manche4/state"), {
+      playerProgress: {},
+      allowedPlayers: [],
+      active: false,
+      finished: false,
+      currentClue: "",
+      cluePhase: 1,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
   ]);
 }
 
@@ -561,6 +579,7 @@ async function resetCompleteQuiz() {
     remove(ref(db, "rooms/manche1/accessCodes")),
     remove(ref(db, "rooms/manche2/questions")),
     remove(ref(db, "rooms/manche3/themes")),
+    remove(ref(db, "rooms/manche4/grids")),
     update(ref(db, "rooms/manche1/state"), {
       currentType: "participants",
       currentQuestionId: null,
@@ -584,6 +603,18 @@ async function resetCompleteQuiz() {
       timerRemainingMs: ROUND3_DURATION_MS,
       timerEndsAt: null,
       turnEnded: false,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
+    set(ref(db, "rooms/manche4/state"), {
+      active: false,
+      currentGridId: null,
+      cluePhase: 1,
+      currentClue: "",
+      allowedPlayers: [],
+      grids: [],
+      playerProgress: {},
+      finished: false,
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),

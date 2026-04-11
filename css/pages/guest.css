@@ -56,3 +56,27 @@
 @media (max-width: 560px) {
   .guest-round > .card { padding: var(--space-4); }
 }
+
+#m4-guest-grid.m4-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+#m4-guest-grid .m4-word {
+  min-height: 56px;
+  padding: 0.45rem;
+  cursor: pointer;
+}
+
+#m4-guest-grid .m4-word.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 78%, white 22%);
+  box-shadow: 0 0 0 2px rgba(107, 134, 255, 0.2);
+  background: rgba(107, 134, 255, 0.14);
+}
+
+@media (max-width: 720px) {
+  #m4-guest-grid.m4-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

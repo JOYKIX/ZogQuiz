@@ -108,6 +108,22 @@ export async function ensureRoundsSeed(uid) {
     });
   }
 
+
+  const manche4StateRef = ref(db, "rooms/manche4/state");
+  if (!(await get(manche4StateRef)).exists()) {
+    await set(manche4StateRef, {
+      active: false,
+      currentGridId: null,
+      cluePhase: 1,
+      currentClue: "",
+      allowedPlayers: [],
+      playerProgress: {},
+      finished: false,
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
   const manche3OverlayRef = ref(db, "rooms/manche3/overlaySettings");
   if (!(await get(manche3OverlayRef)).exists()) {
     await set(manche3OverlayRef, {
