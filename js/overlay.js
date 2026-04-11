@@ -1,55 +1,49 @@
 import { db, ref, onValue } from "./firebase.js";
 
-const typeNode = document.getElementById("overlay-type");
-const questionNode = document.getElementById("overlay-question");
-const answerNode = document.getElementById("overlay-answer");
+const root = document.getElementById("overlay-router-root");
 
-let state = null;
-let participantsQuestions = {};
-let viewersQuestions = {};
-let overlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
+const OVERLAY_BY_ROUND = {
+  manche1: "overlay-round1.html",
+  manche2: "overlay-round2.html",
+  manche3: "overlay-round3.html",
+};
 
-function render() {
-  if (!state?.currentQuestionId) {
-    typeNode.textContent = "EN ATTENTE";
-    questionNode.textContent = "Aucune question sélectionnée.";
-    answerNode.classList.add("hidden");
+let activeRound = null;
+let activeOverlayUrl = null;
+
+function clearOverlay() {
+  root.replaceChildren();
+  root.classList.add("is-empty");
+}
+
+function mountOverlay(url) {
+  if (activeOverlayUrl === url) return;
+
+  const frame = document.createElement("iframe");
+  frame.className = "overlay-router-frame";
+  frame.src = url;
+  frame.title = "ZogQuiz live overlay";
+  frame.setAttribute("allow", "autoplay");
+
+  root.replaceChildren(frame);
+  root.classList.remove("is-empty");
+  activeOverlayUrl = url;
+}
+
+function renderLiveOverlay(round) {
+  activeRound = round || null;
+  const overlayUrl = activeRound ? OVERLAY_BY_ROUND[activeRound] : null;
+
+  if (!overlayUrl) {
+    activeOverlayUrl = null;
+    clearOverlay();
     return;
   }
 
-  const source = state.currentType === "viewers" ? viewersQuestions : participantsQuestions;
-  const question = source[state.currentQuestionId];
-
-  typeNode.textContent = state.currentType === "viewers" ? "QUESTION VIEWERS" : "QUESTION PARTICIPANTS";
-  questionNode.textContent = question?.text || "Question introuvable.";
-  questionNode.style.fontSize = `${overlaySettings.questionFontSizePx}px`;
-  questionNode.style.color = overlaySettings.questionColor;
-  answerNode.textContent = `Réponse : ${question?.answer || "—"}`;
-  answerNode.classList.toggle("hidden", !state.showAnswer);
+  mountOverlay(overlayUrl);
 }
 
-onValue(ref(db, "rooms/manche1/state"), (snap) => {
-  state = snap.val() || null;
-  render();
-});
-
-onValue(ref(db, "rooms/manche1/questions/participants"), (snap) => {
-  participantsQuestions = snap.val() || {};
-  render();
-});
-
-onValue(ref(db, "rooms/manche1/questions/viewers"), (snap) => {
-  viewersQuestions = snap.val() || {};
-  render();
-});
-
-onValue(ref(db, "rooms/manche1/overlaySettings"), (snap) => {
-  const settings = snap.val() || {};
-  overlaySettings = {
-    questionFontSizePx: Math.max(24, Math.min(180, Number(settings.questionFontSizePx || 72))),
-    questionColor: typeof settings.questionColor === "string" && /^#[0-9a-fA-F]{6}$/.test(settings.questionColor)
-      ? settings.questionColor
-      : "#ffffff",
-  };
-  render();
+onValue(ref(db, "quiz/state"), (snapshot) => {
+  const quizState = snapshot.val() || {};
+  renderLiveOverlay(quizState.liveRound || null);
 });

@@ -6,14 +6,8 @@
     <title>ZogQuiz Overlay OBS</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body class="overlay-body">
-    <main class="overlay-shell">
-      <section class="overlay-card">
-        <p id="overlay-type" class="overlay-chip">EN ATTENTE</p>
-        <h1 id="overlay-question">Aucune question sélectionnée.</h1>
-        <p id="overlay-answer" class="hidden">Réponse: —</p>
-      </section>
-    </main>
+  <body class="overlay-router-body">
+    <main id="overlay-router-root" class="overlay-router-root" aria-live="off"></main>
     <script type="module" src="js/overlay.js"></script>
   </body>
 </html>
