@@ -34,11 +34,120 @@ let manche2State = null;
 let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
+const GUEST_STORAGE_KEY = "zogquiz.guestSession.v1";
 
 const triggerBuzzSound = createBuzzSoundTrigger();
 
 function normalizeNickname(nickname) {
   return nickname.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function readStoredGuestSession() {
+  try {
+    const raw = localStorage.getItem(GUEST_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.code || !parsed?.nickname || !parsed?.sessionId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredGuestSession({ code, nickname, sessionId }) {
+  localStorage.setItem(
+    GUEST_STORAGE_KEY,
+    JSON.stringify({
+      code,
+      nickname,
+      sessionId,
+      updatedAt: Date.now(),
+    })
+  );
+}
+
+function clearStoredGuestSession() {
+  localStorage.removeItem(GUEST_STORAGE_KEY);
+}
+
+function applyConnectedState({ code, nickname, sessionId, message }) {
+  currentSession = sessionId;
+  currentNickname = nickname;
+
+  const codeInput = document.getElementById("guest-code");
+  const nicknameInput = document.getElementById("guest-nickname");
+  codeInput.value = code;
+  nicknameInput.value = nickname;
+
+  guestMessage.textContent = message;
+  guestTitle.textContent = `Pseudo : ${nickname}`;
+  buzzerPanel.classList.remove("hidden");
+  writeStoredGuestSession({ code, nickname, sessionId });
+
+  if (!watchingRound1) {
+    watchRound1State();
+    watchingRound1 = true;
+  }
+  renderRound3();
+}
+
+async function validateCode(code) {
+  const codeRef = ref(db, `rooms/manche1/accessCodes/${code}`);
+  const codeSnap = await get(codeRef);
+  if (!codeSnap.exists()) return { valid: false, reason: "Code invalide." };
+
+  const codeData = codeSnap.val() || {};
+  const expired = Date.now() > Number(codeData.expiresAt || 0);
+  if (!codeData.active || expired) {
+    if (expired) await remove(codeRef);
+    return { valid: false, reason: "Code expiré." };
+  }
+
+  return { valid: true };
+}
+
+async function connectGuest({ code, nickname, sessionId, autoReconnect = false }) {
+  const normalizedNickname = normalizeNickname(nickname);
+  const normalizedSessionId = sessionId || normalizedNickname;
+  if (!normalizedSessionId) {
+    guestMessage.textContent = "Pseudo invalide.";
+    return false;
+  }
+
+  const codeCheck = await validateCode(code);
+  if (!codeCheck.valid) {
+    if (autoReconnect) clearStoredGuestSession();
+    guestMessage.textContent = codeCheck.reason;
+    return false;
+  }
+
+  const sessionRef = ref(db, `rooms/manche1/guestSessions/${normalizedSessionId}`);
+  const existingSnap = await get(sessionRef);
+  const existing = existingSnap.val() || {};
+
+  const effectiveNickname = String(existing.nickname || nickname).trim();
+  const effectiveCode = String(existing.code || code).trim().toUpperCase();
+
+  if (existingSnap.exists() && existing.code && existing.code !== code) {
+    guestMessage.textContent = "Ce pseudo est déjà utilisé avec un autre code.";
+    return false;
+  }
+
+  await set(sessionRef, {
+    nickname: effectiveNickname,
+    code: effectiveCode,
+    joinedAt: existing.joinedAt || Date.now(),
+    reconnectAt: Date.now(),
+    score: Number(existing.score || 0),
+  });
+
+  applyConnectedState({
+    code: effectiveCode,
+    nickname: effectiveNickname,
+    sessionId: normalizedSessionId,
+    message: existingSnap.exists() ? "Reconnecté." : "Connecté.",
+  });
+  return true;
 }
 
 function renderByRound() {
@@ -121,47 +230,24 @@ guestForm.addEventListener("submit", async (event) => {
   const code = document.getElementById("guest-code").value.trim().toUpperCase();
   const nickname = document.getElementById("guest-nickname").value.trim();
 
-  if (!code || !nickname) return (guestMessage.textContent = "Code et pseudo obligatoires.");
-
-  const codeRef = ref(db, `rooms/manche1/accessCodes/${code}`);
-  const codeSnap = await get(codeRef);
-  if (!codeSnap.exists()) return (guestMessage.textContent = "Code invalide.");
-
-  const codeData = codeSnap.val() || {};
-  const expired = Date.now() > Number(codeData.expiresAt || 0);
-  if (!codeData.active || expired) {
-    if (expired) await remove(codeRef);
-    return (guestMessage.textContent = "Code expiré.");
+  if (!code || !nickname) {
+    guestMessage.textContent = "Code et pseudo obligatoires.";
+    return;
   }
 
-  const nicknameKey = normalizeNickname(nickname);
-  if (!nicknameKey) return (guestMessage.textContent = "Pseudo invalide.");
-
-  const sessionRef = ref(db, `rooms/manche1/guestSessions/${nicknameKey}`);
-  const existingSnap = await get(sessionRef);
-  const existing = existingSnap.val() || {};
-
-  currentSession = nicknameKey;
-  currentNickname = nickname;
-
-  await set(sessionRef, {
-    nickname,
-    code,
-    joinedAt: existing.joinedAt || Date.now(),
-    reconnectAt: Date.now(),
-    score: Number(existing.score || 0),
-  });
-
-  guestMessage.textContent = existingSnap.exists() ? "Reconnecté." : "Connecté.";
-  guestTitle.textContent = `Pseudo : ${nickname}`;
-  buzzerPanel.classList.remove("hidden");
-
-  if (!watchingRound1) {
-    watchRound1State();
-    watchingRound1 = true;
-  }
-  renderRound3();
+  await connectGuest({ code, nickname });
 });
+
+async function tryAutoReconnect() {
+  const stored = readStoredGuestSession();
+  if (!stored) return;
+  await connectGuest({
+    code: String(stored.code).trim().toUpperCase(),
+    nickname: String(stored.nickname).trim(),
+    sessionId: String(stored.sessionId).trim(),
+    autoReconnect: true,
+  });
+}
 
 function watchRound1State() {
   onValue(ref(db, "rooms/manche1/state"), async (snap) => {
@@ -270,3 +356,4 @@ initManche4Guest({ getCurrentSession: () => currentSession });
 watchRound1State();
 watchingRound1 = true;
 renderByRound();
+tryAutoReconnect();
