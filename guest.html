@@ -10,22 +10,37 @@
     <main class="app-shell guest-shell">
       <section id="guest-round1" class="guest-round stack">
         <section class="card panel">
-          <p class="eyebrow">Manche 1</p>
-          <h1>Buzzer</h1>
-          <form id="guest-form" class="stack">
-            <label>Code
-              <input id="guest-code" required maxlength="8" />
+          <p class="eyebrow">Accès invité</p>
+          <h1>Connexion</h1>
+
+          <form id="guest-login-form" class="stack">
+            <label>ID de connexion
+              <input id="guest-login-id" required maxlength="40" autocomplete="username" />
             </label>
-            <label>Pseudo
-              <input id="guest-nickname" required maxlength="24" />
+            <label>Mot de passe
+              <input id="guest-password" type="password" required minlength="6" autocomplete="current-password" />
             </label>
             <button type="submit" class="btn btn-primary">Se connecter</button>
           </form>
+
+          <form id="guest-display-name-form" class="stack hidden">
+            <p class="muted">Première connexion : choisissez votre pseudo d’affichage.</p>
+            <label>Pseudo d’affichage
+              <input id="guest-display-name" required maxlength="24" autocomplete="nickname" />
+            </label>
+            <button type="submit" class="btn btn-primary">Enregistrer le pseudo</button>
+          </form>
+
+          <div id="guest-session-meta" class="row hidden">
+            <p id="guest-title" class="status-chip"></p>
+            <button id="guest-logout" class="btn btn-danger">Déconnexion</button>
+          </div>
+
           <p id="guest-message" class="message"></p>
         </section>
 
         <section id="buzzer-panel" class="card panel hidden">
-          <h2 id="guest-title"></h2>
+          <h2>Buzzer</h2>
           <button id="buzz-btn" class="buzz btn btn-primary">BUZZER</button>
           <p id="buzz-feedback" class="message"></p>
         </section>

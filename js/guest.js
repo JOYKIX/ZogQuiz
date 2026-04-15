@@ -1,16 +1,26 @@
-import { db, ref, get, set, push, onValue, runTransaction, remove, update } from "./firebase.js";
+import { db, ref, get, set, push, onValue, runTransaction, update } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Guest } from "./manche4.js";
+import {
+  GUEST_ACCOUNTS_PATH,
+  GUEST_LOGIN_INDEX_PATH,
+  hashSecret,
+  normalizeLoginId,
+  validateDisplayName,
+} from "./guest-accounts.js";
 
 const round1Root = document.getElementById("guest-round1");
 const round2Root = document.getElementById("guest-round2");
 const round3Root = document.getElementById("guest-round3");
 const round4Root = document.getElementById("guest-round4");
 
-const guestForm = document.getElementById("guest-form");
+const guestLoginForm = document.getElementById("guest-login-form");
+const guestDisplayNameForm = document.getElementById("guest-display-name-form");
 const guestMessage = document.getElementById("guest-message");
-const buzzerPanel = document.getElementById("buzzer-panel");
+const guestSessionMeta = document.getElementById("guest-session-meta");
 const guestTitle = document.getElementById("guest-title");
+const guestLogoutBtn = document.getElementById("guest-logout");
+const buzzerPanel = document.getElementById("buzzer-panel");
 const buzzBtn = document.getElementById("buzz-btn");
 const buzzFeedback = document.getElementById("buzz-feedback");
 
@@ -23,8 +33,11 @@ const m3GuestTheme = document.getElementById("m3-guest-theme");
 const m3GuestHelp = document.getElementById("m3-guest-help");
 const m3ThemeButtons = document.getElementById("m3-theme-buttons");
 
+const GUEST_STORAGE_KEY = "zogquiz.guestSession.v2";
+
 let liveRound = "manche1";
 let currentSession = null;
+let currentAccount = null;
 let currentNickname = "";
 let liveState = null;
 let currentQuestionBlocked = false;
@@ -34,33 +47,27 @@ let manche2State = null;
 let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
-const GUEST_STORAGE_KEY = "zogquiz.guestSession.v1";
 
 const triggerBuzzSound = createBuzzSoundTrigger();
-
-function normalizeNickname(nickname) {
-  return nickname.trim().toLowerCase().replace(/\s+/g, "-");
-}
 
 function readStoredGuestSession() {
   try {
     const raw = localStorage.getItem(GUEST_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.code || !parsed?.nickname || !parsed?.sessionId) return null;
+    if (!parsed?.accountId || !parsed?.authVersion) return null;
     return parsed;
   } catch {
     return null;
   }
 }
 
-function writeStoredGuestSession({ code, nickname, sessionId }) {
+function writeStoredGuestSession(account) {
   localStorage.setItem(
     GUEST_STORAGE_KEY,
     JSON.stringify({
-      code,
-      nickname,
-      sessionId,
+      accountId: account.accountId,
+      authVersion: Number(account.authVersion || 1),
       updatedAt: Date.now(),
     })
   );
@@ -70,84 +77,190 @@ function clearStoredGuestSession() {
   localStorage.removeItem(GUEST_STORAGE_KEY);
 }
 
-function applyConnectedState({ code, nickname, sessionId, message }) {
-  currentSession = sessionId;
-  currentNickname = nickname;
+function setGuestMessage(text, type = "default") {
+  guestMessage.textContent = text;
+  guestMessage.classList.remove("success", "error", "loading");
+  if (type !== "default") guestMessage.classList.add(type);
+}
 
-  const codeInput = document.getElementById("guest-code");
-  const nicknameInput = document.getElementById("guest-nickname");
-  codeInput.value = code;
-  nicknameInput.value = nickname;
+function normalizeSessionState() {
+  if (currentAccount && currentNickname) {
+    guestSessionMeta.classList.remove("hidden");
+    guestTitle.textContent = `Connecté : ${currentNickname}`;
+    buzzerPanel.classList.remove("hidden");
+  } else {
+    guestSessionMeta.classList.add("hidden");
+    guestTitle.textContent = "";
+    buzzerPanel.classList.add("hidden");
+  }
+}
 
-  guestMessage.textContent = message;
-  guestTitle.textContent = `Pseudo : ${nickname}`;
-  buzzerPanel.classList.remove("hidden");
-  writeStoredGuestSession({ code, nickname, sessionId });
+function showDisplayNameSetup() {
+  guestLoginForm.classList.add("hidden");
+  guestDisplayNameForm.classList.remove("hidden");
+  normalizeSessionState();
+}
+
+function showLoginForm() {
+  guestLoginForm.classList.remove("hidden");
+  guestDisplayNameForm.classList.add("hidden");
+  normalizeSessionState();
+}
+
+function applyConnectedState(account) {
+  currentAccount = account;
+  currentSession = account.accountId;
+  currentNickname = String(account.displayName || "").trim();
+  writeStoredGuestSession(account);
+
+  const loginIdInput = document.getElementById("guest-login-id");
+  loginIdInput.value = account.loginId || "";
 
   if (!watchingRound1) {
     watchRound1State();
     watchingRound1 = true;
   }
+
+  if (!currentNickname) {
+    showDisplayNameSetup();
+    setGuestMessage("Première connexion : choisissez un pseudo d’affichage.");
+    return;
+  }
+
+  showLoginForm();
+  setGuestMessage("Connexion réussie.", "success");
   renderRound3();
 }
 
-async function validateCode(code) {
-  const codeRef = ref(db, `rooms/manche1/accessCodes/${code}`);
-  const codeSnap = await get(codeRef);
-  if (!codeSnap.exists()) return { valid: false, reason: "Code invalide." };
+async function getAccountByCredentials(loginId, password) {
+  const normalizedLogin = normalizeLoginId(loginId);
+  if (!normalizedLogin || !password) return { ok: false, reason: "ID et mot de passe obligatoires." };
 
-  const codeData = codeSnap.val() || {};
-  const expired = Date.now() > Number(codeData.expiresAt || 0);
-  if (!codeData.active || expired) {
-    if (expired) await remove(codeRef);
-    return { valid: false, reason: "Code expiré." };
-  }
+  const indexSnap = await get(ref(db, `${GUEST_LOGIN_INDEX_PATH}/${normalizedLogin}`));
+  if (!indexSnap.exists()) return { ok: false, reason: "Identifiants invalides." };
 
-  return { valid: true };
+  const accountId = String(indexSnap.val() || "");
+  const accountSnap = await get(ref(db, `${GUEST_ACCOUNTS_PATH}/${accountId}`));
+  if (!accountSnap.exists()) return { ok: false, reason: "Compte invité introuvable." };
+
+  const account = accountSnap.val() || {};
+  if (!account.active) return { ok: false, reason: "Compte désactivé. Contactez l’admin." };
+
+  const passwordHash = await hashSecret(password);
+  if (passwordHash !== account.passwordHash) return { ok: false, reason: "Identifiants invalides." };
+
+  return { ok: true, account: { ...account, accountId } };
 }
 
-async function connectGuest({ code, nickname, sessionId, autoReconnect = false }) {
-  const normalizedNickname = normalizeNickname(nickname);
-  const normalizedSessionId = sessionId || normalizedNickname;
-  if (!normalizedSessionId) {
-    guestMessage.textContent = "Pseudo invalide.";
-    return false;
-  }
-
-  const codeCheck = await validateCode(code);
-  if (!codeCheck.valid) {
-    if (autoReconnect) clearStoredGuestSession();
-    guestMessage.textContent = codeCheck.reason;
-    return false;
-  }
-
-  const sessionRef = ref(db, `rooms/manche1/guestSessions/${normalizedSessionId}`);
-  const existingSnap = await get(sessionRef);
-  const existing = existingSnap.val() || {};
-
-  const effectiveNickname = String(existing.nickname || nickname).trim();
-  const effectiveCode = String(existing.code || code).trim().toUpperCase();
-
-  if (existingSnap.exists() && existing.code && existing.code !== code) {
-    guestMessage.textContent = "Ce pseudo est déjà utilisé avec un autre code.";
-    return false;
-  }
+async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." } = {}) {
+  const sessionRef = ref(db, `rooms/manche1/guestSessions/${account.accountId}`);
+  const sessionSnap = await get(sessionRef);
+  const existing = sessionSnap.val() || {};
+  const nickname = String(account.displayName || "").trim();
 
   await set(sessionRef, {
-    nickname: effectiveNickname,
-    code: effectiveCode,
+    accountId: account.accountId,
+    nickname,
+    loginId: account.loginId,
     joinedAt: existing.joinedAt || Date.now(),
     reconnectAt: Date.now(),
     score: Number(existing.score || 0),
+    active: Boolean(account.active),
   });
 
-  applyConnectedState({
-    code: effectiveCode,
-    nickname: effectiveNickname,
-    sessionId: normalizedSessionId,
-    message: existingSnap.exists() ? "Reconnecté." : "Connecté.",
-  });
+  applyConnectedState(account);
+  if (nickname) setGuestMessage(sessionSnap.exists() ? reconnectMessage : "Connecté.", "success");
   return true;
+}
+
+guestLoginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setGuestMessage("Connexion...", "loading");
+  const loginId = document.getElementById("guest-login-id").value;
+  const password = document.getElementById("guest-password").value;
+
+  const auth = await getAccountByCredentials(loginId, password);
+  if (!auth.ok) {
+    setGuestMessage(auth.reason, "error");
+    return;
+  }
+
+  await ensureGuestSession(auth.account);
+  guestLoginForm.reset();
+  document.getElementById("guest-login-id").value = auth.account.loginId || "";
+});
+
+guestDisplayNameForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!currentAccount?.accountId) return;
+
+  const displayNameInput = document.getElementById("guest-display-name");
+  const validation = validateDisplayName(displayNameInput.value);
+  if (!validation.valid) {
+    setGuestMessage(validation.reason, "error");
+    return;
+  }
+
+  const allAccountsSnap = await get(ref(db, GUEST_ACCOUNTS_PATH));
+  const duplicate = Object.values(allAccountsSnap.val() || {}).some((account) => {
+    if (!account?.displayName) return false;
+    if (account.accountId === currentAccount.accountId) return false;
+    return String(account.displayName).trim().toLowerCase() === validation.value.toLowerCase();
+  });
+
+  if (duplicate) {
+    setGuestMessage("Ce pseudo est déjà utilisé. Choisissez-en un autre.", "error");
+    return;
+  }
+
+  await update(ref(db, `${GUEST_ACCOUNTS_PATH}/${currentAccount.accountId}`), {
+    displayName: validation.value,
+    updatedAt: Date.now(),
+  });
+
+  currentNickname = validation.value;
+  currentAccount = { ...currentAccount, displayName: validation.value };
+  await ensureGuestSession(currentAccount, { reconnectMessage: "Pseudo enregistré." });
+  guestDisplayNameForm.reset();
+});
+
+guestLogoutBtn.addEventListener("click", () => {
+  currentSession = null;
+  currentAccount = null;
+  currentNickname = "";
+  currentQuestionBlocked = false;
+  clearStoredGuestSession();
+  showLoginForm();
+  setGuestMessage("Déconnecté.");
+  renderRound3();
+  refreshButtonState();
+});
+
+async function tryAutoReconnect() {
+  const stored = readStoredGuestSession();
+  if (!stored) return;
+
+  const accountSnap = await get(ref(db, `${GUEST_ACCOUNTS_PATH}/${stored.accountId}`));
+  if (!accountSnap.exists()) {
+    clearStoredGuestSession();
+    setGuestMessage("Session expirée : compte supprimé.", "error");
+    return;
+  }
+
+  const account = accountSnap.val() || {};
+  const authVersion = Number(account.authVersion || 1);
+  if (!account.active) {
+    clearStoredGuestSession();
+    setGuestMessage("Session invalide : compte désactivé.", "error");
+    return;
+  }
+  if (authVersion !== Number(stored.authVersion)) {
+    clearStoredGuestSession();
+    setGuestMessage("Session invalide : mot de passe modifié.", "error");
+    return;
+  }
+
+  await ensureGuestSession({ ...account, accountId: stored.accountId }, { reconnectMessage: "Reconnexion automatique réussie." });
 }
 
 function renderByRound() {
@@ -185,16 +298,19 @@ function renderRound3() {
   m3GuestTheme.textContent = `Thème actif : ${activeTheme?.name || "Aucun"}`;
 
   if (!currentSession) {
-    m3GuestStatus.textContent = "Connectez-vous d'abord avec votre code.";
+    m3GuestStatus.textContent = "Connectez-vous d’abord.";
     m3GuestHelp.textContent = "Connectez-vous pour participer.";
+  } else if (!currentNickname) {
+    m3GuestStatus.textContent = "Pseudo requis avant de jouer.";
+    m3GuestHelp.textContent = "Choisissez votre pseudo d’affichage.";
   } else if (isCurrentPlayer && !themeLocked) {
     m3GuestStatus.textContent = "À vous de choisir un thème.";
     m3GuestHelp.textContent = "Cliquez sur un thème pour commencer.";
   } else if (isCurrentPlayer && themeLocked) {
-    m3GuestStatus.textContent = "Thème choisi. En attente de l'admin.";
+    m3GuestStatus.textContent = "Thème choisi. En attente de l’admin.";
     m3GuestHelp.textContent = "Le tour est en cours.";
   } else {
-    m3GuestStatus.textContent = "Tour d'un autre joueur.";
+    m3GuestStatus.textContent = "Tour d’un autre joueur.";
     m3GuestHelp.textContent = "Attendez votre tour.";
   }
 
@@ -209,7 +325,7 @@ function renderRound3() {
     const btn = document.createElement("button");
     btn.className = id === round3State?.activeThemeId ? "btn btn-secondary" : "btn btn-primary";
     btn.textContent = theme.name || "Thème";
-    btn.disabled = !isCurrentPlayer || themeLocked;
+    btn.disabled = !isCurrentPlayer || themeLocked || !currentNickname;
     btn.setAttribute("aria-pressed", String(id === round3State?.activeThemeId));
     btn.addEventListener("click", async () => {
       if (!isCurrentPlayer) return;
@@ -223,30 +339,6 @@ function renderRound3() {
     });
     m3ThemeButtons.appendChild(btn);
   }
-}
-
-guestForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const code = document.getElementById("guest-code").value.trim().toUpperCase();
-  const nickname = document.getElementById("guest-nickname").value.trim();
-
-  if (!code || !nickname) {
-    guestMessage.textContent = "Code et pseudo obligatoires.";
-    return;
-  }
-
-  await connectGuest({ code, nickname });
-});
-
-async function tryAutoReconnect() {
-  const stored = readStoredGuestSession();
-  if (!stored) return;
-  await connectGuest({
-    code: String(stored.code).trim().toUpperCase(),
-    nickname: String(stored.nickname).trim(),
-    sessionId: String(stored.sessionId).trim(),
-    autoReconnect: true,
-  });
 }
 
 function watchRound1State() {
@@ -264,7 +356,12 @@ function watchRound1State() {
 }
 
 function refreshButtonState() {
-  if (!liveState) return;
+  if (!liveState || !buzzBtn) return;
+  if (!currentSession || !currentNickname) {
+    buzzBtn.disabled = true;
+    buzzFeedback.textContent = "Connectez-vous pour buzzer.";
+    return;
+  }
   if (liveState.currentType === "viewers") {
     buzzBtn.disabled = true;
     buzzFeedback.textContent = "Mode viewers";
@@ -285,7 +382,7 @@ function refreshButtonState() {
 }
 
 buzzBtn.addEventListener("click", async () => {
-  if (!currentSession || !liveState || liveState.currentType === "viewers") return;
+  if (!currentSession || !currentNickname || !liveState || liveState.currentType === "viewers") return;
 
   const blockedSnap = await get(ref(db, `rooms/manche1/questionBlocks/${liveState.currentQuestionId}/${currentSession}`));
   if (blockedSnap.exists()) {
@@ -346,9 +443,51 @@ onValue(ref(db, "rooms/manche3/themes"), (snap) => {
   renderRound3();
 });
 
-onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
+onValue(ref(db, "rooms/manche1/guestSessions"), async (snap) => {
   sessionsById = snap.val() || {};
+  if (currentSession && !sessionsById[currentSession] && currentAccount) {
+    await ensureGuestSession(currentAccount, { reconnectMessage: "Session restaurée." });
+  }
   renderRound3();
+});
+
+onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
+  const accounts = snap.val() || {};
+  if (!currentAccount?.accountId) return;
+  const fresh = accounts[currentAccount.accountId];
+  if (!fresh) {
+    currentAccount = null;
+    currentSession = null;
+    currentNickname = "";
+    clearStoredGuestSession();
+    showLoginForm();
+    setGuestMessage("Compte supprimé : reconnexion requise.", "error");
+    return;
+  }
+
+  if (!fresh.active) {
+    currentAccount = null;
+    currentSession = null;
+    currentNickname = "";
+    clearStoredGuestSession();
+    showLoginForm();
+    setGuestMessage("Compte désactivé par l’admin.", "error");
+    return;
+  }
+
+  if (Number(fresh.authVersion || 1) !== Number(currentAccount.authVersion || 1)) {
+    currentAccount = null;
+    currentSession = null;
+    currentNickname = "";
+    clearStoredGuestSession();
+    showLoginForm();
+    setGuestMessage("Mot de passe modifié : reconnectez-vous.", "error");
+    return;
+  }
+
+  currentAccount = { ...fresh, accountId: currentAccount.accountId };
+  currentNickname = String(fresh.displayName || "").trim();
+  normalizeSessionState();
 });
 
 initManche4Guest({ getCurrentSession: () => currentSession });
@@ -356,4 +495,5 @@ initManche4Guest({ getCurrentSession: () => currentSession });
 watchRound1State();
 watchingRound1 = true;
 renderByRound();
+showLoginForm();
 tryAutoReconnect();

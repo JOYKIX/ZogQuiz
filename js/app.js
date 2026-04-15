@@ -8,10 +8,16 @@ import {
   update,
   remove,
   ensureRoundsSeed,
-  makeTempCode,
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Admin } from "./manche4.js";
+import {
+  GUEST_ACCOUNTS_PATH,
+  GUEST_LOGIN_INDEX_PATH,
+  createGuestAccount,
+  removeGuestAccount,
+  setGuestAccountPassword,
+} from "./guest-accounts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,9 +33,11 @@ const showSignupBtn = $("show-signup");
 const breadcrumb = $("breadcrumb");
 const toast = $("toast");
 
-const codesList = $("codes-list");
-const codeDuration = $("code-duration");
-const generatedCode = $("generated-code");
+const guestAccountForm = $("guest-account-form");
+const guestLoginIdInput = $("guest-login-id");
+const guestPasswordInput = $("guest-password");
+const guestAccountsList = $("guest-accounts-list");
+const guestAccountsMessage = $("guest-accounts-message");
 
 const participantQuestionForm = $("participant-question-form");
 const viewerQuestionForm = $("viewer-question-form");
@@ -115,13 +123,13 @@ const activeRoundSectionByRound = { manche1: "overview", manche2: "overview", ma
 let liveState = null;
 let round1OverlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
 let round3OverlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
-let codeCleanupLock = false;
 let sessionsById = {};
 let participantQuestions = {};
 let viewerQuestions = {};
 let manche2Questions = {};
 let manche2State = null;
 let buzzesById = {};
+let guestAccountsById = {};
 let manche3Themes = {};
 let manche3State = null;
 let m3Ticker = null;
@@ -307,15 +315,22 @@ logoutBtn.addEventListener("click", () => {
   setMessage(authMessage, "Déconnecté.");
 });
 
-$("generate-code").addEventListener("click", async () => {
+guestAccountForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
   if (!isLoggedIn()) return;
-  const code = makeTempCode(6);
-  const minutes = Math.max(1, Number(codeDuration.value || 30));
-  await set(ref(db, `rooms/manche1/accessCodes/${code}`), {
-    code, active: true, createdBy: currentAdminId, createdAt: Date.now(), expiresAt: Date.now() + minutes * 60 * 1000,
-  });
-  setMessage(generatedCode, `Code ${code} actif ${minutes} min.`, "success");
-  showToast(`Code ${code} généré`);
+  try {
+    setMessage(guestAccountsMessage, "Création...", "loading");
+    await createGuestAccount({
+      loginId: guestLoginIdInput.value,
+      password: guestPasswordInput.value,
+      createdBy: currentAdminId,
+    });
+    guestAccountForm.reset();
+    setMessage(guestAccountsMessage, "Compte invité créé.", "success");
+    showToast("Compte invité créé");
+  } catch (error) {
+    setMessage(guestAccountsMessage, error.message, "error");
+  }
 });
 
 participantQuestionForm.addEventListener("submit", async (event) => {
@@ -479,10 +494,9 @@ function initListeners() {
     renderRound3State();
   });
 
-  onValue(ref(db, "rooms/manche1/accessCodes"), async (snapshot) => {
-    const value = snapshot.val() || {};
-    await cleanupExpiredCodes(value);
-    renderCodes(value);
+  onValue(ref(db, GUEST_ACCOUNTS_PATH), (snapshot) => {
+    guestAccountsById = snapshot.val() || {};
+    renderGuestAccounts();
   });
 
   onValue(ref(db, "rooms/manche1/overlaySettings"), (snap) => {
@@ -507,15 +521,114 @@ function initListeners() {
   });
 }
 
-function renderCodes(codesMap) {
-  const entries = Object.values(codesMap || {}).filter((item) => Date.now() <= (item.expiresAt || 0)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  codesList.innerHTML = "";
-  if (!entries.length) return (codesList.innerHTML = "<li class='empty-state'>Aucun code actif.</li>");
-  entries.slice(0, 20).forEach((item) => {
+function renderGuestAccounts() {
+  if (!guestAccountsList) return;
+  const entries = Object.entries(guestAccountsById || {}).map(([id, account]) => ({
+    id,
+    ...account,
+    createdAt: Number(account?.createdAt || 0),
+  })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  guestAccountsList.innerHTML = "";
+  if (!entries.length) {
+    guestAccountsList.innerHTML = "<li class='empty-state'>Aucun compte invité.</li>";
+    return;
+  }
+
+  for (const account of entries) {
     const li = document.createElement("li");
-    li.textContent = `${item.code} • expire ${new Date(item.expiresAt).toLocaleTimeString()}`;
-    codesList.appendChild(li);
+    li.className = "question-item";
+    const status = account.active ? "Actif" : "Désactivé";
+    const displayName = String(account.displayName || "").trim() || "Non défini";
+    const createdAtLabel = account.createdAt ? new Date(account.createdAt).toLocaleString() : "—";
+    li.innerHTML = `
+      <div class="question-head"><strong>${account.loginId || account.id}</strong><span class="question-active-chip">${status}</span></div>
+      <p><strong>Pseudo :</strong> ${displayName}</p>
+      <p class="muted">Créé le : ${createdAtLabel}</p>
+    `;
+
+    const actions = document.createElement("div");
+    actions.className = "row";
+
+    const resetPasswordBtn = document.createElement("button");
+    resetPasswordBtn.className = "btn btn-secondary";
+    resetPasswordBtn.textContent = "Réinitialiser mdp";
+    resetPasswordBtn.addEventListener("click", async () => resetGuestPassword(account.id));
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = account.active ? "btn btn-danger" : "btn btn-primary";
+    toggleBtn.textContent = account.active ? "Désactiver" : "Activer";
+    toggleBtn.addEventListener("click", async () => toggleGuestAccountStatus(account.id, !account.active));
+
+    const resetDisplayNameBtn = document.createElement("button");
+    resetDisplayNameBtn.className = "btn btn-secondary";
+    resetDisplayNameBtn.textContent = "Reset pseudo";
+    resetDisplayNameBtn.addEventListener("click", async () => resetGuestDisplayName(account.id));
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-danger";
+    deleteBtn.textContent = "Supprimer";
+    deleteBtn.addEventListener("click", async () => deleteGuestAccountById(account.id));
+
+    actions.append(resetPasswordBtn, resetDisplayNameBtn, toggleBtn, deleteBtn);
+    li.appendChild(actions);
+    guestAccountsList.appendChild(li);
+  }
+}
+
+async function resetGuestPassword(accountId) {
+  const nextPassword = window.prompt("Nouveau mot de passe (6 caractères min)");
+  if (nextPassword === null) return;
+  try {
+    await setGuestAccountPassword(accountId, nextPassword, currentAdminId);
+    showToast("Mot de passe mis à jour");
+  } catch (error) {
+    showToast(error.message, "error");
+  }
+}
+
+async function toggleGuestAccountStatus(accountId, active) {
+  await update(ref(db, `${GUEST_ACCOUNTS_PATH}/${accountId}`), {
+    active,
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
   });
+  if (!active) {
+    await remove(ref(db, `rooms/manche1/guestSessions/${accountId}`));
+  }
+  showToast(active ? "Compte activé" : "Compte désactivé");
+}
+
+async function resetGuestDisplayName(accountId) {
+  await update(ref(db, `${GUEST_ACCOUNTS_PATH}/${accountId}`), {
+    displayName: "",
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+  await update(ref(db, `rooms/manche1/guestSessions/${accountId}`), { nickname: "" });
+  showToast("Pseudo réinitialisé");
+}
+
+async function deleteGuestAccountById(accountId) {
+  const account = guestAccountsById[accountId];
+  if (!account) return;
+  if (!window.confirm(`Supprimer le compte ${account.loginId || accountId} ?`)) return;
+  await removeGuestAccount({ ...account, accountId });
+  await remove(ref(db, `rooms/manche1/guestSessions/${accountId}`));
+  if (manche3State?.activePlayerId === accountId) {
+    await update(ref(db, "rooms/manche3/state"), {
+      activePlayerId: null,
+      activeThemeId: null,
+      questionIndex: 0,
+      timerStatus: "idle",
+      timerRemainingMs: ROUND3_DURATION_MS,
+      timerEndsAt: null,
+      turnEnded: false,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    });
+  }
+  showToast("Compte supprimé");
 }
 
 function getRound1QuestionById(questionId) {
@@ -576,7 +689,8 @@ async function resetCompleteQuiz() {
     remove(ref(db, "rooms/manche1/guestSessions")),
     remove(ref(db, "rooms/manche1/buzzes")),
     remove(ref(db, "rooms/manche1/questionBlocks")),
-    remove(ref(db, "rooms/manche1/accessCodes")),
+    remove(ref(db, GUEST_ACCOUNTS_PATH)),
+    remove(ref(db, GUEST_LOGIN_INDEX_PATH)),
     remove(ref(db, "rooms/manche2/questions")),
     remove(ref(db, "rooms/manche3/themes")),
     remove(ref(db, "rooms/manche4/grids")),
@@ -1087,16 +1201,6 @@ function startRound3Ticker() {
       await update(ref(db, "rooms/manche3/state"), { timerStatus: "ended", timerEndsAt: null, timerRemainingMs: 0, turnEnded: true, updatedAt: Date.now(), updatedBy: currentAdminId || "system" });
     }
   }, 250);
-}
-
-async function cleanupExpiredCodes(codesMap) {
-  if (codeCleanupLock) return;
-  const now = Date.now();
-  const toDelete = Object.values(codesMap || {}).filter((item) => now > (item.expiresAt || 0)).map((item) => item.code);
-  if (!toDelete.length) return;
-  codeCleanupLock = true;
-  try { await Promise.all(toDelete.map((code) => remove(ref(db, `rooms/manche1/accessCodes/${code}`)))); }
-  finally { codeCleanupLock = false; }
 }
 
 function clampOverlayFontSize(value, fallback = 72) {

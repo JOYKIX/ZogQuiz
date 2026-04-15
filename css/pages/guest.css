@@ -22,9 +22,15 @@
   gap: 0.45rem;
 }
 
-#guest-form,
+#guest-login-form,
+#guest-display-name-form,
 #buzzer-panel {
   max-width: 560px;
+}
+
+#guest-session-meta {
+  justify-content: space-between;
+  align-items: center;
 }
 
 #buzz-btn.buzz {
