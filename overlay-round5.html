@@ -12,11 +12,13 @@
       <section class="overlay-card overlay-panel overlay-grid">
         <p class="overlay-meta">Manche 5 · Blindtest</p>
         <p id="m5-overlay-status" class="m5-overlay-state">En attente du lancement.</p>
-        <p id="m5-overlay-track" class="m5-overlay-track">Piste 1</p>
+        <p id="m5-overlay-track" class="m5-overlay-track">Piste 0 / 0</p>
         <p id="m5-overlay-playback" class="m5-overlay-state">État : Arrêt</p>
         <p id="m5-overlay-time" class="m5-overlay-time">00:00</p>
-        <p class="m5-overlay-note">Habillage stream sans spoiler (titre de morceau masqué).</p>
+        <p id="m5-overlay-error" class="m5-overlay-error hidden"></p>
+        <p class="m5-overlay-note">Audio synchronisé pour le stream · aucune vidéo/miniature affichée.</p>
       </section>
+      <div id="m5-overlay-youtube-host" class="m5-overlay-youtube-host" aria-hidden="true"></div>
     </main>
     <script type="module" src="js/overlay-round5.js"></script>
   </body>

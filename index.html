@@ -506,6 +506,7 @@
                   <p class="muted">Titre : <strong id="m5-current-track-title">—</strong></p>
                   <p class="muted">URL YouTube : <strong id="m5-current-track-youtube">—</strong></p>
                   <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
+                  <p id="m5-live-error" class="message error hidden"></p>
                   <p id="m5-admin-message" class="message">En attente.</p>
                   <div id="m5-admin-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
                 </article>
@@ -514,23 +515,27 @@
                 <article class="subpanel compact-panel stack">
                   <h3>Catalogue des pistes YouTube</h3>
                   <form id="m5-track-form" class="stack">
+                    <h4 id="m5-track-form-title">Ajouter une piste</h4>
                     <label>Titre
-                      <input id="m5-track-title-input" required placeholder="Ex: Naruto Opening 6" />
+                      <input id="m5-track-title-input" required placeholder="Titre de la musique" />
                     </label>
                     <label>Lien YouTube
                       <input id="m5-track-url-input" required placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" />
                     </label>
                     <label>Réponse attendue
-                      <input id="m5-track-answer-input" placeholder="Ex: Naruto" />
+                      <input id="m5-track-answer-input" placeholder="Réponse (optionnelle)" />
                     </label>
                     <label>Aliases (séparés par virgule)
-                      <input id="m5-track-aliases-input" placeholder="naruto shippuden, naruto op6" />
+                      <input id="m5-track-aliases-input" placeholder="alias 1, alias 2" />
                     </label>
                     <label class="row">
                       <input id="m5-track-active-input" type="checkbox" checked />
                       <span>Activer cette piste</span>
                     </label>
-                    <button type="submit" class="btn btn-primary">Ajouter la piste</button>
+                    <div class="row">
+                      <button id="m5-track-submit" type="submit" class="btn btn-primary">Ajouter la piste</button>
+                      <button id="m5-track-cancel-edit" type="button" class="btn btn-secondary hidden">Annuler l’édition</button>
+                    </div>
                   </form>
                   <ul id="m5-track-list" class="leaderboard"></ul>
                 </article>

@@ -1,5 +1,11 @@
 import { db, ref, update } from "./firebase.js";
-import { activeTracks, upsertBlindtestTrack, watchBlindtestTracks } from "./blindtest/tracks.js";
+import {
+  activeTracks,
+  watchBlindtestTracks,
+  createBlindtestTrack,
+  updateBlindtestTrack,
+  removeBlindtestTrack,
+} from "./blindtest/tracks.js";
 import {
   defaultBlindtestLiveState,
   ensureBlindtestLiveSeed,
@@ -7,17 +13,7 @@ import {
   watchBlindtestLive,
   writeBlindtestLive,
 } from "./blindtest/live-sync.js";
-import {
-  YoutubeAudioPlayer,
-  validateYoutubeUrl,
-  parseYoutubeError,
-} from "./blindtest/youtube.js";
-
-function findTrackByLiveState(tracks, liveState) {
-  if (!tracks.length) return null;
-  if (liveState.trackId) return tracks.find((track) => track.id === String(liveState.trackId)) || null;
-  return tracks[Math.min(tracks.length - 1, Math.max(0, Number(liveState.trackIndex || 0)))] || null;
-}
+import { YoutubeAudioPlayer, validateYoutubeUrl, parseYoutubeError } from "./blindtest/youtube.js";
 
 function statusLabel(playbackState) {
   if (playbackState === "playing") return "Lecture";
@@ -25,45 +21,132 @@ function statusLabel(playbackState) {
   return "Arrêt";
 }
 
-function buildLiveStatePatchForTrack(track, trackIndex, keepPlaying = false) {
+function formatValidationError(track) {
+  if (track.isValid) return "Valide";
+  return `Invalide · ${track.validationError}`;
+}
+
+function parseAliasesInput(raw) {
+  return String(raw || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function findTrackByIdOrIndex(list, liveState) {
+  if (!list.length) return null;
+  if (liveState.trackId) return list.find((track) => track.id === String(liveState.trackId)) || null;
+  const safeIndex = Math.max(0, Math.min(list.length - 1, Number(liveState.trackIndex || 0)));
+  return list[safeIndex] || null;
+}
+
+function sanitizeLiveStateForTracks(tracks, currentState) {
+  const enabled = activeTracks(tracks);
+  if (!enabled.length) {
+    return {
+      active: false,
+      trackId: null,
+      trackIndex: 0,
+      playbackState: "stopped",
+      startedAt: null,
+      pausedAtSeconds: 0,
+      lastError: "Aucune piste active disponible.",
+    };
+  }
+
+  const currentTrack = findTrackByIdOrIndex(enabled, currentState);
+  if (currentTrack) {
+    const currentIndex = enabled.findIndex((track) => track.id === currentTrack.id);
+    return {
+      trackId: currentTrack.id,
+      trackIndex: Math.max(0, currentIndex),
+      lastError: "",
+    };
+  }
+
   return {
-    trackId: track?.id || null,
-    trackIndex: Math.max(0, Number(trackIndex || 0)),
-    playbackState: keepPlaying ? "playing" : "paused",
+    trackId: enabled[0].id,
+    trackIndex: 0,
+    playbackState: "paused",
+    startedAt: null,
     pausedAtSeconds: 0,
-    startedAt: keepPlaying ? Date.now() : null,
-    active: true,
-    lastError: "",
+    lastError: "Piste courante introuvable. Sélection automatique de la première piste active.",
   };
 }
 
-async function syncYoutubePlayerToState(player, track, liveState, opts = {}) {
-  const { allowPlay = true, onAutoplayBlocked } = opts;
+function createTrackFormPayload(els) {
+  const title = String(els.titleInput?.value || "").trim();
+  const youtubeUrl = String(els.urlInput?.value || "").trim();
+  const answer = String(els.answerInput?.value || "").trim();
+  const aliases = parseAliasesInput(els.aliasesInput?.value || "");
+  const active = Boolean(els.activeInput?.checked);
 
+  const validation = validateYoutubeUrl(youtubeUrl);
+  if (!validation.valid) throw new Error(validation.reason);
+  if (!title) throw new Error("Le titre de piste est obligatoire.");
+
+  return {
+    title,
+    youtubeUrl,
+    answer,
+    aliases,
+    active,
+  };
+}
+
+function buildPlayerSyncPayload(track, liveState) {
   if (!track?.videoId) {
+    return { shouldLoad: false, targetSeconds: 0, shouldPlay: false };
+  }
+
+  const targetSeconds = computeTargetSeconds(liveState);
+  const shouldPlay = liveState.active && liveState.playbackState === "playing";
+
+  return { shouldLoad: true, videoId: track.videoId, targetSeconds, shouldPlay };
+}
+
+async function syncYoutubePlayerToLiveState(player, track, liveState, options = {}) {
+  const { allowPlay = true, onAutoplayBlocked } = options;
+  const payload = buildPlayerSyncPayload(track, liveState);
+
+  if (!payload.shouldLoad) {
     player.stop();
     return;
   }
 
-  const targetSeconds = computeTargetSeconds(liveState);
-  const shouldPlay = liveState.playbackState === "playing";
-  await player.loadVideo(track.videoId, targetSeconds, false);
-  if (shouldPlay && allowPlay) {
-    try {
-      player.play();
-    } catch {
-      onAutoplayBlocked?.();
-    }
+  await player.loadVideo(payload.videoId, payload.targetSeconds, false);
+
+  if (!liveState.active || liveState.playbackState === "stopped") {
+    player.stop();
     return;
   }
 
   if (liveState.playbackState === "paused") {
     player.pause();
-    player.seekTo(targetSeconds);
+    player.seekTo(payload.targetSeconds);
     return;
   }
 
-  player.stop();
+  if (payload.shouldPlay && allowPlay) {
+    try {
+      player.play();
+    } catch {
+      onAutoplayBlocked?.();
+    }
+  }
+}
+
+function patchForTrackSelection(track, trackIndex, keepPlayback) {
+  const shouldKeepPlaying = keepPlayback === "playing";
+  return {
+    active: true,
+    trackId: track?.id || null,
+    trackIndex: Math.max(0, Number(trackIndex || 0)),
+    playbackState: shouldKeepPlaying ? "playing" : "paused",
+    startedAt: shouldKeepPlaying ? Date.now() : null,
+    pausedAtSeconds: 0,
+    lastError: "",
+  };
 }
 
 export function initManche5Admin(options) {
@@ -75,6 +158,8 @@ export function initManche5Admin(options) {
     currentTrackTitle: document.getElementById("m5-current-track-title"),
     currentTrackYoutube: document.getElementById("m5-current-track-youtube"),
     playbackStatus: document.getElementById("m5-playback-status"),
+    liveError: document.getElementById("m5-live-error"),
+
     startBtn: document.getElementById("m5-start-round"),
     playBtn: document.getElementById("m5-play"),
     pauseBtn: document.getElementById("m5-pause"),
@@ -82,8 +167,13 @@ export function initManche5Admin(options) {
     replayBtn: document.getElementById("m5-replay"),
     nextBtn: document.getElementById("m5-next"),
     prevBtn: document.getElementById("m5-prev"),
+
     trackList: document.getElementById("m5-track-list"),
     trackForm: document.getElementById("m5-track-form"),
+    submitBtn: document.getElementById("m5-track-submit"),
+    cancelEditBtn: document.getElementById("m5-track-cancel-edit"),
+    formTitle: document.getElementById("m5-track-form-title"),
+
     titleInput: document.getElementById("m5-track-title-input"),
     urlInput: document.getElementById("m5-track-url-input"),
     answerInput: document.getElementById("m5-track-answer-input"),
@@ -91,95 +181,260 @@ export function initManche5Admin(options) {
     activeInput: document.getElementById("m5-track-active-input"),
   };
 
-  if (!els.startBtn) return;
+  if (!els.startBtn || !els.trackForm) return;
 
   const player = new YoutubeAudioPlayer({
     hostId: "m5-admin-youtube-host",
-    onError: (event) => setMessage?.(els.statusMessage, parseYoutubeError(event?.data), "error"),
+    onError: async (event) => {
+      const message = parseYoutubeError(event?.data);
+      setMessage?.(els.statusMessage, message, "error");
+      try {
+        await writeBlindtestLive(
+          () => ({
+            playbackState: "paused",
+            pausedAtSeconds: player.getCurrentTime(),
+            startedAt: null,
+            lastError: message,
+          }),
+          liveState,
+          getCurrentAdminId?.() || "admin"
+        );
+      } catch {
+        // ignore secondary write failures
+      }
+    },
   });
 
   let tracks = [];
   let liveState = defaultBlindtestLiveState();
+  let editingTrackId = null;
   let lastAppliedSyncVersion = -1;
+
+  function resetTrackForm() {
+    editingTrackId = null;
+    els.trackForm.reset();
+    if (els.activeInput) els.activeInput.checked = true;
+    if (els.formTitle) els.formTitle.textContent = "Ajouter une piste";
+    if (els.submitBtn) els.submitBtn.textContent = "Ajouter la piste";
+    els.cancelEditBtn?.classList.add("hidden");
+  }
+
+  function fillTrackForm(track) {
+    editingTrackId = track.id;
+    if (els.titleInput) els.titleInput.value = track.title || "";
+    if (els.urlInput) els.urlInput.value = track.youtubeUrl || "";
+    if (els.answerInput) els.answerInput.value = track.answer || "";
+    if (els.aliasesInput) els.aliasesInput.value = (track.aliases || []).join(", ");
+    if (els.activeInput) els.activeInput.checked = track.active !== false;
+    if (els.formTitle) els.formTitle.textContent = "Modifier la piste";
+    if (els.submitBtn) els.submitBtn.textContent = "Enregistrer";
+    els.cancelEditBtn?.classList.remove("hidden");
+  }
+
+  function getEnabledTracks() {
+    return activeTracks(tracks);
+  }
+
+  function getCurrentTrack(enabledTracks = getEnabledTracks()) {
+    return findTrackByIdOrIndex(enabledTracks, liveState);
+  }
 
   function renderTrackList() {
     if (!els.trackList) return;
-    const list = tracks;
     els.trackList.innerHTML = "";
 
-    if (!list.length) {
-      els.trackList.innerHTML = "<li class='empty-state'>Aucune piste en base.</li>";
+    if (!tracks.length) {
+      els.trackList.innerHTML = "<li class='empty-state'>Aucune musique configurée en base.</li>";
       return;
     }
 
-    list.forEach((track, index) => {
+    const enabledTracks = getEnabledTracks();
+    const currentTrack = getCurrentTrack(enabledTracks);
+
+    tracks.forEach((track, index) => {
       const li = document.createElement("li");
-      li.className = "leader-item";
-      const validationLabel = track.isValid ? "Valide" : `Erreur: ${track.validationError}`;
-      li.innerHTML = `<span class="leader-name">#${index + 1} · ${track.title || "Sans titre"}</span><span class="leader-score">${validationLabel}</span>`;
-      li.addEventListener("click", async () => {
-        const adminId = getCurrentAdminId?.() || "admin";
-        const keepPlaying = liveState.playbackState === "playing";
+      li.className = "leader-item m5-track-item";
+
+      const trackTitle = document.createElement("span");
+      trackTitle.className = "leader-name";
+      trackTitle.textContent = `#${index + 1} · ${track.title || "Sans titre"}`;
+
+      const trackMeta = document.createElement("span");
+      trackMeta.className = "leader-score";
+      const currentBadge = currentTrack?.id === track.id ? " · Courante" : "";
+      const activeBadge = track.active ? "Active" : "Inactive";
+      trackMeta.textContent = `${activeBadge} · ${formatValidationError(track)}${currentBadge}`;
+
+      const actions = document.createElement("div");
+      actions.className = "m5-track-actions";
+
+      const selectBtn = document.createElement("button");
+      selectBtn.type = "button";
+      selectBtn.className = "btn btn-secondary mini-btn";
+      selectBtn.textContent = "Sélectionner";
+      selectBtn.disabled = !track.active || !track.isValid;
+      selectBtn.addEventListener("click", async () => {
+        const keepPlayback = liveState.playbackState;
+        const enabled = getEnabledTracks();
+        const normalizedTrack = enabled.find((item) => item.id === track.id) || null;
+        if (!normalizedTrack) {
+          setMessage?.(els.statusMessage, "Impossible de sélectionner une piste inactive/invalide.", "error");
+          return;
+        }
+        const trackIndex = enabled.findIndex((item) => item.id === normalizedTrack.id);
         await writeBlindtestLive(
-          () => buildLiveStatePatchForTrack(track, index, keepPlaying),
+          () => patchForTrackSelection(normalizedTrack, trackIndex, keepPlayback),
           liveState,
-          adminId
+          getCurrentAdminId?.() || "admin"
         );
         showToast?.(`Piste sélectionnée : ${track.title}`);
       });
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn btn-secondary mini-btn";
+      editBtn.textContent = "Modifier";
+      editBtn.addEventListener("click", () => fillTrackForm(track));
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn btn-danger mini-btn";
+      deleteBtn.textContent = "Supprimer";
+      deleteBtn.addEventListener("click", async () => {
+        const confirmed = window.confirm(`Supprimer la piste “${track.title || "Sans titre"}” ?`);
+        if (!confirmed) return;
+
+        try {
+          await removeBlindtestTrack(track.id);
+          if (editingTrackId === track.id) resetTrackForm();
+
+          const isCurrentTrack = liveState.trackId === track.id;
+          if (isCurrentTrack) {
+            const remaining = getEnabledTracks().filter((item) => item.id !== track.id);
+            const fallback = remaining[0] || null;
+            await writeBlindtestLive(
+              () => {
+                if (!fallback) {
+                  return {
+                    active: false,
+                    trackId: null,
+                    trackIndex: 0,
+                    playbackState: "stopped",
+                    startedAt: null,
+                    pausedAtSeconds: 0,
+                    lastError: "La piste en cours a été supprimée. Plus aucune piste active.",
+                  };
+                }
+
+                const fallbackIndex = remaining.findIndex((item) => item.id === fallback.id);
+                return {
+                  ...patchForTrackSelection(fallback, fallbackIndex, "paused"),
+                  playbackState: "paused",
+                  startedAt: null,
+                  pausedAtSeconds: 0,
+                  lastError: "La piste en cours a été supprimée. Sélection automatique d’une nouvelle piste.",
+                };
+              },
+              liveState,
+              getCurrentAdminId?.() || "admin"
+            );
+          }
+
+          showToast?.("Piste supprimée.");
+        } catch (error) {
+          setMessage?.(els.statusMessage, error.message || "Suppression impossible.", "error");
+        }
+      });
+
+      actions.append(selectBtn, editBtn, deleteBtn);
+      li.append(trackTitle, trackMeta, actions);
       els.trackList.appendChild(li);
     });
   }
 
   function renderAdminState() {
-    const enabledTracks = activeTracks(tracks);
-    const currentTrack = findTrackByLiveState(enabledTracks, liveState);
+    const enabledTracks = getEnabledTracks();
+    const currentTrack = getCurrentTrack(enabledTracks);
     const currentIndex = currentTrack ? enabledTracks.findIndex((track) => track.id === currentTrack.id) : -1;
 
-    els.currentTrackLabel.textContent = currentTrack
-      ? `Piste ${currentIndex + 1} / ${enabledTracks.length}`
-      : "Aucune piste active";
-    els.currentTrackTitle.textContent = currentTrack?.title || "—";
-    els.currentTrackYoutube.textContent = currentTrack?.youtubeUrl || "—";
-    els.playbackStatus.textContent = statusLabel(liveState.playbackState);
+    if (els.currentTrackLabel) {
+      els.currentTrackLabel.textContent = currentTrack
+        ? `Piste ${currentIndex + 1} / ${enabledTracks.length}`
+        : "Aucune piste active";
+    }
+    if (els.currentTrackTitle) els.currentTrackTitle.textContent = currentTrack?.title || "—";
+    if (els.currentTrackYoutube) els.currentTrackYoutube.textContent = currentTrack?.youtubeUrl || "—";
+    if (els.playbackStatus) els.playbackStatus.textContent = statusLabel(liveState.playbackState);
+
+    if (els.liveError) {
+      if (liveState.lastError) {
+        els.liveError.textContent = liveState.lastError;
+        els.liveError.classList.remove("hidden");
+      } else {
+        els.liveError.textContent = "";
+        els.liveError.classList.add("hidden");
+      }
+    }
 
     const hasTracks = enabledTracks.length > 0;
-    els.playBtn.disabled = !hasTracks;
+    const hasCurrentTrack = Boolean(currentTrack);
+
+    els.playBtn.disabled = !hasTracks || !hasCurrentTrack;
     els.pauseBtn.disabled = !hasTracks || liveState.playbackState !== "playing";
     els.resumeBtn.disabled = !hasTracks || liveState.playbackState !== "paused";
-    els.replayBtn.disabled = !hasTracks;
+    els.replayBtn.disabled = !hasTracks || !hasCurrentTrack;
     els.nextBtn.disabled = !hasTracks || currentIndex < 0 || currentIndex >= enabledTracks.length - 1;
     els.prevBtn.disabled = !hasTracks || currentIndex <= 0;
   }
 
-  els.trackForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const title = els.titleInput?.value || "";
-    const youtubeUrl = els.urlInput?.value || "";
-    const answer = els.answerInput?.value || "";
-    const aliases = els.aliasesInput?.value || "";
-    const active = Boolean(els.activeInput?.checked);
+  async function moveTrack(step) {
+    const enabledTracks = getEnabledTracks();
+    if (!enabledTracks.length) return;
+    const currentTrack = getCurrentTrack(enabledTracks);
+    const currentIndex = currentTrack ? enabledTracks.findIndex((track) => track.id === currentTrack.id) : 0;
+    const nextIndex = Math.max(0, Math.min(enabledTracks.length - 1, currentIndex + step));
+    const nextTrack = enabledTracks[nextIndex] || null;
 
-    const validation = validateYoutubeUrl(youtubeUrl);
-    if (!validation.valid) {
-      setMessage?.(els.statusMessage, validation.reason, "error");
-      return;
-    }
+    if (!nextTrack || nextTrack.id === currentTrack?.id) return;
+
+    await writeBlindtestLive(
+      () => patchForTrackSelection(nextTrack, nextIndex, liveState.playbackState),
+      liveState,
+      getCurrentAdminId?.() || "admin"
+    );
+  }
+
+  els.trackForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
     try {
-      await upsertBlindtestTrack(null, { title, youtubeUrl, answer, aliases, active, order: tracks.length + 1 }, getCurrentAdminId?.() || "admin");
-      els.trackForm.reset();
-      if (els.activeInput) els.activeInput.checked = true;
-      setMessage?.(els.statusMessage, "Piste ajoutée.", "success");
+      const payload = createTrackFormPayload(els);
+      const adminId = getCurrentAdminId?.() || "admin";
+
+      if (editingTrackId) {
+        await updateBlindtestTrack(editingTrackId, payload, adminId);
+        setMessage?.(els.statusMessage, "Piste modifiée.", "success");
+        showToast?.("Piste modifiée");
+      } else {
+        const order = tracks.length ? Math.max(...tracks.map((track) => Number(track.order || 0))) + 1 : 1;
+        await createBlindtestTrack({ ...payload, order }, adminId);
+        setMessage?.(els.statusMessage, "Piste ajoutée.", "success");
+        showToast?.("Piste ajoutée");
+      }
+
+      resetTrackForm();
     } catch (error) {
-      setMessage?.(els.statusMessage, error.message || "Impossible d’ajouter la piste.", "error");
+      setMessage?.(els.statusMessage, error.message || "Enregistrement impossible.", "error");
     }
   });
+
+  els.cancelEditBtn?.addEventListener("click", () => resetTrackForm());
 
   els.startBtn.addEventListener("click", async () => {
     const adminId = getCurrentAdminId?.() || "admin";
     await ensureBlindtestLiveSeed(adminId);
-    const enabledTracks = activeTracks(tracks);
+
+    const enabledTracks = getEnabledTracks();
     const firstTrack = enabledTracks[0] || null;
 
     await Promise.all([
@@ -190,36 +445,36 @@ export function initManche5Admin(options) {
         updatedBy: adminId,
       }),
       update(ref(db, "blindtestLive"), {
-        active: true,
+        active: Boolean(firstTrack),
         trackId: firstTrack?.id || null,
         trackIndex: 0,
-        playbackState: "paused",
+        playbackState: firstTrack ? "paused" : "stopped",
         pausedAtSeconds: 0,
         startedAt: null,
+        syncVersion: Number(liveState.syncVersion || 0) + 1,
         updatedAt: Date.now(),
         updatedBy: adminId,
-        lastError: "",
+        lastError: firstTrack ? "" : "Aucune piste active configurée.",
       }),
     ]);
 
-    showToast?.("Manche 5 activée");
+    showToast?.(firstTrack ? "Manche 5 activée" : "Manche 5 activée sans piste (base vide)");
   });
 
   els.playBtn.addEventListener("click", async () => {
-    const adminId = getCurrentAdminId?.() || "admin";
     await writeBlindtestLive(
       (state) => ({
         active: true,
         playbackState: "playing",
         startedAt: Date.now() - Math.floor(Number(state.pausedAtSeconds || 0) * 1000),
+        lastError: "",
       }),
       liveState,
-      adminId
+      getCurrentAdminId?.() || "admin"
     );
   });
 
   els.pauseBtn.addEventListener("click", async () => {
-    const adminId = getCurrentAdminId?.() || "admin";
     await writeBlindtestLive(
       () => ({
         playbackState: "paused",
@@ -227,52 +482,50 @@ export function initManche5Admin(options) {
         startedAt: null,
       }),
       liveState,
-      adminId
+      getCurrentAdminId?.() || "admin"
     );
   });
 
   els.resumeBtn.addEventListener("click", async () => {
-    const adminId = getCurrentAdminId?.() || "admin";
     await writeBlindtestLive(
       (state) => ({
         playbackState: "playing",
         startedAt: Date.now() - Math.floor(Number(state.pausedAtSeconds || 0) * 1000),
       }),
       liveState,
-      adminId
+      getCurrentAdminId?.() || "admin"
     );
   });
 
   els.replayBtn.addEventListener("click", async () => {
-    const adminId = getCurrentAdminId?.() || "admin";
     await writeBlindtestLive(
-      () => ({ playbackState: "playing", pausedAtSeconds: 0, startedAt: Date.now() }),
+      () => ({
+        active: true,
+        playbackState: "playing",
+        pausedAtSeconds: 0,
+        startedAt: Date.now(),
+        lastError: "",
+      }),
       liveState,
-      adminId
+      getCurrentAdminId?.() || "admin"
     );
   });
 
-  els.nextBtn.addEventListener("click", async () => {
-    const enabledTracks = activeTracks(tracks);
-    const currentTrack = findTrackByLiveState(enabledTracks, liveState);
-    const index = currentTrack ? enabledTracks.findIndex((t) => t.id === currentTrack.id) : 0;
-    const next = enabledTracks[Math.min(enabledTracks.length - 1, index + 1)] || null;
-    if (!next || next.id === currentTrack?.id) return;
-    await writeBlindtestLive(() => buildLiveStatePatchForTrack(next, index + 1, liveState.playbackState === "playing"), liveState, getCurrentAdminId?.() || "admin");
-  });
+  els.nextBtn.addEventListener("click", async () => moveTrack(1));
+  els.prevBtn.addEventListener("click", async () => moveTrack(-1));
 
-  els.prevBtn.addEventListener("click", async () => {
-    const enabledTracks = activeTracks(tracks);
-    const currentTrack = findTrackByLiveState(enabledTracks, liveState);
-    const index = currentTrack ? enabledTracks.findIndex((t) => t.id === currentTrack.id) : 0;
-    const previous = enabledTracks[Math.max(0, index - 1)] || null;
-    if (!previous || previous.id === currentTrack?.id) return;
-    await writeBlindtestLive(() => buildLiveStatePatchForTrack(previous, Math.max(0, index - 1), liveState.playbackState === "playing"), liveState, getCurrentAdminId?.() || "admin");
-  });
-
-  watchBlindtestTracks((nextTracks) => {
+  watchBlindtestTracks(async (nextTracks) => {
     tracks = nextTracks;
     renderTrackList();
+
+    const patch = sanitizeLiveStateForTracks(tracks, liveState);
+    if (Object.keys(patch).length > 0) {
+      const changed = Object.entries(patch).some(([key, value]) => liveState[key] !== value);
+      if (changed) {
+        await writeBlindtestLive(() => patch, liveState, getCurrentAdminId?.() || "admin");
+      }
+    }
+
     renderAdminState();
   });
 
@@ -283,10 +536,20 @@ export function initManche5Admin(options) {
     if (nextLiveState.syncVersion === lastAppliedSyncVersion) return;
     lastAppliedSyncVersion = nextLiveState.syncVersion;
 
-    const track = findTrackByLiveState(activeTracks(tracks), nextLiveState);
-    await syncYoutubePlayerToState(player, track, nextLiveState);
-    setMessage?.(els.statusMessage, "Synchronisation admin OK.", "success");
+    const track = getCurrentTrack();
+    try {
+      await syncYoutubePlayerToLiveState(player, track, nextLiveState);
+      if (nextLiveState.lastError) {
+        setMessage?.(els.statusMessage, `Synchronisé avec alerte : ${nextLiveState.lastError}`, "error");
+      } else {
+        setMessage?.(els.statusMessage, "Synchronisation admin OK.", "success");
+      }
+    } catch {
+      setMessage?.(els.statusMessage, "Erreur de synchronisation lecteur YouTube.", "error");
+    }
   });
+
+  resetTrackForm();
 }
 
 export function initManche5Guest() {
@@ -299,8 +562,10 @@ export function initManche5Guest() {
   const player = new YoutubeAudioPlayer({
     hostId: "m5-guest-youtube-host",
     onError: (event) => {
-      statusLabelNode.textContent = `Erreur lecteur : ${parseYoutubeError(event?.data)}`;
+      const message = parseYoutubeError(event?.data);
+      statusLabelNode.textContent = `Erreur lecteur : ${message}`;
       statusLabelNode.classList.add("error");
+      setGuestHint(message, "error");
     },
   });
 
@@ -318,8 +583,15 @@ export function initManche5Guest() {
 
   function renderGuestState() {
     const enabledTracks = activeTracks(tracks);
-    const currentTrack = findTrackByLiveState(enabledTracks, liveState);
+    const currentTrack = findTrackByIdOrIndex(enabledTracks, liveState);
     const index = currentTrack ? enabledTracks.findIndex((track) => track.id === currentTrack.id) : -1;
+
+    if (!enabledTracks.length) {
+      trackLabelNode.textContent = "Piste : aucune musique configurée";
+      playbackLabelNode.textContent = "État : Arrêt";
+      statusLabelNode.textContent = "Aucune musique blindtest disponible.";
+      return;
+    }
 
     trackLabelNode.textContent = currentTrack ? `Piste : ${index + 1} / ${enabledTracks.length}` : "Piste : —";
     playbackLabelNode.textContent = `État : ${statusLabel(liveState.playbackState)}`;
@@ -338,14 +610,13 @@ export function initManche5Guest() {
   audioUnlockBtn?.addEventListener("click", async () => {
     try {
       await player.ensureReady();
-      await player.loadVideo("dQw4w9WgXcQ", 0, false);
-      player.pause();
       audioUnlocked = true;
       setGuestHint("Audio activé. Vous recevrez la piste live automatiquement.", "success");
       renderGuestState();
+
       if (liveState.active) {
-        const track = findTrackByLiveState(activeTracks(tracks), liveState);
-        await syncYoutubePlayerToState(player, track, liveState, {
+        const track = findTrackByIdOrIndex(activeTracks(tracks), liveState);
+        await syncYoutubePlayerToLiveState(player, track, liveState, {
           allowPlay: true,
           onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),
         });
@@ -372,8 +643,8 @@ export function initManche5Guest() {
       return;
     }
 
-    const track = findTrackByLiveState(activeTracks(tracks), nextLiveState);
-    await syncYoutubePlayerToState(player, track, nextLiveState, {
+    const track = findTrackByIdOrIndex(activeTracks(tracks), nextLiveState);
+    await syncYoutubePlayerToLiveState(player, track, nextLiveState, {
       allowPlay: true,
       onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),
     });
