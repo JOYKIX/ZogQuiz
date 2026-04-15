@@ -12,7 +12,6 @@ import {
 import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Admin } from "./manche4.js";
 import { initManche5Admin } from "./manche5.js";
-import { blindtestTracks } from "./blindtest-config.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -686,13 +685,14 @@ async function resetParticipantsAndLeaderboard() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
-    update(ref(db, "rooms/manche5/state"), {
+    update(ref(db, "blindtestLive"), {
       active: false,
-      status: "stopped",
-      currentTrackIndex: 0,
-      positionMs: 0,
+      playbackState: "stopped",
+      trackIndex: 0,
+      trackId: null,
+      pausedAtSeconds: 0,
       startedAt: null,
-      actionId: Date.now(),
+      syncVersion: Date.now(),
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
@@ -749,14 +749,15 @@ async function resetCompleteQuiz() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
-    set(ref(db, "rooms/manche5/state"), {
+    set(ref(db, "blindtestLive"), {
       active: false,
-      currentTrackIndex: 0,
-      status: "stopped",
-      positionMs: 0,
+      trackIndex: 0,
+      trackId: null,
+      playbackState: "stopped",
+      pausedAtSeconds: 0,
       startedAt: null,
-      actionId: Date.now(),
-      totalTracks: blindtestTracks.length,
+      syncVersion: Date.now(),
+      lastError: "",
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),

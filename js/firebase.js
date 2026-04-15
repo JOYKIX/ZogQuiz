@@ -10,7 +10,6 @@ import {
   runTransaction,
   remove,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
-import { blindtestTracks } from "./blindtest-config.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCIKaDnFa6zFxSxSPgKHzd4lqWVYcpPpRw",
@@ -135,22 +134,45 @@ export async function ensureRoundsSeed(uid) {
     });
   }
 
-  const manche5StateRef = ref(db, "rooms/manche5/state");
-  if (!(await get(manche5StateRef)).exists()) {
-    await set(manche5StateRef, {
-      active: false,
-      currentTrackIndex: 0,
-      status: "stopped",
-      positionMs: 0,
-      startedAt: null,
-      actionId: 0,
-      totalTracks: blindtestTracks.length,
-      updatedBy: uid,
-      updatedAt: Date.now(),
+  const blindtestTracksRef = ref(db, "blindtest/tracks");
+  if (!(await get(blindtestTracksRef)).exists()) {
+    await set(blindtestTracksRef, {
+      "1": {
+        title: "Naruto Opening 6",
+        youtubeUrl: "https://www.youtube.com/watch?v=SavhHnWla6c",
+        answer: "Naruto",
+        aliases: ["naruto shippuden"],
+        active: true,
+        order: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        updatedBy: uid,
+      },
+      "2": {
+        title: "Attack on Titan Opening 1",
+        youtubeUrl: "https://www.youtube.com/watch?v=LKP-vZvjbh8",
+        answer: "Attack on Titan",
+        aliases: ["snk"],
+        active: true,
+        order: 2,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        updatedBy: uid,
+      },
     });
-  } else {
-    await update(manche5StateRef, {
-      totalTracks: blindtestTracks.length,
+  }
+
+  const blindtestLiveRef = ref(db, "blindtestLive");
+  if (!(await get(blindtestLiveRef)).exists()) {
+    await set(blindtestLiveRef, {
+      active: false,
+      trackId: null,
+      trackIndex: 0,
+      playbackState: "stopped",
+      startedAt: null,
+      pausedAtSeconds: 0,
+      syncVersion: 0,
+      lastError: "",
       updatedBy: uid,
       updatedAt: Date.now(),
     });

@@ -203,3 +203,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-color: rgba(255, 111, 145, 0.62);
   background: rgba(101, 34, 54, 0.95);
 }
+
+.m5-youtube-host {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  left: -9999px;
+  top: -9999px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

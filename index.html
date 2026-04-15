@@ -502,16 +502,37 @@
               <section class="round-section" data-round-section-panel="manche5:overview">
                 <article class="subpanel compact-panel stack">
                   <h3>Vue d’ensemble manche 5 · Blindtest</h3>
-                  <p class="muted">Piste actuelle : <strong id="m5-current-track">Musique 1 / 1</strong></p>
-                  <p class="muted">Fichier : <strong id="m5-current-track-file">music1.mp3</strong></p>
+                  <p class="muted">Piste actuelle : <strong id="m5-current-track">Aucune piste active</strong></p>
+                  <p class="muted">Titre : <strong id="m5-current-track-title">—</strong></p>
+                  <p class="muted">URL YouTube : <strong id="m5-current-track-youtube">—</strong></p>
                   <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
                   <p id="m5-admin-message" class="message">En attente.</p>
+                  <div id="m5-admin-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche5:questions">
                 <article class="subpanel compact-panel stack">
-                  <h3>Configuration audio</h3>
-                  <p class="muted">Les pistes sont définies dans <code>js/blindtest-config.js</code> et lues depuis <code>/sound/blindtest/musicN.mp3</code>.</p>
+                  <h3>Catalogue des pistes YouTube</h3>
+                  <form id="m5-track-form" class="stack">
+                    <label>Titre
+                      <input id="m5-track-title-input" required placeholder="Ex: Naruto Opening 6" />
+                    </label>
+                    <label>Lien YouTube
+                      <input id="m5-track-url-input" required placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" />
+                    </label>
+                    <label>Réponse attendue
+                      <input id="m5-track-answer-input" placeholder="Ex: Naruto" />
+                    </label>
+                    <label>Aliases (séparés par virgule)
+                      <input id="m5-track-aliases-input" placeholder="naruto shippuden, naruto op6" />
+                    </label>
+                    <label class="row">
+                      <input id="m5-track-active-input" type="checkbox" checked />
+                      <span>Activer cette piste</span>
+                    </label>
+                    <button type="submit" class="btn btn-primary">Ajouter la piste</button>
+                  </form>
+                  <ul id="m5-track-list" class="leaderboard"></ul>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche5:participants">
@@ -528,6 +549,7 @@
                   <div class="row">
                     <button id="m5-play" class="btn btn-primary">Lancer la musique</button>
                     <button id="m5-pause" class="btn btn-secondary">Pause</button>
+                    <button id="m5-resume" class="btn btn-secondary">Reprendre</button>
                     <button id="m5-replay" class="btn btn-secondary">Rejouer</button>
                     <button id="m5-prev" class="btn btn-secondary">Musique précédente</button>
                     <button id="m5-next" class="btn btn-secondary">Musique suivante</button>
