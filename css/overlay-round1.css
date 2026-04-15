@@ -1,0 +1,16 @@
+.overlay-round1 {
+  place-items: center;
+  text-align: center;
+}
+
+.overlay-round1 .overlay-card {
+  width: min(96vw, 1750px);
+}
+
+#m1-question {
+  color: var(--overlay-text);
+}
+
+#m1-answer {
+  margin-top: 0.65rem;
+}

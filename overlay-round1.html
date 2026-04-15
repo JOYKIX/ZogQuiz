@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZogQuiz Overlay - Manche 1</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/overlay-common.css" />
+    <link rel="stylesheet" href="css/overlay-round1.css" />
   </head>
-  <body class="overlay-body">
-    <main class="m1-overlay-shell">
-      <h1 id="m1-question">Aucune question sélectionnée.</h1>
-      <p id="m1-answer" class="hidden">Réponse : —</p>
+  <body class="overlay-page">
+    <main class="overlay-root overlay-round1">
+      <section class="overlay-card overlay-panel" aria-live="polite">
+        <h1 id="m1-question" class="overlay-title">Aucune question sélectionnée.</h1>
+        <p id="m1-answer" class="overlay-answer hidden">Réponse : —</p>
+      </section>
     </main>
     <script type="module" src="js/overlay-round1.js"></script>
   </body>
