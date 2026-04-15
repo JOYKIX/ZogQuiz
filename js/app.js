@@ -11,6 +11,8 @@ import {
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Admin } from "./manche4.js";
+import { initManche5Admin } from "./manche5.js";
+import { blindtestTracks } from "./blindtest-config.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -258,6 +260,11 @@ initManche4Admin({
   setMessage,
   showToast,
   activateRoundSection,
+});
+initManche5Admin({
+  getCurrentAdminId: () => currentAdminId,
+  setMessage,
+  showToast,
 });
 
 showLoginBtn.addEventListener("click", () => {
@@ -679,6 +686,16 @@ async function resetParticipantsAndLeaderboard() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
+    update(ref(db, "rooms/manche5/state"), {
+      active: false,
+      status: "stopped",
+      currentTrackIndex: 0,
+      positionMs: 0,
+      startedAt: null,
+      actionId: Date.now(),
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
   ]);
 }
 
@@ -729,6 +746,17 @@ async function resetCompleteQuiz() {
       grids: [],
       playerProgress: {},
       finished: false,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
+    set(ref(db, "rooms/manche5/state"), {
+      active: false,
+      currentTrackIndex: 0,
+      status: "stopped",
+      positionMs: 0,
+      startedAt: null,
+      actionId: Date.now(),
+      totalTracks: blindtestTracks.length,
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),

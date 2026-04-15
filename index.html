@@ -495,11 +495,46 @@
                 <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
               </nav>
 
-              <section class="round-section" data-round-section-panel="manche5:overview"><article class="subpanel compact-panel"><h3>Vue d’ensemble manche 5</h3><p class="empty-state">Cette manche est prête à être configurée.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:questions"><article class="subpanel compact-panel"><p class="empty-state">Ajoutez vos questions et médias ici.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:participants"><article class="subpanel compact-panel"><p class="empty-state">Classement et participants à venir.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:live"><article class="subpanel compact-panel"><p class="empty-state">Les contrôles live seront disponibles ici.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:overlay"><article class="subpanel compact-panel"><p class="empty-state">Lien overlay à configurer pour cette manche.</p></article></section>
+              <section class="round-section" data-round-section-panel="manche5:overview">
+                <article class="subpanel compact-panel stack">
+                  <h3>Vue d’ensemble manche 5 · Blindtest</h3>
+                  <p class="muted">Piste actuelle : <strong id="m5-current-track">Musique 1 / 1</strong></p>
+                  <p class="muted">Fichier : <strong id="m5-current-track-file">music1.mp3</strong></p>
+                  <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
+                  <p id="m5-admin-message" class="message">En attente.</p>
+                </article>
+              </section>
+              <section class="round-section hidden" data-round-section-panel="manche5:questions">
+                <article class="subpanel compact-panel stack">
+                  <h3>Configuration audio</h3>
+                  <p class="muted">Les pistes sont définies dans <code>js/blindtest-config.js</code> et lues depuis <code>/sound/blindtest/musicN.mp3</code>.</p>
+                </article>
+              </section>
+              <section class="round-section hidden" data-round-section-panel="manche5:participants">
+                <article class="subpanel compact-panel">
+                  <p class="empty-state">Les invités suivent la lecture synchronisée automatiquement.</p>
+                </article>
+              </section>
+              <section class="round-section hidden" data-round-section-panel="manche5:live">
+                <article class="subpanel compact-panel stack">
+                  <h3>Contrôle du blindtest</h3>
+                  <div class="row">
+                    <button id="m5-start-round" class="btn btn-primary">Démarrer la manche 5</button>
+                  </div>
+                  <div class="row">
+                    <button id="m5-play" class="btn btn-primary">Lancer la musique</button>
+                    <button id="m5-pause" class="btn btn-secondary">Pause</button>
+                    <button id="m5-replay" class="btn btn-secondary">Rejouer</button>
+                    <button id="m5-prev" class="btn btn-secondary">Musique précédente</button>
+                    <button id="m5-next" class="btn btn-secondary">Musique suivante</button>
+                  </div>
+                </article>
+              </section>
+              <section class="round-section hidden" data-round-section-panel="manche5:overlay">
+                <article class="subpanel compact-panel">
+                  <p class="empty-state">Aucun overlay spécifique requis pour le blindtest.</p>
+                </article>
+              </section>
             </section>
 
             <section class="round-shell hidden" data-round-panel="finale">

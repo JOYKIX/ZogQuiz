@@ -10,6 +10,7 @@ import {
   runTransaction,
   remove,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import { blindtestTracks } from "./blindtest-config.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCIKaDnFa6zFxSxSPgKHzd4lqWVYcpPpRw",
@@ -129,6 +130,27 @@ export async function ensureRoundsSeed(uid) {
     await set(manche3OverlayRef, {
       questionFontSizePx: 72,
       questionColor: "#ffffff",
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
+  const manche5StateRef = ref(db, "rooms/manche5/state");
+  if (!(await get(manche5StateRef)).exists()) {
+    await set(manche5StateRef, {
+      active: false,
+      currentTrackIndex: 0,
+      status: "stopped",
+      positionMs: 0,
+      startedAt: null,
+      actionId: 0,
+      totalTracks: blindtestTracks.length,
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  } else {
+    await update(manche5StateRef, {
+      totalTracks: blindtestTracks.length,
       updatedBy: uid,
       updatedAt: Date.now(),
     });
