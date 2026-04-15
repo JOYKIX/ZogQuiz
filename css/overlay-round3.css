@@ -1,20 +1,17 @@
 .overlay-round3 {
-  place-items: center;
-  text-align: center;
+  display: grid;
+  justify-items: center;
+  align-content: center;
 }
 
-.overlay-round3 .overlay-card {
-  width: min(96vw, 1750px);
+.m3-theme,
+.m3-question,
+.m3-timer {
+  margin: 0;
+  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
 }
 
-#m3-overlay-question {
-  color: var(--overlay-text);
-}
-
-#m3-overlay-timer {
-  margin: 0.2rem 0 0;
-  color: #ceffe7;
-  font-size: clamp(2.2rem, 4vw, 3.9rem);
-  letter-spacing: 0.07em;
-  font-weight: 800;
+.m3-question {
+  line-height: 1.08;
+  text-wrap: balance;
 }

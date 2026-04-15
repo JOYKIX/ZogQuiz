@@ -1,4 +1,5 @@
 import { db, ref, onValue } from "./firebase.js";
+import { watchOverlayConfig } from "./overlay-config.js";
 
 const themeNode = document.getElementById("m3-overlay-theme");
 const questionNode = document.getElementById("m3-overlay-question");
@@ -7,7 +8,7 @@ const timerNode = document.getElementById("m3-overlay-timer");
 const DURATION = 90_000;
 let themes = {};
 let state = null;
-let overlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
+let overlayConfig = null;
 
 function formatTimer(ms) {
   const sec = Math.max(0, Math.floor(ms / 1000));
@@ -22,10 +23,23 @@ function remainingMs() {
   return Math.max(0, Number(state.timerRemainingMs ?? DURATION));
 }
 
-function applyOverlayStyle() {
-  questionNode.style.fontSize = `${overlaySettings.questionFontSizePx}px`;
-  questionNode.style.color = overlaySettings.questionColor;
-  timerNode.style.color = overlaySettings.questionColor;
+function applyOverlayConfig() {
+  if (!overlayConfig) return;
+  questionNode.style.fontSize = `${overlayConfig.questionFontSizePx}px`;
+  questionNode.style.color = overlayConfig.questionColor;
+  themeNode.style.fontSize = `${overlayConfig.themeFontSizePx}px`;
+  themeNode.style.color = overlayConfig.themeColor;
+  timerNode.style.fontSize = `${overlayConfig.timerFontSizePx}px`;
+  timerNode.style.color = overlayConfig.timerColor;
+
+  themeNode.style.fontWeight = String(overlayConfig.fontWeight);
+  questionNode.style.fontWeight = String(overlayConfig.fontWeight);
+  timerNode.style.fontWeight = String(overlayConfig.fontWeight);
+
+  const root = document.querySelector(".overlay-round3");
+  root.style.textAlign = overlayConfig.align;
+  root.style.gap = `${overlayConfig.blockGapPx}px`;
+  questionNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
 }
 
 function render() {
@@ -36,7 +50,7 @@ function render() {
   themeNode.textContent = `Thème : ${theme?.name || "—"}`;
   questionNode.textContent = current?.text || (theme ? "Fin des questions" : "En attente du thème.");
   timerNode.textContent = formatTimer(remainingMs());
-  applyOverlayStyle();
+  applyOverlayConfig();
 }
 
 onValue(ref(db, "rooms/manche3/state"), (snap) => {
@@ -49,14 +63,8 @@ onValue(ref(db, "rooms/manche3/themes"), (snap) => {
   render();
 });
 
-onValue(ref(db, "rooms/manche3/overlaySettings"), (snap) => {
-  const settings = snap.val() || {};
-  overlaySettings = {
-    questionFontSizePx: Math.max(24, Math.min(180, Number(settings.questionFontSizePx || 72))),
-    questionColor: typeof settings.questionColor === "string" && /^#[0-9a-fA-F]{6}$/.test(settings.questionColor)
-      ? settings.questionColor
-      : "#ffffff",
-  };
+watchOverlayConfig("round3", (config) => {
+  overlayConfig = config;
   render();
 });
 

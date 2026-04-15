@@ -1,43 +1,36 @@
 .overlay-round5 {
-  place-items: center;
+  display: grid;
+  gap: 0.45rem;
+  align-content: end;
+  justify-items: center;
+  padding-bottom: 6vh;
 }
 
-.overlay-round5 .overlay-card {
-  width: min(96vw, 1200px);
-  text-align: center;
-}
-
-.m5-overlay-track {
+.m5-state,
+.m5-playback,
+.m5-track,
+.m5-time,
+.m5-error {
   margin: 0;
-  font-size: clamp(2.5rem, 6vw, 5.8rem);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--overlay-accent);
-}
-
-.m5-overlay-state {
-  margin: 0;
-  font-size: clamp(1.1rem, 2.2vw, 2rem);
   font-weight: 700;
+  text-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
 }
 
-.m5-overlay-time {
-  margin: 0;
-  font-size: clamp(1.25rem, 2.3vw, 2.2rem);
-  color: var(--overlay-muted);
-  font-weight: 700;
+.m5-track {
+  letter-spacing: 0.05em;
 }
 
-.m5-overlay-note {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: clamp(0.85rem, 1.4vw, 1.1rem);
+.m5-progress-shell {
+  width: min(92vw, 1000px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  overflow: hidden;
 }
 
-.m5-overlay-error {
-  margin: 0;
-  color: #ff97b3;
-  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+.m5-progress-bar {
+  height: 10px;
+  width: 0%;
+  background: linear-gradient(90deg, #57e389 0%, #8cf5dc 100%);
+  transition: width 150ms linear;
 }
 
 .m5-overlay-youtube-host {
@@ -46,7 +39,6 @@
   height: 1px;
   left: -9999px;
   top: -9999px;
-  overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }

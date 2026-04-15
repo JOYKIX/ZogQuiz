@@ -134,6 +134,71 @@ export async function ensureRoundsSeed(uid) {
     });
   }
 
+  const overlayConfigsRef = ref(db, "overlayConfigs");
+  if (!(await get(overlayConfigsRef)).exists()) {
+    await set(overlayConfigsRef, {
+      round1: {
+        questionFontSizePx: 72,
+        questionColor: "#ffffff",
+        questionFontWeight: 800,
+        questionAlign: "center",
+        maxWidthPx: 1600,
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      },
+      round2: {
+        maxWidthPx: 1400,
+        maxHeightPx: 820,
+        borderRadiusPx: 0,
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      },
+      round3: {
+        questionFontSizePx: 74,
+        themeFontSizePx: 34,
+        timerFontSizePx: 72,
+        questionColor: "#ffffff",
+        themeColor: "#cfe6ff",
+        timerColor: "#8cf5dc",
+        fontWeight: 800,
+        align: "center",
+        blockGapPx: 14,
+        maxWidthPx: 1600,
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      },
+      round4: {
+        clueFontSizePx: 40,
+        clueColor: "#ffffff",
+        wordFontSizePx: 28,
+        cellRadiusPx: 14,
+        markerSizePx: 18,
+        markerOpacity: 0.95,
+        gridMaxWidthPx: 1500,
+        gridGapPx: 10,
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      },
+      round5: {
+        primaryFontSizePx: 52,
+        secondaryFontSizePx: 30,
+        primaryColor: "#ffffff",
+        secondaryColor: "#b5cef0",
+        playingColor: "#57e389",
+        pausedColor: "#ffd166",
+        stoppedColor: "#ff6b6b",
+        progressHeightPx: 10,
+        cornerRadiusPx: 12,
+        maxWidthPx: 1000,
+        decorationOpacity: 0.2,
+        progressMaxSeconds: 180,
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      },
+    });
+  }
+
+
   const blindtestLiveRef = ref(db, "blindtestLive");
   if (!(await get(blindtestLiveRef)).exists()) {
     await set(blindtestLiveRef, {

@@ -10,6 +10,7 @@ import {
   ensureRoundsSeed,
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
+import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche4Admin } from "./manche4.js";
 import { initManche5Admin } from "./manche5.js";
 import {
@@ -63,6 +64,13 @@ const quickLeaderboard = $("quick-leaderboard");
 const scoreboardPreview = $("scoreboard-preview");
 const overlayRound1FontSizeInput = $("overlay-round1-font-size");
 const overlayRound1ColorInput = $("overlay-round1-text-color");
+const overlayRound1FontWeightInput = $("overlay-round1-font-weight");
+const overlayRound1AlignInput = $("overlay-round1-align");
+const overlayRound1MaxWidthInput = $("overlay-round1-max-width");
+
+const overlayRound2MaxWidthInput = $("overlay-round2-max-width");
+const overlayRound2MaxHeightInput = $("overlay-round2-max-height");
+const overlayRound2RadiusInput = $("overlay-round2-radius");
 
 const sessionStatus = $("session-status");
 const activeRoundStatus = $("active-round-status");
@@ -100,8 +108,38 @@ const m3ResetBtn = $("m3-reset");
 const m3PassBtn = $("m3-pass");
 const m3CorrectBtn = $("m3-correct");
 const m3NextBtn = $("m3-next");
-const overlayRound3FontSizeInput = $("overlay-round3-font-size");
-const overlayRound3ColorInput = $("overlay-round3-text-color");
+const overlayRound3QuestionSizeInput = $("overlay-round3-question-size");
+const overlayRound3ThemeSizeInput = $("overlay-round3-theme-size");
+const overlayRound3TimerSizeInput = $("overlay-round3-timer-size");
+const overlayRound3QuestionColorInput = $("overlay-round3-question-color");
+const overlayRound3ThemeColorInput = $("overlay-round3-theme-color");
+const overlayRound3TimerColorInput = $("overlay-round3-timer-color");
+const overlayRound3FontWeightInput = $("overlay-round3-font-weight");
+const overlayRound3AlignInput = $("overlay-round3-align");
+const overlayRound3GapInput = $("overlay-round3-gap");
+const overlayRound3MaxWidthInput = $("overlay-round3-max-width");
+
+const overlayRound4ClueSizeInput = $("overlay-round4-clue-size");
+const overlayRound4ClueColorInput = $("overlay-round4-clue-color");
+const overlayRound4WordSizeInput = $("overlay-round4-word-size");
+const overlayRound4CellRadiusInput = $("overlay-round4-cell-radius");
+const overlayRound4MarkerSizeInput = $("overlay-round4-marker-size");
+const overlayRound4MarkerOpacityInput = $("overlay-round4-marker-opacity");
+const overlayRound4GridMaxWidthInput = $("overlay-round4-grid-max-width");
+const overlayRound4GridGapInput = $("overlay-round4-grid-gap");
+
+const overlayRound5PrimarySizeInput = $("overlay-round5-primary-size");
+const overlayRound5SecondarySizeInput = $("overlay-round5-secondary-size");
+const overlayRound5PrimaryColorInput = $("overlay-round5-primary-color");
+const overlayRound5SecondaryColorInput = $("overlay-round5-secondary-color");
+const overlayRound5PlayingColorInput = $("overlay-round5-playing-color");
+const overlayRound5PausedColorInput = $("overlay-round5-paused-color");
+const overlayRound5StoppedColorInput = $("overlay-round5-stopped-color");
+const overlayRound5ProgressHeightInput = $("overlay-round5-progress-height");
+const overlayRound5CornerRadiusInput = $("overlay-round5-corner-radius");
+const overlayRound5MaxWidthInput = $("overlay-round5-max-width");
+const overlayRound5DecorationOpacityInput = $("overlay-round5-decoration-opacity");
+const overlayRound5ProgressMaxInput = $("overlay-round5-progress-max");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -122,8 +160,13 @@ let activeWorkspace = "dashboard";
 const activeRoundSectionByRound = { manche1: "overview", manche2: "overview", manche3: "overview", manche4: "overview", manche5: "overview", finale: "overview" };
 
 let liveState = null;
-let round1OverlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
-let round3OverlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
+let overlayConfigs = {
+  round1: { ...OVERLAY_DEFAULTS.round1 },
+  round2: { ...OVERLAY_DEFAULTS.round2 },
+  round3: { ...OVERLAY_DEFAULTS.round3 },
+  round4: { ...OVERLAY_DEFAULTS.round4 },
+  round5: { ...OVERLAY_DEFAULTS.round5 },
+};
 let sessionsById = {};
 let participantQuestions = {};
 let viewerQuestions = {};
@@ -382,12 +425,28 @@ buzzMinusBtn.addEventListener("click", async () => {
   showToast("-1 point");
 });
 
-overlayRound1FontSizeInput.addEventListener("change", async () => saveRound1OverlaySettings());
-overlayRound1FontSizeInput.addEventListener("blur", async () => saveRound1OverlaySettings());
-overlayRound1ColorInput.addEventListener("input", async () => saveRound1OverlaySettings());
-overlayRound3FontSizeInput.addEventListener("change", async () => saveRound3OverlaySettings());
-overlayRound3FontSizeInput.addEventListener("blur", async () => saveRound3OverlaySettings());
-overlayRound3ColorInput.addEventListener("input", async () => saveRound3OverlaySettings());
+[
+  overlayRound1FontSizeInput, overlayRound1ColorInput, overlayRound1FontWeightInput, overlayRound1AlignInput, overlayRound1MaxWidthInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round1")));
+[
+  overlayRound2MaxWidthInput, overlayRound2MaxHeightInput, overlayRound2RadiusInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round2")));
+[
+  overlayRound3QuestionSizeInput, overlayRound3ThemeSizeInput, overlayRound3TimerSizeInput,
+  overlayRound3QuestionColorInput, overlayRound3ThemeColorInput, overlayRound3TimerColorInput,
+  overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3")));
+[
+  overlayRound4ClueSizeInput, overlayRound4ClueColorInput, overlayRound4WordSizeInput,
+  overlayRound4CellRadiusInput, overlayRound4MarkerSizeInput, overlayRound4MarkerOpacityInput,
+  overlayRound4GridMaxWidthInput, overlayRound4GridGapInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round4")));
+[
+  overlayRound5PrimarySizeInput, overlayRound5SecondarySizeInput, overlayRound5PrimaryColorInput,
+  overlayRound5SecondaryColorInput, overlayRound5PlayingColorInput, overlayRound5PausedColorInput,
+  overlayRound5StoppedColorInput, overlayRound5ProgressHeightInput, overlayRound5CornerRadiusInput,
+  overlayRound5MaxWidthInput, overlayRound5DecorationOpacityInput, overlayRound5ProgressMaxInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round5")));
 
 m3ThemeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -505,16 +564,25 @@ function initListeners() {
     renderGuestAccounts();
   });
 
-  onValue(ref(db, "rooms/manche1/overlaySettings"), (snap) => {
-    round1OverlaySettings = normalizeOverlaySettings(snap.val() || {}, 72);
-    overlayRound1FontSizeInput.value = String(round1OverlaySettings.questionFontSizePx);
-    overlayRound1ColorInput.value = round1OverlaySettings.questionColor;
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round1`), (snap) => {
+    overlayConfigs.round1 = normalizeOverlayConfig("round1", snap.val() || OVERLAY_DEFAULTS.round1);
+    syncOverlayInputs();
   });
-
-  onValue(ref(db, "rooms/manche3/overlaySettings"), (snap) => {
-    round3OverlaySettings = normalizeOverlaySettings(snap.val() || {}, 72);
-    overlayRound3FontSizeInput.value = String(round3OverlaySettings.questionFontSizePx);
-    overlayRound3ColorInput.value = round3OverlaySettings.questionColor;
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round2`), (snap) => {
+    overlayConfigs.round2 = normalizeOverlayConfig("round2", snap.val() || OVERLAY_DEFAULTS.round2);
+    syncOverlayInputs();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round3`), (snap) => {
+    overlayConfigs.round3 = normalizeOverlayConfig("round3", snap.val() || OVERLAY_DEFAULTS.round3);
+    syncOverlayInputs();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round4`), (snap) => {
+    overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
+    syncOverlayInputs();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round5`), (snap) => {
+    overlayConfigs.round5 = normalizeOverlayConfig("round5", snap.val() || OVERLAY_DEFAULTS.round5);
+    syncOverlayInputs();
   });
 
   onValue(ref(db, "rooms/manche2/questions"), (snap) => { manche2Questions = snap.val() || {}; renderRound2Questions(); });
@@ -1232,51 +1300,125 @@ function startRound3Ticker() {
   }, 250);
 }
 
-function clampOverlayFontSize(value, fallback = 72) {
-  const px = Number(value);
-  if (!Number.isFinite(px)) return fallback;
-  return Math.max(24, Math.min(180, Math.round(px)));
+function syncOverlayInputs() {
+  const r1 = overlayConfigs.round1;
+  if (overlayRound1FontSizeInput) overlayRound1FontSizeInput.value = String(r1.questionFontSizePx);
+  if (overlayRound1ColorInput) overlayRound1ColorInput.value = r1.questionColor;
+  if (overlayRound1FontWeightInput) overlayRound1FontWeightInput.value = String(r1.questionFontWeight);
+  if (overlayRound1AlignInput) overlayRound1AlignInput.value = r1.questionAlign;
+  if (overlayRound1MaxWidthInput) overlayRound1MaxWidthInput.value = String(r1.maxWidthPx);
+
+  const r2 = overlayConfigs.round2;
+  if (overlayRound2MaxWidthInput) overlayRound2MaxWidthInput.value = String(r2.maxWidthPx);
+  if (overlayRound2MaxHeightInput) overlayRound2MaxHeightInput.value = String(r2.maxHeightPx);
+  if (overlayRound2RadiusInput) overlayRound2RadiusInput.value = String(r2.borderRadiusPx);
+
+  const r3 = overlayConfigs.round3;
+  if (overlayRound3QuestionSizeInput) overlayRound3QuestionSizeInput.value = String(r3.questionFontSizePx);
+  if (overlayRound3ThemeSizeInput) overlayRound3ThemeSizeInput.value = String(r3.themeFontSizePx);
+  if (overlayRound3TimerSizeInput) overlayRound3TimerSizeInput.value = String(r3.timerFontSizePx);
+  if (overlayRound3QuestionColorInput) overlayRound3QuestionColorInput.value = r3.questionColor;
+  if (overlayRound3ThemeColorInput) overlayRound3ThemeColorInput.value = r3.themeColor;
+  if (overlayRound3TimerColorInput) overlayRound3TimerColorInput.value = r3.timerColor;
+  if (overlayRound3FontWeightInput) overlayRound3FontWeightInput.value = String(r3.fontWeight);
+  if (overlayRound3AlignInput) overlayRound3AlignInput.value = r3.align;
+  if (overlayRound3GapInput) overlayRound3GapInput.value = String(r3.blockGapPx);
+  if (overlayRound3MaxWidthInput) overlayRound3MaxWidthInput.value = String(r3.maxWidthPx);
+
+  const r4 = overlayConfigs.round4;
+  if (overlayRound4ClueSizeInput) overlayRound4ClueSizeInput.value = String(r4.clueFontSizePx);
+  if (overlayRound4ClueColorInput) overlayRound4ClueColorInput.value = r4.clueColor;
+  if (overlayRound4WordSizeInput) overlayRound4WordSizeInput.value = String(r4.wordFontSizePx);
+  if (overlayRound4CellRadiusInput) overlayRound4CellRadiusInput.value = String(r4.cellRadiusPx);
+  if (overlayRound4MarkerSizeInput) overlayRound4MarkerSizeInput.value = String(r4.markerSizePx);
+  if (overlayRound4MarkerOpacityInput) overlayRound4MarkerOpacityInput.value = String(r4.markerOpacity);
+  if (overlayRound4GridMaxWidthInput) overlayRound4GridMaxWidthInput.value = String(r4.gridMaxWidthPx);
+  if (overlayRound4GridGapInput) overlayRound4GridGapInput.value = String(r4.gridGapPx);
+
+  const r5 = overlayConfigs.round5;
+  if (overlayRound5PrimarySizeInput) overlayRound5PrimarySizeInput.value = String(r5.primaryFontSizePx);
+  if (overlayRound5SecondarySizeInput) overlayRound5SecondarySizeInput.value = String(r5.secondaryFontSizePx);
+  if (overlayRound5PrimaryColorInput) overlayRound5PrimaryColorInput.value = r5.primaryColor;
+  if (overlayRound5SecondaryColorInput) overlayRound5SecondaryColorInput.value = r5.secondaryColor;
+  if (overlayRound5PlayingColorInput) overlayRound5PlayingColorInput.value = r5.playingColor;
+  if (overlayRound5PausedColorInput) overlayRound5PausedColorInput.value = r5.pausedColor;
+  if (overlayRound5StoppedColorInput) overlayRound5StoppedColorInput.value = r5.stoppedColor;
+  if (overlayRound5ProgressHeightInput) overlayRound5ProgressHeightInput.value = String(r5.progressHeightPx);
+  if (overlayRound5CornerRadiusInput) overlayRound5CornerRadiusInput.value = String(r5.cornerRadiusPx);
+  if (overlayRound5MaxWidthInput) overlayRound5MaxWidthInput.value = String(r5.maxWidthPx);
+  if (overlayRound5DecorationOpacityInput) overlayRound5DecorationOpacityInput.value = String(r5.decorationOpacity);
+  if (overlayRound5ProgressMaxInput) overlayRound5ProgressMaxInput.value = String(r5.progressMaxSeconds);
 }
 
-function sanitizeOverlayColor(value, fallback = "#ffffff") {
-  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+function readOverlayConfigInputs(roundKey) {
+  if (roundKey === "round1") {
+    return {
+      questionFontSizePx: overlayRound1FontSizeInput?.value,
+      questionColor: overlayRound1ColorInput?.value,
+      questionFontWeight: overlayRound1FontWeightInput?.value,
+      questionAlign: overlayRound1AlignInput?.value,
+      maxWidthPx: overlayRound1MaxWidthInput?.value,
+    };
+  }
+  if (roundKey === "round2") {
+    return {
+      maxWidthPx: overlayRound2MaxWidthInput?.value,
+      maxHeightPx: overlayRound2MaxHeightInput?.value,
+      borderRadiusPx: overlayRound2RadiusInput?.value,
+    };
+  }
+  if (roundKey === "round3") {
+    return {
+      questionFontSizePx: overlayRound3QuestionSizeInput?.value,
+      themeFontSizePx: overlayRound3ThemeSizeInput?.value,
+      timerFontSizePx: overlayRound3TimerSizeInput?.value,
+      questionColor: overlayRound3QuestionColorInput?.value,
+      themeColor: overlayRound3ThemeColorInput?.value,
+      timerColor: overlayRound3TimerColorInput?.value,
+      fontWeight: overlayRound3FontWeightInput?.value,
+      align: overlayRound3AlignInput?.value,
+      blockGapPx: overlayRound3GapInput?.value,
+      maxWidthPx: overlayRound3MaxWidthInput?.value,
+    };
+  }
+  if (roundKey === "round4") {
+    return {
+      clueFontSizePx: overlayRound4ClueSizeInput?.value,
+      clueColor: overlayRound4ClueColorInput?.value,
+      wordFontSizePx: overlayRound4WordSizeInput?.value,
+      cellRadiusPx: overlayRound4CellRadiusInput?.value,
+      markerSizePx: overlayRound4MarkerSizeInput?.value,
+      markerOpacity: overlayRound4MarkerOpacityInput?.value,
+      gridMaxWidthPx: overlayRound4GridMaxWidthInput?.value,
+      gridGapPx: overlayRound4GridGapInput?.value,
+    };
+  }
+  if (roundKey === "round5") {
+    return {
+      primaryFontSizePx: overlayRound5PrimarySizeInput?.value,
+      secondaryFontSizePx: overlayRound5SecondarySizeInput?.value,
+      primaryColor: overlayRound5PrimaryColorInput?.value,
+      secondaryColor: overlayRound5SecondaryColorInput?.value,
+      playingColor: overlayRound5PlayingColorInput?.value,
+      pausedColor: overlayRound5PausedColorInput?.value,
+      stoppedColor: overlayRound5StoppedColorInput?.value,
+      progressHeightPx: overlayRound5ProgressHeightInput?.value,
+      cornerRadiusPx: overlayRound5CornerRadiusInput?.value,
+      maxWidthPx: overlayRound5MaxWidthInput?.value,
+      decorationOpacity: overlayRound5DecorationOpacityInput?.value,
+      progressMaxSeconds: overlayRound5ProgressMaxInput?.value,
+    };
+  }
+  return {};
 }
 
-function normalizeOverlaySettings(settings, fallbackFontSize = 72) {
-  return {
-    questionFontSizePx: clampOverlayFontSize(settings.questionFontSizePx, fallbackFontSize),
-    questionColor: sanitizeOverlayColor(settings.questionColor, "#ffffff"),
-  };
-}
-
-async function saveRound1OverlaySettings() {
-  const nextSettings = normalizeOverlaySettings({
-    questionFontSizePx: overlayRound1FontSizeInput.value,
-    questionColor: overlayRound1ColorInput.value,
-  }, round1OverlaySettings.questionFontSizePx || 72);
-  overlayRound1FontSizeInput.value = String(nextSettings.questionFontSizePx);
-  overlayRound1ColorInput.value = nextSettings.questionColor;
-  if (
-    round1OverlaySettings.questionFontSizePx === nextSettings.questionFontSizePx
-    && round1OverlaySettings.questionColor === nextSettings.questionColor
-  ) return;
-  round1OverlaySettings = nextSettings;
-  await update(ref(db, "rooms/manche1/overlaySettings"), { ...nextSettings, updatedAt: Date.now() });
-}
-
-async function saveRound3OverlaySettings() {
-  const nextSettings = normalizeOverlaySettings({
-    questionFontSizePx: overlayRound3FontSizeInput.value,
-    questionColor: overlayRound3ColorInput.value,
-  }, round3OverlaySettings.questionFontSizePx || 72);
-  overlayRound3FontSizeInput.value = String(nextSettings.questionFontSizePx);
-  overlayRound3ColorInput.value = nextSettings.questionColor;
-  if (
-    round3OverlaySettings.questionFontSizePx === nextSettings.questionFontSizePx
-    && round3OverlaySettings.questionColor === nextSettings.questionColor
-  ) return;
-  round3OverlaySettings = nextSettings;
-  await update(ref(db, "rooms/manche3/overlaySettings"), { ...nextSettings, updatedAt: Date.now() });
+async function saveOverlayConfig(roundKey) {
+  const next = normalizeOverlayConfig(roundKey, readOverlayConfigInputs(roundKey));
+  const prev = overlayConfigs[roundKey] || {};
+  if (JSON.stringify(prev) === JSON.stringify(next)) return;
+  overlayConfigs[roundKey] = next;
+  syncOverlayInputs();
+  await update(ref(db, `${OVERLAY_CONFIGS_PATH}/${roundKey}`), { ...next, updatedAt: Date.now(), updatedBy: currentAdminId || "admin" });
 }
 
 async function restoreSession() {
