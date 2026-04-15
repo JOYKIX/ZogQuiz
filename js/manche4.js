@@ -1,4 +1,5 @@
 import { db, ref, get, set, update, remove, onValue } from "./firebase.js";
+import { showConfirm } from "./modal.js";
 
 const M4_STATE_PATH = "rooms/manche4/state";
 const M4_GRIDS_PATH = "rooms/manche4/grids";
@@ -271,7 +272,7 @@ export function initManche4Admin(options) {
       deleteBtn.className = "btn btn-danger";
       deleteBtn.textContent = "Supprimer";
       deleteBtn.addEventListener("click", async () => {
-        if (!window.confirm("Supprimer cette grille ?")) return;
+        if (!(await showConfirm("Supprimer cette grille ?", { title: "Suppression de grille" }))) return;
         await remove(ref(db, `${M4_GRIDS_PATH}/${grid.id}`));
         if (manche4State.currentGridId === grid.id) {
           await update(ref(db, M4_STATE_PATH), { currentGridId: null, updatedAt: Date.now(), updatedBy: getCurrentAdminId() || "admin" });
@@ -395,7 +396,7 @@ export function initManche4Admin(options) {
   });
 
   els.resetRoundBtn?.addEventListener("click", async () => {
-    if (!window.confirm("Réinitialiser complètement la manche 4 ?")) return;
+    if (!(await showConfirm("Réinitialiser complètement la manche 4 ?", { title: "Reset manche 4" }))) return;
     await set(ref(db, M4_STATE_PATH), { ...manche4State, updatedAt: Date.now(), updatedBy: getCurrentAdminId() || "admin" });
     showToast("Manche 4 réinitialisée");
   });
