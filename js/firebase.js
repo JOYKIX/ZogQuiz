@@ -134,34 +134,6 @@ export async function ensureRoundsSeed(uid) {
     });
   }
 
-  const blindtestTracksRef = ref(db, "blindtest/tracks");
-  if (!(await get(blindtestTracksRef)).exists()) {
-    await set(blindtestTracksRef, {
-      "1": {
-        title: "Naruto Opening 6",
-        youtubeUrl: "https://www.youtube.com/watch?v=SavhHnWla6c",
-        answer: "Naruto",
-        aliases: ["naruto shippuden"],
-        active: true,
-        order: 1,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        updatedBy: uid,
-      },
-      "2": {
-        title: "Attack on Titan Opening 1",
-        youtubeUrl: "https://www.youtube.com/watch?v=LKP-vZvjbh8",
-        answer: "Attack on Titan",
-        aliases: ["snk"],
-        active: true,
-        order: 2,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        updatedBy: uid,
-      },
-    });
-  }
-
   const blindtestLiveRef = ref(db, "blindtestLive");
   if (!(await get(blindtestLiveRef)).exists()) {
     await set(blindtestLiveRef, {

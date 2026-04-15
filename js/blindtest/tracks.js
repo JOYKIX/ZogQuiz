@@ -1,4 +1,4 @@
-import { db, ref, get, set, update, onValue } from "../firebase.js";
+import { db, ref, get, update, remove, onValue } from "../firebase.js";
 import { validateYoutubeUrl } from "./youtube.js";
 
 export const BLINDTEST_TRACKS_PATH = "blindtest/tracks";
@@ -6,9 +6,20 @@ export const BLINDTEST_TRACKS_PATH = "blindtest/tracks";
 function normalizeAliases(value) {
   if (Array.isArray(value)) return value.map((v) => String(v || "").trim()).filter(Boolean);
   if (typeof value === "string") {
-    return value.split(",").map((v) => v.trim()).filter(Boolean);
+    return value
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
   }
   return [];
+}
+
+function normalizeOrder(id, rawOrder) {
+  const numericOrder = Number(rawOrder);
+  if (Number.isFinite(numericOrder)) return numericOrder;
+  const numericId = Number(id);
+  if (Number.isFinite(numericId)) return numericId;
+  return Date.now();
 }
 
 export function normalizeTrack(id, raw = {}) {
@@ -24,7 +35,7 @@ export function normalizeTrack(id, raw = {}) {
     answer: String(raw.answer || "").trim(),
     aliases: normalizeAliases(raw.aliases),
     active: raw.active !== false,
-    order: Number.isFinite(Number(raw.order)) ? Number(raw.order) : Number(id) || 0,
+    order: normalizeOrder(id, raw.order),
     createdAt: Number(raw.createdAt || 0),
     updatedAt: Number(raw.updatedAt || 0),
     isValid: Boolean(title && validation.valid),
@@ -43,37 +54,6 @@ export function activeTracks(tracks) {
   return sortTracks(tracks).filter((track) => track.active && track.isValid);
 }
 
-export async function ensureBlindtestTracksSeed(uid) {
-  const tracksRef = ref(db, BLINDTEST_TRACKS_PATH);
-  const snap = await get(tracksRef);
-  if (snap.exists()) return;
-
-  await set(tracksRef, {
-    "1": {
-      title: "Naruto Opening 6",
-      youtubeUrl: "https://www.youtube.com/watch?v=SavhHnWla6c",
-      answer: "Naruto",
-      aliases: ["naruto shippuden"],
-      active: true,
-      order: 1,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      updatedBy: uid,
-    },
-    "2": {
-      title: "Attack on Titan Opening 1",
-      youtubeUrl: "https://www.youtube.com/watch?v=LKP-vZvjbh8",
-      answer: "Attack on Titan",
-      aliases: ["snk"],
-      active: true,
-      order: 2,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      updatedBy: uid,
-    },
-  });
-}
-
 export function watchBlindtestTracks(callback) {
   return onValue(ref(db, BLINDTEST_TRACKS_PATH), (snap) => {
     const raw = snap.val() || {};
@@ -82,22 +62,53 @@ export function watchBlindtestTracks(callback) {
   });
 }
 
-export async function upsertBlindtestTrack(id, payload, adminId) {
+function buildTrackUpdatePayload(trackId, payload, adminId) {
   const now = Date.now();
-  const key = String(id || "").trim() || String(now);
-  const normalized = normalizeTrack(key, payload);
+  const normalized = normalizeTrack(trackId, payload);
   if (!normalized.title) throw new Error("Le titre de piste est obligatoire.");
   if (!normalized.videoId) throw new Error(normalized.validationError || "URL YouTube invalide.");
 
-  await update(ref(db, `${BLINDTEST_TRACKS_PATH}/${key}`), {
+  return {
     title: normalized.title,
     youtubeUrl: normalized.youtubeUrl,
     answer: normalized.answer,
     aliases: normalized.aliases,
     active: normalized.active,
-    order: normalized.order || Number(key) || now,
+    order: normalized.order,
+    createdAt: Number(payload.createdAt || now),
     updatedAt: now,
     updatedBy: adminId || "admin",
-    createdAt: payload.createdAt || now,
-  });
+  };
+}
+
+export async function createBlindtestTrack(payload, adminId) {
+  const now = Date.now();
+  const key = String(now);
+  const updatePayload = buildTrackUpdatePayload(key, { ...payload, createdAt: now, order: payload.order ?? now }, adminId);
+  await update(ref(db, `${BLINDTEST_TRACKS_PATH}/${key}`), updatePayload);
+  return key;
+}
+
+export async function updateBlindtestTrack(trackId, payload, adminId) {
+  const id = String(trackId || "").trim();
+  if (!id) throw new Error("ID de piste invalide.");
+
+  const currentSnap = await get(ref(db, `${BLINDTEST_TRACKS_PATH}/${id}`));
+  if (!currentSnap.exists()) throw new Error("Piste introuvable.");
+
+  const current = currentSnap.val() || {};
+  const merged = {
+    ...current,
+    ...payload,
+    createdAt: Number(current.createdAt || payload.createdAt || Date.now()),
+    order: payload.order ?? current.order,
+  };
+  const updatePayload = buildTrackUpdatePayload(id, merged, adminId);
+  await update(ref(db, `${BLINDTEST_TRACKS_PATH}/${id}`), updatePayload);
+}
+
+export async function removeBlindtestTrack(trackId) {
+  const id = String(trackId || "").trim();
+  if (!id) throw new Error("ID de piste invalide.");
+  await remove(ref(db, `${BLINDTEST_TRACKS_PATH}/${id}`));
 }
