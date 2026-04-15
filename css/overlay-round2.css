@@ -1,29 +1,20 @@
 .overlay-round2 {
-  width: 100vw;
-  place-items: center;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.overlay-round2 .overlay-card {
-  width: 100vw;
-  height: 100vh;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-#m2-overlay-image {
-  width: 100vw;
-  height: 100vh;
+.m2-overlay-image {
+  width: auto;
+  height: auto;
+  max-width: 90vw;
+  max-height: 90vh;
   object-fit: contain;
 }
 
-#m2-overlay-empty {
+.m2-overlay-empty {
   margin: 0;
-  text-align: center;
-  font-size: clamp(1rem, 2vw, 2rem);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-weight: 800;
+  font-weight: 700;
 }

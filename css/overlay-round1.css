@@ -1,16 +1,12 @@
 .overlay-round1 {
-  place-items: center;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.overlay-round1 .overlay-card {
-  width: min(96vw, 1750px);
-}
-
-#m1-question {
-  color: var(--overlay-text);
-}
-
-#m1-answer {
-  margin-top: 0.65rem;
+.m1-question {
+  margin: 0;
+  line-height: 1.08;
+  text-wrap: balance;
+  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
 }

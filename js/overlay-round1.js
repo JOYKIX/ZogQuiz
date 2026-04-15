@@ -1,41 +1,36 @@
 import { db, ref, onValue } from "./firebase.js";
-import { createBuzzSoundTrigger } from "./audio.js";
+import { watchOverlayConfig } from "./overlay-config.js";
 
 const questionNode = document.getElementById("m1-question");
-const answerNode = document.getElementById("m1-answer");
 
 let state = null;
 let participantsQuestions = {};
 let viewersQuestions = {};
-let overlaySettings = { questionFontSizePx: 72, questionColor: "#ffffff" };
+let overlayConfig = null;
 
-const triggerBuzzSound = createBuzzSoundTrigger();
-
-function applyOverlayStyle() {
-  questionNode.style.fontSize = `${overlaySettings.questionFontSizePx}px`;
-  questionNode.style.color = overlaySettings.questionColor;
+function applyOverlayConfig() {
+  if (!overlayConfig) return;
+  questionNode.style.fontSize = `${overlayConfig.questionFontSizePx}px`;
+  questionNode.style.color = overlayConfig.questionColor;
+  questionNode.style.fontWeight = String(overlayConfig.questionFontWeight);
+  questionNode.style.textAlign = overlayConfig.questionAlign;
+  questionNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
 }
 
 function render() {
-  applyOverlayStyle();
-
+  applyOverlayConfig();
   if (!state?.currentQuestionId) {
     questionNode.textContent = "Aucune question sélectionnée.";
-    answerNode.classList.add("hidden");
     return;
   }
 
   const source = state.currentType === "viewers" ? viewersQuestions : participantsQuestions;
   const question = source[state.currentQuestionId];
-
   questionNode.textContent = question?.text || "Question introuvable.";
-  answerNode.textContent = `Réponse : ${question?.answer || "—"}`;
-  answerNode.classList.toggle("hidden", !state.showAnswer);
 }
 
 onValue(ref(db, "rooms/manche1/state"), (snap) => {
   state = snap.val() || null;
-  triggerBuzzSound(state);
   render();
 });
 
@@ -49,13 +44,7 @@ onValue(ref(db, "rooms/manche1/questions/viewers"), (snap) => {
   render();
 });
 
-onValue(ref(db, "rooms/manche1/overlaySettings"), (snap) => {
-  const settings = snap.val() || {};
-  overlaySettings = {
-    questionFontSizePx: Math.max(24, Math.min(180, Number(settings.questionFontSizePx || 72))),
-    questionColor: typeof settings.questionColor === "string" && /^#[0-9a-fA-F]{6}$/.test(settings.questionColor)
-      ? settings.questionColor
-      : "#ffffff",
-  };
+watchOverlayConfig("round1", (config) => {
+  overlayConfig = config;
   render();
 });

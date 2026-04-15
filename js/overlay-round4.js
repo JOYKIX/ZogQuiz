@@ -1,73 +1,101 @@
 import { db, ref, onValue } from "./firebase.js";
+import { watchOverlayConfig } from "./overlay-config.js";
 
-const gridTitleNode = document.getElementById("m4-overlay-grid-title");
-const statusNode = document.getElementById("m4-overlay-status");
 const clueNode = document.getElementById("m4-overlay-clue");
-const phaseNode = document.getElementById("m4-overlay-phase");
-const progressList = document.getElementById("m4-overlay-progress");
+const gridNode = document.getElementById("m4-overlay-grid");
+const legendNode = document.getElementById("m4-overlay-legend");
 
 let state = {};
 let gridsById = {};
 let sessionsById = {};
+let overlayConfig = null;
 
-function normalizeProgress(progress) {
-  return {
-    foundGoodWords: progress?.foundGoodWords || {},
-    blackWordPenalty: Boolean(progress?.blackWordPenalty || progress?.hitBlackWord),
-    finalRound4Score: Number.isFinite(Number(progress?.finalRound4Score)) ? Number(progress.finalRound4Score) : null,
-  };
+function colorForIndex(index) {
+  const hue = (index * 67) % 360;
+  return `hsl(${hue}deg 82% 62%)`;
 }
 
-function computeScore(progress) {
-  if (Number.isFinite(progress.finalRound4Score)) return progress.finalRound4Score;
-  const phasePoints = { 1: 3, 2: 2, 3: 1 };
-  const raw = Object.values(progress.foundGoodWords).reduce((sum, phase) => sum + (phasePoints[phase] || 0), 0);
-  return progress.blackWordPenalty ? Math.floor(raw / 2) : raw;
+function buildSelectionsByWord() {
+  const byWord = {};
+  Object.entries(state.playerProgress || {}).forEach(([sessionId, progress]) => {
+    const selected = Array.isArray(progress?.selectedWords) ? progress.selectedWords : [];
+    selected.forEach((wordId) => {
+      if (!byWord[wordId]) byWord[wordId] = [];
+      byWord[wordId].push(sessionId);
+    });
+  });
+  return byWord;
 }
 
-function playerLabel(sessionId) {
+function playerName(sessionId) {
   return sessionsById[sessionId]?.nickname || sessionsById[sessionId]?.loginId || sessionId;
 }
 
-function renderProgress() {
-  const entries = Object.entries(state.playerProgress || {}).map(([sessionId, raw]) => {
-    const progress = normalizeProgress(raw);
-    const found = Object.keys(progress.foundGoodWords || {}).length;
-    const score = computeScore(progress);
-    return { sessionId, found, score, black: progress.blackWordPenalty };
-  });
-
-  entries.sort((a, b) => b.score - a.score || b.found - a.found || playerLabel(a.sessionId).localeCompare(playerLabel(b.sessionId), "fr"));
-
-  progressList.innerHTML = "";
-  if (!entries.length) {
-    progressList.innerHTML = "<li>Aucun joueur n'a encore validé de mot.</li>";
-    return;
-  }
-
-  entries.forEach((entry) => {
+function renderLegend(players) {
+  legendNode.innerHTML = "";
+  players.forEach((sessionId, index) => {
     const li = document.createElement("li");
-    const penalty = entry.black ? " · mot noir" : "";
-    li.className = "m4-overlay-progress";
-    li.innerHTML = `<strong>${playerLabel(entry.sessionId)}</strong><span>${entry.found}/5 mots · ${entry.score} pts${penalty}</span>`;
-    progressList.appendChild(li);
+    const marker = document.createElement("span");
+    marker.className = "m4-marker";
+    marker.style.width = `${overlayConfig.markerSizePx}px`;
+    marker.style.height = `${overlayConfig.markerSizePx}px`;
+    marker.style.opacity = String(overlayConfig.markerOpacity);
+    marker.style.backgroundColor = colorForIndex(index);
+
+    const name = document.createElement("span");
+    name.textContent = playerName(sessionId);
+
+    li.append(marker, name);
+    legendNode.appendChild(li);
   });
 }
 
 function render() {
   const activeGrid = gridsById[state.currentGridId] || null;
-  const phase = Math.min(3, Math.max(1, Number(state.cluePhase || 1)));
-  const status = state.finished
-    ? "Manche terminée"
-    : state.active
-      ? "Manche en cours"
-      : "En attente du lancement";
-
-  gridTitleNode.textContent = activeGrid?.title || "Aucune grille active";
-  statusNode.textContent = status;
   clueNode.textContent = `Indice : ${state.currentClue || "—"}`;
-  phaseNode.textContent = `Phase : ${phase}/3`;
-  renderProgress();
+  clueNode.style.fontSize = `${overlayConfig?.clueFontSizePx || 40}px`;
+  clueNode.style.color = overlayConfig?.clueColor || "#ffffff";
+
+  gridNode.innerHTML = "";
+  if (!activeGrid || !overlayConfig) return;
+
+  const players = Object.keys(state.playerProgress || {}).sort((a, b) => playerName(a).localeCompare(playerName(b), "fr"));
+  const playersIndex = Object.fromEntries(players.map((id, idx) => [id, idx]));
+  const selectionsByWord = buildSelectionsByWord();
+
+  gridNode.style.maxWidth = `${overlayConfig.gridMaxWidthPx}px`;
+  gridNode.style.gap = `${overlayConfig.gridGapPx}px`;
+
+  activeGrid.words.forEach((word) => {
+    const cell = document.createElement("article");
+    cell.className = "m4-cell";
+    cell.style.borderRadius = `${overlayConfig.cellRadiusPx}px`;
+
+    const text = document.createElement("span");
+    text.className = "m4-cell-word";
+    text.style.fontSize = `${overlayConfig.wordFontSizePx}px`;
+    text.textContent = word.text;
+
+    const markers = document.createElement("div");
+    markers.className = "m4-cell-markers";
+
+    const selectors = selectionsByWord[word.id] || [];
+    selectors.forEach((sessionId) => {
+      const marker = document.createElement("span");
+      marker.className = "m4-marker";
+      marker.title = playerName(sessionId);
+      marker.style.width = `${overlayConfig.markerSizePx}px`;
+      marker.style.height = `${overlayConfig.markerSizePx}px`;
+      marker.style.opacity = String(overlayConfig.markerOpacity);
+      marker.style.backgroundColor = colorForIndex(playersIndex[sessionId] || 0);
+      markers.appendChild(marker);
+    });
+
+    cell.append(text, markers);
+    gridNode.appendChild(cell);
+  });
+
+  renderLegend(players);
 }
 
 onValue(ref(db, "rooms/manche4/state"), (snap) => {
@@ -82,5 +110,10 @@ onValue(ref(db, "rooms/manche4/grids"), (snap) => {
 
 onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
   sessionsById = snap.val() || {};
+  render();
+});
+
+watchOverlayConfig("round4", (config) => {
+  overlayConfig = config;
   render();
 });

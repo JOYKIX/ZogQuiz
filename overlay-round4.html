@@ -8,25 +8,10 @@
     <link rel="stylesheet" href="css/overlay-round4.css" />
   </head>
   <body class="overlay-page">
-    <main class="overlay-root overlay-round4">
-      <section class="overlay-card overlay-panel m4-overlay-header">
-        <div>
-          <p class="overlay-meta">Manche 4 · Codenames</p>
-          <h1 id="m4-overlay-grid-title" class="overlay-title">Aucune grille active</h1>
-        </div>
-        <p id="m4-overlay-status" class="m4-overlay-status">En attente du lancement.</p>
-      </section>
-
-      <section class="m4-overlay-grid" aria-live="polite">
-        <article class="overlay-card overlay-panel">
-          <p id="m4-overlay-clue" class="overlay-subtitle">Indice : —</p>
-          <p id="m4-overlay-phase" class="overlay-subtitle">Phase : 1/3</p>
-        </article>
-        <article class="overlay-card overlay-panel">
-          <h2 class="overlay-subtitle">Progression joueurs</h2>
-          <ul id="m4-overlay-progress" class="overlay-list"></ul>
-        </article>
-      </section>
+    <main class="overlay-root overlay-round4" aria-live="polite">
+      <p id="m4-overlay-clue" class="m4-clue">Indice : —</p>
+      <section id="m4-overlay-grid" class="m4-grid" aria-label="Grille manche 4"></section>
+      <ul id="m4-overlay-legend" class="m4-legend"></ul>
     </main>
     <script type="module" src="js/overlay-round4.js"></script>
   </body>

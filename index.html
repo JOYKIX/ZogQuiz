@@ -256,10 +256,19 @@
                 <article class="subpanel stack compact-panel">
                   <h3>Overlay manche 1</h3>
                   <label>Taille du texte (px)
-                    <input id="overlay-round1-font-size" type="number" min="24" max="180" step="1" value="72" />
+                    <input id="overlay-round1-font-size" type="number" min="24" max="200" step="1" value="72" />
                   </label>
                   <label>Couleur du texte
                     <input id="overlay-round1-text-color" type="color" value="#ffffff" />
+                  </label>
+                  <label>Graisse
+                    <input id="overlay-round1-font-weight" type="number" min="300" max="900" step="100" value="800" />
+                  </label>
+                  <label>Alignement
+                    <select id="overlay-round1-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select>
+                  </label>
+                  <label>Largeur max (px)
+                    <input id="overlay-round1-max-width" type="number" min="400" max="2200" step="10" value="1600" />
                   </label>
                   <div class="row">
                     <a class="btn btn-secondary" href="overlay-round1.html" target="_blank" rel="noopener">Ouvrir overlay manche 1</a>
@@ -317,8 +326,17 @@
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:live">
-                <article class="subpanel compact-panel">
-                  <h3>En direct</h3>
+                <article class="subpanel compact-panel stack">
+                  <h3>Overlay manche 2</h3>
+                  <label>Largeur max image (px)
+                    <input id="overlay-round2-max-width" type="number" min="200" max="2400" step="10" value="1400" />
+                  </label>
+                  <label>Hauteur max image (px)
+                    <input id="overlay-round2-max-height" type="number" min="200" max="1400" step="10" value="820" />
+                  </label>
+                  <label>Arrondi image (px)
+                    <input id="overlay-round2-radius" type="number" min="0" max="120" step="1" value="0" />
+                  </label>
                   <div class="row">
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                     <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Ouvrir overlay manche 2</a>
@@ -400,12 +418,16 @@
                   </div>
                   <div class="stack overlay-settings-block">
                     <h4>Personnalisation</h4>
-                    <label>Taille du texte (px)
-                      <input id="overlay-round3-font-size" type="number" min="24" max="180" step="1" value="72" />
-                    </label>
-                    <label>Couleur du texte
-                      <input id="overlay-round3-text-color" type="color" value="#ffffff" />
-                    </label>
+                    <label>Taille question (px)<input id="overlay-round3-question-size" type="number" min="20" max="200" value="74" /></label>
+                    <label>Taille thème (px)<input id="overlay-round3-theme-size" type="number" min="14" max="120" value="34" /></label>
+                    <label>Taille chrono (px)<input id="overlay-round3-timer-size" type="number" min="20" max="220" value="72" /></label>
+                    <label>Couleur question<input id="overlay-round3-question-color" type="color" value="#ffffff" /></label>
+                    <label>Couleur thème<input id="overlay-round3-theme-color" type="color" value="#cfe6ff" /></label>
+                    <label>Couleur chrono<input id="overlay-round3-timer-color" type="color" value="#8cf5dc" /></label>
+                    <label>Poids texte<input id="overlay-round3-font-weight" type="number" min="300" max="900" step="100" value="800" /></label>
+                    <label>Alignement<select id="overlay-round3-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select></label>
+                    <label>Espacement blocs (px)<input id="overlay-round3-gap" type="number" min="0" max="120" value="14" /></label>
+                    <label>Largeur max (px)<input id="overlay-round3-max-width" type="number" min="400" max="2200" value="1600" /></label>
                   </div>
                 </article>
               </section>
@@ -485,6 +507,14 @@
                     <a class="btn btn-secondary" href="overlay-round4.html" target="_blank" rel="noopener">Ouvrir overlay manche 4</a>
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                   </div>
+                  <label>Taille texte indice (px)<input id="overlay-round4-clue-size" type="number" min="16" max="140" value="40" /></label>
+                  <label>Couleur indice<input id="overlay-round4-clue-color" type="color" value="#ffffff" /></label>
+                  <label>Taille mots grille (px)<input id="overlay-round4-word-size" type="number" min="12" max="92" value="28" /></label>
+                  <label>Arrondi cases (px)<input id="overlay-round4-cell-radius" type="number" min="0" max="60" value="14" /></label>
+                  <label>Taille marqueurs (px)<input id="overlay-round4-marker-size" type="number" min="8" max="42" value="18" /></label>
+                  <label>Opacité marqueurs (0-1)<input id="overlay-round4-marker-opacity" type="number" min="0.1" max="1" step="0.05" value="0.95" /></label>
+                  <label>Taille max grille (px)<input id="overlay-round4-grid-max-width" type="number" min="500" max="2200" value="1500" /></label>
+                  <label>Espacement grille (px)<input id="overlay-round4-grid-gap" type="number" min="0" max="40" value="10" /></label>
                   <ul id="m4-progress-list" class="leaderboard"></ul>
                 </article>
               </section>
@@ -564,11 +594,23 @@
               <section class="round-section hidden" data-round-section-panel="manche5:overlay">
                 <article class="subpanel compact-panel stack">
                   <h3>Overlay manche 5</h3>
-                  <p class="muted">Affichage stream sans spoiler (piste, statut, temps).</p>
+                  <p class="muted">Affichage stream sans spoiler (état, statut lecture, piste, progression).</p>
                   <div class="row">
                     <a class="btn btn-secondary" href="overlay-round5.html" target="_blank" rel="noopener">Ouvrir overlay manche 5</a>
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                   </div>
+                  <label>Taille texte principal (px)<input id="overlay-round5-primary-size" type="number" min="18" max="140" value="52" /></label>
+                  <label>Taille texte secondaire (px)<input id="overlay-round5-secondary-size" type="number" min="12" max="96" value="30" /></label>
+                  <label>Couleur texte principal<input id="overlay-round5-primary-color" type="color" value="#ffffff" /></label>
+                  <label>Couleur texte secondaire<input id="overlay-round5-secondary-color" type="color" value="#b5cef0" /></label>
+                  <label>Couleur lecture<input id="overlay-round5-playing-color" type="color" value="#57e389" /></label>
+                  <label>Couleur pause<input id="overlay-round5-paused-color" type="color" value="#ffd166" /></label>
+                  <label>Couleur arrêt<input id="overlay-round5-stopped-color" type="color" value="#ff6b6b" /></label>
+                  <label>Hauteur barre progression (px)<input id="overlay-round5-progress-height" type="number" min="2" max="40" value="10" /></label>
+                  <label>Arrondi éléments (px)<input id="overlay-round5-corner-radius" type="number" min="0" max="40" value="12" /></label>
+                  <label>Largeur max (px)<input id="overlay-round5-max-width" type="number" min="300" max="2200" value="1000" /></label>
+                  <label>Opacité décorative (0-1)<input id="overlay-round5-decoration-opacity" type="number" min="0" max="1" step="0.05" value="0.2" /></label>
+                  <label>Durée de référence progression (s)<input id="overlay-round5-progress-max" type="number" min="30" max="600" value="180" /></label>
                 </article>
               </section>
             </section>
