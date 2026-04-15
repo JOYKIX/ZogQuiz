@@ -17,18 +17,34 @@ export const manche4State = {
 };
 
 export function computeManche4Score(progress) {
-  let score = 0;
-  Object.values(progress?.foundGoodWords || {}).forEach((phase) => {
-    if (phase === 1) score += 3;
-    if (phase === 2) score += 2;
-    if (phase === 3) score += 1;
-  });
-  if (progress?.hitBlackWord) score = Math.floor(score / 2);
-  return score;
+  return computeRound4Scores(progress).finalRound4Score;
 }
 
 function defaultProgress() {
-  return { selectedWords: [], foundGoodWords: {}, hitBlackWord: false };
+  return {
+    selectedWords: [],
+    foundWords: [],
+    foundGoodWords: {},
+    lockedForCurrentClue: false,
+    lockedCluePhase: null,
+    hitBlackWord: false,
+    blackWordPenalty: false,
+    rawRound4Score: 0,
+    finalRound4Score: 0,
+  };
+}
+
+function computeRound4Scores(progress) {
+  const phaseToPoints = { 1: 3, 2: 2, 3: 1 };
+  const computedRaw = Object.values(progress?.foundGoodWords || {}).reduce((sum, phase) => {
+    return sum + (phaseToPoints[phase] || 0);
+  }, 0);
+  const rawRound4Score = Number.isFinite(progress?.rawRound4Score)
+    ? Number(progress.rawRound4Score)
+    : computedRaw;
+  const hasBlackWordPenalty = Boolean(progress?.blackWordPenalty || progress?.hitBlackWord);
+  const finalRound4Score = hasBlackWordPenalty ? Math.floor(rawRound4Score / 2) : rawRound4Score;
+  return { rawRound4Score, finalRound4Score };
 }
 
 function normalizeGrid(raw) {
@@ -363,7 +379,13 @@ export function initManche4Admin(options) {
 
   els.nextClueBtn?.addEventListener("click", async () => {
     const phase = Math.min(3, Number(manche4State.cluePhase || 1) + 1);
-    await pushState({ cluePhase: phase, currentClue: els.clueInput.value.trim() });
+    const playerProgress = Object.fromEntries(
+      Object.entries(manche4State.playerProgress || {}).map(([sessionId, progress]) => ([
+        sessionId,
+        { ...defaultProgress(), ...progress, lockedForCurrentClue: false, lockedCluePhase: null },
+      ]))
+    );
+    await pushState({ cluePhase: phase, currentClue: els.clueInput.value.trim(), playerProgress });
   });
 
   els.finishBtn?.addEventListener("click", async () => {
@@ -440,19 +462,42 @@ export function initManche4Guest(options) {
     const grid = getCurrentGrid();
     if (!grid) return;
 
-    const progress = { ...(manche4State.playerProgress[sessionId] || defaultProgress()) };
+    const progress = { ...defaultProgress(), ...(manche4State.playerProgress[sessionId] || {}) };
+    if (progress.lockedForCurrentClue && Number(progress.lockedCluePhase) === Number(manche4State.cluePhase)) return;
+
+    if (progress.lockedForCurrentClue && Number(progress.lockedCluePhase) !== Number(manche4State.cluePhase)) {
+      progress.lockedForCurrentClue = false;
+      progress.lockedCluePhase = null;
+    }
+
     const selectedWords = new Set(progress.selectedWords || []);
+    if (selectedWords.has(wordId)) return;
     selectedWords.add(wordId);
 
     const word = grid.words.find((item) => item.id === wordId);
+    let shouldLockForCurrentClue = false;
     if (word?.role === "good" && !progress.foundGoodWords?.[wordId]) {
       progress.foundGoodWords = { ...(progress.foundGoodWords || {}), [wordId]: manche4State.cluePhase };
-    }
-    if (word?.role === "black") {
+      const foundWords = new Set(progress.foundWords || []);
+      foundWords.add(wordId);
+      progress.foundWords = Array.from(foundWords);
+    } else if (word?.role === "black") {
+      progress.blackWordPenalty = true;
       progress.hitBlackWord = true;
+      shouldLockForCurrentClue = true;
+    } else {
+      shouldLockForCurrentClue = true;
+    }
+
+    if (shouldLockForCurrentClue) {
+      progress.lockedForCurrentClue = true;
+      progress.lockedCluePhase = Number(manche4State.cluePhase);
     }
 
     progress.selectedWords = Array.from(selectedWords);
+    const { rawRound4Score, finalRound4Score } = computeRound4Scores(progress);
+    progress.rawRound4Score = rawRound4Score;
+    progress.finalRound4Score = finalRound4Score;
     await update(ref(db, `${M4_STATE_PATH}/playerProgress/${sessionId}`), progress);
   }
 
@@ -465,7 +510,9 @@ export function initManche4Guest(options) {
     }
 
     const sessionId = getCurrentSession?.();
-    const progress = manche4State.playerProgress[sessionId] || defaultProgress();
+    const progress = { ...defaultProgress(), ...(manche4State.playerProgress[sessionId] || {}) };
+    const isLockedForCurrentClue = Boolean(progress.lockedForCurrentClue)
+      && Number(progress.lockedCluePhase) === Number(manche4State.cluePhase);
     const selected = new Set(progress.selectedWords || []);
 
     grid.words.forEach((word) => {
@@ -474,7 +521,7 @@ export function initManche4Guest(options) {
       btn.className = "m4-word";
       if (selected.has(word.id)) btn.classList.add("is-selected");
       btn.textContent = word.text;
-      btn.disabled = !manche4State.active || manche4State.finished || !canPlay();
+      btn.disabled = !manche4State.active || manche4State.finished || !canPlay() || isLockedForCurrentClue;
       btn.addEventListener("click", async () => selectWord(word.id));
       gridRoot.appendChild(btn);
     });
@@ -492,8 +539,14 @@ export function initManche4Guest(options) {
     } else if (!playable) {
       status.textContent = "Vous n'êtes pas autorisé pour cette manche.";
     } else {
-      const mine = manche4State.playerProgress[getCurrentSession?.()] || defaultProgress();
-      status.textContent = `À vous de jouer · ${Object.keys(mine.foundGoodWords || {}).length}/5 mots trouvés.`;
+      const mine = { ...defaultProgress(), ...(manche4State.playerProgress[getCurrentSession?.()] || {}) };
+      const isLockedForCurrentClue = Boolean(mine.lockedForCurrentClue)
+        && Number(mine.lockedCluePhase) === Number(manche4State.cluePhase);
+      if (isLockedForCurrentClue) {
+        status.textContent = "Erreur sur cet indice : vous êtes bloqué jusqu'au prochain indice.";
+      } else {
+        status.textContent = `À vous de jouer · ${Object.keys(mine.foundGoodWords || {}).length}/5 mots trouvés.`;
+      }
     }
   }
 
