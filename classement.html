@@ -7,19 +7,23 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <main class="app-shell">
+    <main class="app-shell guest-shell">
       <header class="hero card">
-        <h1>Scoreboard</h1>
+        <p class="eyebrow">Live ranking</p>
+        <h1>Scoreboard Studio</h1>
+        <p class="muted">Classement en direct des participants et viewers, prêt pour l'affichage stream.</p>
       </header>
 
-      <section class="card">
-        <h2>Participants</h2>
-        <ul id="participants-leaderboard" class="leaderboard"></ul>
-      </section>
+      <section class="scoreboard-grid">
+        <article class="card panel scoreboard-card">
+          <h2>Participants</h2>
+          <ul id="participants-leaderboard" class="leaderboard"></ul>
+        </article>
 
-      <section class="card">
-        <h2>Viewers</h2>
-        <ul id="viewers-leaderboard" class="leaderboard"></ul>
+        <article class="card panel scoreboard-card">
+          <h2>Viewers</h2>
+          <ul id="viewers-leaderboard" class="leaderboard"></ul>
+        </article>
       </section>
     </main>
 

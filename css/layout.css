@@ -1,5 +1,5 @@
 .app-shell {
-  width: min(1640px, 97vw);
+  width: min(1700px, 97vw);
   margin: 0 auto;
   padding: var(--space-4);
   display: grid;
@@ -11,27 +11,33 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-4);
-  padding: 1.1rem 1.2rem;
+  padding: 1.25rem 1.35rem;
   border-radius: var(--radius-xl);
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 50%), var(--surface-1);
+  border: 1px solid rgba(164, 185, 244, 0.28);
+  background:
+    radial-gradient(180px 120px at 8% 10%, rgba(255, 99, 212, 0.16), transparent 70%),
+    radial-gradient(220px 140px at 92% 0%, rgba(52, 216, 255, 0.18), transparent 72%),
+    var(--surface-1);
   box-shadow: var(--shadow-md);
 }
 
-.brand-block { display: grid; gap: 0.3rem; }
-.header-subtitle { color: var(--text-muted); max-width: 66ch; }
-.session-actions { display: flex; gap: 0.55rem; flex-wrap: wrap; align-items: center; }
+.brand-block { display: grid; gap: 0.35rem; }
+.header-subtitle { color: var(--text-muted); max-width: 70ch; }
+.session-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
 
 .auth-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(360px, 500px);
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 520px);
   gap: var(--space-4);
 }
 
 .auth-intro {
   padding: var(--space-6);
   align-content: center;
-  background: linear-gradient(160deg, rgba(107, 134, 255, 0.26), rgba(107, 134, 255, 0.03) 54%), var(--surface-1);
+  background:
+    radial-gradient(260px 170px at 18% 8%, rgba(142, 123, 255, 0.3), transparent 78%),
+    radial-gradient(260px 190px at 88% 14%, rgba(52, 216, 255, 0.16), transparent 80%),
+    var(--surface-2);
 }
 
 .auth-card { padding: var(--space-5); }
@@ -39,16 +45,16 @@
 .auth-switch {
   width: fit-content;
   display: inline-flex;
-  padding: 0.2rem;
-  gap: 0.2rem;
+  padding: 0.22rem;
+  gap: 0.22rem;
   border-radius: 999px;
   border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .dashboard-shell {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 265px minmax(0, 1fr);
   gap: var(--space-4);
   min-height: calc(100vh - 170px);
 }
@@ -58,42 +64,48 @@
   top: var(--space-4);
   align-self: start;
   display: grid;
-  gap: 0.4rem;
+  gap: 0.46rem;
   padding: var(--space-3);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%), var(--surface-1);
+  background:
+    radial-gradient(160px 100px at 12% 0%, rgba(255, 99, 212, 0.16), transparent 74%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    var(--surface-1);
 }
 
 .sidebar-label {
-  padding: 0.35rem 0.45rem;
-  font-size: 0.68rem;
+  padding: 0.38rem 0.48rem;
+  font-size: 0.67rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--text-muted);
 }
 
 .content-stack { display: grid; gap: var(--space-3); }
 
 .context-bar {
-  padding: 0.65rem 0.9rem;
+  padding: 0.75rem 0.95rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(16, 24, 39, 0.86);
+  background: rgba(18, 24, 46, 0.78);
 }
 
 .workspace-panel {
   padding: var(--space-4);
   display: grid;
   gap: var(--space-3);
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.025), transparent 58%), var(--surface-1);
-  box-shadow: var(--shadow-lg);
+  background:
+    radial-gradient(220px 140px at 92% 6%, rgba(52, 216, 255, 0.1), transparent 72%),
+    radial-gradient(260px 170px at 10% 0%, rgba(142, 123, 255, 0.13), transparent 78%),
+    var(--surface-1);
+  box-shadow: var(--shadow-md);
 }
 
 .two-col,
 .section-grid {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
 }
 
 .round-nav,
@@ -101,25 +113,25 @@
 .tab-bar,
 .subtab-bar {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.5rem;
   grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
-  padding: 0.34rem;
+  padding: 0.36rem;
   border: 1px solid var(--line-soft);
   border-radius: calc(var(--radius-md) + 2px);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .subnav,
 .subtab-bar { grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); }
 .round-section { margin-top: var(--space-2); }
 
-@media (max-width: 1100px) {
+@media (max-width: 1120px) {
   .dashboard-shell,
   .auth-layout { grid-template-columns: 1fr; }
 
   .sidebar {
     position: static;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   }
 
   .sidebar-label { grid-column: 1 / -1; }

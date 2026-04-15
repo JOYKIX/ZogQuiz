@@ -2,16 +2,22 @@
   display: grid;
   justify-items: center;
   align-content: center;
+  gap: 0.8rem;
 }
 
 .m3-theme,
 .m3-question,
 .m3-timer {
   margin: 0;
-  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
 }
 
 .m3-question {
   line-height: 1.08;
   text-wrap: balance;
+  max-width: min(88vw, 1400px);
+  padding: 0.9rem 1.15rem;
+  border-radius: 18px;
+  border: 1px solid rgba(230, 235, 255, 0.5);
+  background: linear-gradient(145deg, rgba(154, 131, 255, 0.24), rgba(9, 14, 31, 0.52));
 }

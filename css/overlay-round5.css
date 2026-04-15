@@ -1,6 +1,6 @@
 .overlay-round5 {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.52rem;
   align-content: end;
   justify-items: center;
   padding-bottom: 6vh;
@@ -18,18 +18,21 @@
 
 .m5-track {
   letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .m5-progress-shell {
   width: min(92vw, 1000px);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
   overflow: hidden;
+  background: rgba(11, 17, 34, 0.48);
 }
 
 .m5-progress-bar {
-  height: 10px;
+  height: 12px;
   width: 0%;
-  background: linear-gradient(90deg, #57e389 0%, #8cf5dc 100%);
+  background: linear-gradient(90deg, #7e6cff 0%, #ff7ed8 45%, #52dfff 100%);
   transition: width 150ms linear;
 }
 

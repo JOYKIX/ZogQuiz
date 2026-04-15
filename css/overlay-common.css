@@ -1,10 +1,12 @@
 :root {
-  --overlay-text: #ffffff;
+  --overlay-text: #f8f9ff;
+  --overlay-soft: #dbe1ff;
+  --overlay-violet: #9a83ff;
+  --overlay-cyan: #52dfff;
+  --overlay-magenta: #ff7ed8;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html,
 body {
@@ -15,7 +17,7 @@ body {
 
 .overlay-page {
   color: var(--overlay-text);
-  font-family: Manrope, Inter, system-ui, -apple-system, sans-serif;
+  font-family: "Space Grotesk", Inter, system-ui, -apple-system, sans-serif;
   overflow: hidden;
 }
 
@@ -25,6 +27,26 @@ body {
   padding: 3vh 2vw;
 }
 
-.hidden {
-  display: none !important;
+.overlay-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 227, 255, 0.55);
+  background: linear-gradient(135deg, rgba(154, 131, 255, 0.34), rgba(82, 223, 255, 0.16));
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38);
+  padding: 0.28rem 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
 }
+
+.overlay-panel {
+  border: 1px solid rgba(230, 235, 255, 0.45);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(154, 131, 255, 0.24), rgba(82, 223, 255, 0.08) 52%, rgba(9, 14, 31, 0.55));
+  box-shadow: 0 14px 38px rgba(2, 5, 17, 0.46);
+  backdrop-filter: blur(2px);
+}
+
+.hidden { display: none !important; }
