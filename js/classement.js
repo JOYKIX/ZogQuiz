@@ -6,14 +6,29 @@ const viewersLeaderboard = document.getElementById("viewers-leaderboard");
 function renderLeaderboard(container, entries, emptyMessage, labelBuilder) {
   container.innerHTML = "";
   if (!entries.length) {
-    container.innerHTML = `<li>${emptyMessage}</li>`;
+    container.innerHTML = `<li class="leader-item"><span class="muted">${emptyMessage}</span></li>`;
     return;
   }
 
-  for (const entry of entries) {
+  for (const [index, entry] of entries.entries()) {
     const li = document.createElement("li");
     li.className = "leader-item";
-    li.textContent = labelBuilder(entry);
+
+    const rank = document.createElement("span");
+    rank.className = "status-badge";
+    rank.textContent = `#${index + 1}`;
+
+    const display = labelBuilder(entry);
+
+    const name = document.createElement("span");
+    name.className = "leader-name";
+    name.textContent = display.name;
+
+    const score = document.createElement("span");
+    score.className = "leader-score";
+    score.textContent = `${display.score} pts`;
+
+    li.append(rank, name, score);
     container.appendChild(li);
   }
 }
@@ -32,7 +47,7 @@ onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
     participantsLeaderboard,
     entries,
     "Aucun participant pour le moment.",
-    (entry) => `${entry.nickname} — ${entry.score} pt(s)`,
+    (entry) => ({ name: entry.nickname, score: entry.score }),
   );
 });
 
@@ -49,6 +64,6 @@ onValue(ref(db, "rooms/manche1/viewerLeaderboard"), (snap) => {
     viewersLeaderboard,
     entries,
     "Aucun viewer classé pour le moment.",
-    (entry) => `${entry.twitchUser} — ${entry.score} pt(s)`,
+    (entry) => ({ name: entry.twitchUser, score: entry.score }),
   );
 });

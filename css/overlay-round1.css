@@ -6,7 +6,12 @@
 
 .m1-question {
   margin: 0;
-  line-height: 1.08;
+  max-width: min(88vw, 1500px);
+  padding: 1.2rem 1.4rem;
+  border-radius: 24px;
+  border: 1px solid rgba(230, 235, 255, 0.55);
+  background: linear-gradient(145deg, rgba(154, 131, 255, 0.28), rgba(82, 223, 255, 0.09) 55%, rgba(8, 14, 27, 0.62));
+  line-height: 1.1;
   text-wrap: balance;
-  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
 }

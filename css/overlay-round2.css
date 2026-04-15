@@ -10,11 +10,14 @@
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
+  border-radius: 20px;
+  border: 1px solid rgba(230, 235, 255, 0.5);
+  box-shadow: 0 18px 34px rgba(2, 5, 18, 0.52);
 }
 
 .m2-overlay-empty {
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   font-weight: 700;
 }
