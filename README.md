@@ -20,17 +20,18 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
 - Nettoyage des données de buzz (historique + blocs) à chaque changement de question.
 - Leaderboard participants sur page classement dédiée.
 - Leaderboard viewers Twitch (alimenté par bot Python) sur page classement dédiée.
-- Overlay OBS centralisé (`overlay.html`) qui affiche dynamiquement la manche live.
+- Overlays OBS dédiés par manche (`overlay-round1` à `overlay-round5`).
 - Navbar des manches (1 à 5 + finale) et sous-menu manche 1 (création/modification/suppression).
 
 ## Pages
 
 - `index.html` : interface admin complète.
 - `buzzer.html` : connexion invité (code + pseudo) et buzzer live.
-- `overlay.html` : point d'entrée unique OBS, routeur des overlays par manche live.
 - `overlay-round1.html` : overlay OBS manche 1 (question/réponse).
 - `overlay-round2.html` : overlay OBS manche 2 (image active).
 - `overlay-round3.html` : overlay OBS manche 3 (thème/question/timer).
+- `overlay-round4.html` : overlay OBS manche 4 (grille active, indice, progression joueurs).
+- `overlay-round5.html` : overlay OBS manche 5 (blindtest : statut, piste en cours, timer).
 - `classement.html` : leaderboard participants + viewers Twitch (page séparée des manches).
 - `bot/bot.py` : bot Twitch qui lit le chat et attribue le point viewers au premier bon répondant sur la question active.
 
@@ -40,7 +41,7 @@ Servir le dossier avec un serveur statique, puis ouvrir :
 
 - `index.html` pour l'admin,
 - `buzzer.html` côté participant,
-- `overlay.html` dans OBS (source navigateur).
+- `overlay-roundX.html` (selon la manche) dans OBS comme source navigateur.
 
 
 ## Bot viewers Twitch

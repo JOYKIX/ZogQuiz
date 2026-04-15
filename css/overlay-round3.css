@@ -1,0 +1,20 @@
+.overlay-round3 {
+  place-items: center;
+  text-align: center;
+}
+
+.overlay-round3 .overlay-card {
+  width: min(96vw, 1750px);
+}
+
+#m3-overlay-question {
+  color: var(--overlay-text);
+}
+
+#m3-overlay-timer {
+  margin: 0.2rem 0 0;
+  color: #ceffe7;
+  font-size: clamp(2.2rem, 4vw, 3.9rem);
+  letter-spacing: 0.07em;
+  font-weight: 800;
+}

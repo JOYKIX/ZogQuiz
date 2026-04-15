@@ -1,0 +1,35 @@
+.overlay-round5 {
+  place-items: center;
+}
+
+.overlay-round5 .overlay-card {
+  width: min(96vw, 1200px);
+  text-align: center;
+}
+
+.m5-overlay-track {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 5.8rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--overlay-accent);
+}
+
+.m5-overlay-state {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.2vw, 2rem);
+  font-weight: 700;
+}
+
+.m5-overlay-time {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.3vw, 2.2rem);
+  color: var(--overlay-muted);
+  font-weight: 700;
+}
+
+.m5-overlay-note {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(0.85rem, 1.4vw, 1.1rem);
+}

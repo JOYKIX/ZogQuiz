@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZogQuiz Overlay - Manche 2</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/overlay-common.css" />
+    <link rel="stylesheet" href="css/overlay-round2.css" />
   </head>
-  <body class="overlay-round2-body">
-    <main class="overlay-round2-shell">
-      <img id="m2-overlay-image" class="m2-overlay-image hidden" alt="Image manche 2" />
-      <p id="m2-overlay-empty" class="overlay-round2-empty">Aucune image active.</p>
+  <body class="overlay-page">
+    <main class="overlay-root overlay-round2">
+      <section class="overlay-card overlay-panel" aria-live="polite">
+        <img id="m2-overlay-image" class="hidden" alt="Image manche 2" />
+        <p id="m2-overlay-empty" class="overlay-title">Aucune image active.</p>
+      </section>
     </main>
     <script type="module" src="js/overlay-round2.js"></script>
   </body>

@@ -4,13 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZogQuiz Overlay - Manche 3</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/overlay-common.css" />
+    <link rel="stylesheet" href="css/overlay-round3.css" />
   </head>
-  <body class="overlay-body">
-    <main class="m1-overlay-shell">
-      <p id="m3-overlay-theme" class="m3-overlay-meta">Thème : —</p>
-      <h1 id="m3-overlay-question">En attente du thème.</h1>
-      <p id="m3-overlay-timer" class="m3-overlay-timer">01:30</p>
+  <body class="overlay-page">
+    <main class="overlay-root overlay-round3">
+      <section class="overlay-card overlay-panel" aria-live="polite">
+        <p id="m3-overlay-theme" class="overlay-meta">Thème : —</p>
+        <h1 id="m3-overlay-question" class="overlay-title">En attente du thème.</h1>
+        <p id="m3-overlay-timer">01:30</p>
+      </section>
     </main>
     <script type="module" src="js/overlay-round3.js"></script>
   </body>
