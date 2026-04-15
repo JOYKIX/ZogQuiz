@@ -116,15 +116,18 @@
             </div>
             <div class="two-col">
               <article class="subpanel stack compact-panel">
-                <h3>Codes invités</h3>
-                <div class="row">
-                  <label>Durée (min)
-                    <input id="code-duration" type="number" min="1" max="120" value="30" />
+                <h3>Comptes invités</h3>
+                <form id="guest-account-form" class="stack">
+                  <label>ID de connexion
+                    <input id="guest-login-id" type="text" required maxlength="40" autocomplete="off" placeholder="ex: joueur_01" />
                   </label>
-                  <button id="generate-code" class="btn btn-primary">Créer un code</button>
-                </div>
-                <p id="generated-code" class="message"></p>
-                <ul id="codes-list" class="list"></ul>
+                  <label>Mot de passe
+                    <input id="guest-password" type="password" required minlength="6" autocomplete="new-password" placeholder="6 caractères minimum" />
+                  </label>
+                  <button type="submit" class="btn btn-primary">Créer le compte</button>
+                </form>
+                <p id="guest-accounts-message" class="message"></p>
+                <ul id="guest-accounts-list" class="list"></ul>
               </article>
 
               <article class="subpanel compact-panel">

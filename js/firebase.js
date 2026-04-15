@@ -135,9 +135,6 @@ export async function ensureRoundsSeed(uid) {
   }
 }
 
-export function makeTempCode(size = 6) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: size }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-}
+
 
 export { db, ref, set, get, onValue, push, update, runTransaction, remove };
