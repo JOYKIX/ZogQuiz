@@ -6,6 +6,7 @@ import {
   updateBlindtestTrack,
   removeBlindtestTrack,
 } from "./blindtest/tracks.js";
+import { showConfirm } from "./modal.js";
 import {
   defaultBlindtestLiveState,
   ensureBlindtestLiveSeed,
@@ -301,7 +302,7 @@ export function initManche5Admin(options) {
       deleteBtn.className = "btn btn-danger mini-btn";
       deleteBtn.textContent = "Supprimer";
       deleteBtn.addEventListener("click", async () => {
-        const confirmed = window.confirm(`Supprimer la piste “${track.title || "Sans titre"}” ?`);
+        const confirmed = await showConfirm(`Supprimer la piste “${track.title || "Sans titre"}” ?`, { title: "Suppression de piste" });
         if (!confirmed) return;
 
         try {

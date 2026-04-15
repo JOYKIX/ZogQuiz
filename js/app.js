@@ -13,6 +13,7 @@ import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche4Admin } from "./manche4.js";
 import { initManche5Admin } from "./manche5.js";
+import { showConfirm, showPrompt } from "./modal.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -283,13 +284,13 @@ pushLiveRoundBtn?.addEventListener("click", async () => {
 });
 resetParticipantsBtn?.addEventListener("click", async () => {
   if (!isLoggedIn()) return;
-  if (!window.confirm("Réinitialiser les participants et le classement ?")) return;
+  if (!(await showConfirm("Réinitialiser les participants et le classement ?", { title: "Reset participants" }))) return;
   await resetParticipantsAndLeaderboard();
   showToast("Participants réinitialisés");
 });
 resetAllBtn?.addEventListener("click", async () => {
   if (!isLoggedIn()) return;
-  if (!window.confirm("Confirmer le reset complet du quiz ?")) return;
+  if (!(await showConfirm("Confirmer le reset complet du quiz ?", { title: "Reset complet" }))) return;
   await resetCompleteQuiz();
   showToast("Quiz réinitialisé");
 });
@@ -651,7 +652,12 @@ function renderGuestAccounts() {
 }
 
 async function resetGuestPassword(accountId) {
-  const nextPassword = window.prompt("Nouveau mot de passe (6 caractères min)");
+  const nextPassword = await showPrompt("Nouveau mot de passe (6 caractères min)", {
+    title: "Réinitialiser le mot de passe",
+    inputLabel: "Nouveau mot de passe",
+    placeholder: "6 caractères minimum",
+    confirmText: "Mettre à jour",
+  });
   if (nextPassword === null) return;
   try {
     await setGuestAccountPassword(accountId, nextPassword, currentAdminId);
@@ -686,7 +692,7 @@ async function resetGuestDisplayName(accountId) {
 async function deleteGuestAccountById(accountId) {
   const account = guestAccountsById[accountId];
   if (!account) return;
-  if (!window.confirm(`Supprimer le compte ${account.loginId || accountId} ?`)) return;
+  if (!(await showConfirm(`Supprimer le compte ${account.loginId || accountId} ?`, { title: "Suppression du compte" }))) return;
   await removeGuestAccount({ ...account, accountId });
   await remove(ref(db, `rooms/manche1/guestSessions/${accountId}`));
   if (manche3State?.activePlayerId === accountId) {
@@ -928,9 +934,19 @@ function renderRound1QuestionList(type, data, container) {
 }
 
 async function editRound1Question(type, questionId, currentQuestion) {
-  const text = window.prompt("Modifier le texte de la question", currentQuestion?.text || "");
+  const text = await showPrompt("Modifier le texte de la question", {
+    title: "Éditer la question",
+    inputLabel: "Texte de la question",
+    defaultValue: currentQuestion?.text || "",
+    confirmText: "Enregistrer",
+  });
   if (text === null) return;
-  const answer = window.prompt("Modifier la réponse", currentQuestion?.answer || "");
+  const answer = await showPrompt("Modifier la réponse", {
+    title: "Éditer la réponse",
+    inputLabel: "Réponse",
+    defaultValue: currentQuestion?.answer || "",
+    confirmText: "Enregistrer",
+  });
   if (answer === null) return;
   const nextText = text.trim();
   const nextAnswer = answer.trim();
@@ -945,7 +961,7 @@ async function editRound1Question(type, questionId, currentQuestion) {
 }
 
 async function deleteRound1Question(type, questionId) {
-  if (!window.confirm("Supprimer cette question ?")) return;
+  if (!(await showConfirm("Supprimer cette question ?", { title: "Suppression" }))) return;
   const isActive = liveState?.currentQuestionId === questionId;
   await remove(ref(db, `rooms/manche1/questions/${type}/${questionId}`));
   if (isActive) {
@@ -995,7 +1011,7 @@ function renderRound2Questions() {
     deleteBtn.className = "btn btn-danger";
     deleteBtn.textContent = "Supprimer";
     deleteBtn.addEventListener("click", async () => {
-      if (!window.confirm("Supprimer cette image ?")) return;
+      if (!(await showConfirm("Supprimer cette image ?", { title: "Suppression" }))) return;
       await remove(ref(db, `rooms/manche2/questions/${id}`));
       if (manche2State?.activeQuestionId === id) {
         await update(ref(db, "rooms/manche2/state"), { activeQuestionId: null, updatedAt: Date.now(), updatedBy: currentAdminId });
@@ -1014,11 +1030,26 @@ function renderRound2Questions() {
 }
 
 async function editRound2Question(questionId, item) {
-  const work = window.prompt("Modifier l'œuvre", item.work || "");
+  const work = await showPrompt("Modifier l'œuvre", {
+    title: "Éditer la question manche 2",
+    inputLabel: "Œuvre",
+    defaultValue: item.work || "",
+    confirmText: "Continuer",
+  });
   if (work === null) return;
-  const location = window.prompt("Modifier le lieu", item.location || "");
+  const location = await showPrompt("Modifier le lieu", {
+    title: "Éditer la question manche 2",
+    inputLabel: "Lieu",
+    defaultValue: item.location || "",
+    confirmText: "Continuer",
+  });
   if (location === null) return;
-  const questionText = window.prompt("Modifier le texte de la question (optionnel)", item.questionText || "");
+  const questionText = await showPrompt("Modifier le texte de la question (optionnel)", {
+    title: "Éditer la question manche 2",
+    inputLabel: "Question (optionnelle)",
+    defaultValue: item.questionText || "",
+    confirmText: "Enregistrer",
+  });
   if (questionText === null) return;
   const nextWork = work.trim();
   const nextLocation = location.trim();
@@ -1197,7 +1228,12 @@ function renderRound3Themes() {
     renameBtn.className = "btn btn-secondary";
     renameBtn.textContent = "Renommer";
     renameBtn.addEventListener("click", async () => {
-      const nextName = window.prompt("Nouveau nom du thème", theme.name || "");
+      const nextName = await showPrompt("Nouveau nom du thème", {
+        title: "Renommer le thème",
+        inputLabel: "Nom du thème",
+        defaultValue: theme.name || "",
+        confirmText: "Renommer",
+      });
       if (!nextName) return;
       await update(ref(db, `rooms/manche3/themes/${themeId}`), { name: nextName.trim(), updatedAt: Date.now(), updatedBy: currentAdminId });
     });
@@ -1205,7 +1241,7 @@ function renderRound3Themes() {
     deleteBtn.className = "btn btn-danger";
     deleteBtn.textContent = "Supprimer thème";
     deleteBtn.addEventListener("click", async () => {
-      if (!window.confirm("Supprimer ce thème ?")) return;
+      if (!(await showConfirm("Supprimer ce thème ?", { title: "Suppression du thème" }))) return;
       await remove(ref(db, `rooms/manche3/themes/${themeId}`));
       if (manche3State?.activeThemeId === themeId) {
         await update(ref(db, "rooms/manche3/state"), { activeThemeId: null, questionIndex: 0, updatedAt: Date.now(), updatedBy: currentAdminId });
@@ -1219,7 +1255,12 @@ function renderRound3Themes() {
 }
 
 async function editRound3Question(themeId, questionId, currentQuestion) {
-  const text = window.prompt("Modifier la question", currentQuestion?.text || "");
+  const text = await showPrompt("Modifier la question", {
+    title: "Éditer la question manche 3",
+    inputLabel: "Question",
+    defaultValue: currentQuestion?.text || "",
+    confirmText: "Enregistrer",
+  });
   if (text === null) return;
   const nextText = text.trim();
   if (!nextText) return showToast("Le texte de la question est obligatoire.", "error");
