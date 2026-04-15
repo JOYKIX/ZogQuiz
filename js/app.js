@@ -979,8 +979,14 @@ function renderBuzzOrder() {
     return;
   }
   entries.slice(0, 8).forEach((b, index) => {
+    const resolvedName =
+      b.nickname
+      || sessionsById[b.sessionId]?.nickname
+      || sessionsById[b.accountId]?.nickname
+      || b.loginId
+      || "Anonyme";
     const li = document.createElement("li");
-    li.textContent = `${index + 1}. ${b.nickname || "Anonyme"}`;
+    li.textContent = `${index + 1}. ${resolvedName}`;
     buzzOrderList.appendChild(li);
   });
 }
@@ -1066,11 +1072,14 @@ async function editRound2Question(questionId, item) {
 
 function refreshRound1Snapshot() {
   const question = getRound1QuestionById(liveState?.currentQuestionId);
+  const lockedByName = liveState?.lockedByNickname
+    || sessionsById[liveState?.lockedBySessionId]?.nickname
+    || "—";
   currentQuestionStatus.textContent = question ? question.text : "Aucune";
   activeQuestion.textContent = question ? `Question active : ${question.text}` : "Aucune question active.";
   const buzzerOpen = Boolean(liveState?.currentQuestionId) && !liveState?.buzzerLocked && liveState?.currentType !== "viewers";
   buzzerStatus.textContent = liveState?.currentType === "viewers" ? "Désactivé" : buzzerOpen ? "Ouvert" : "Verrouillé";
-  lastBuzzStatus.textContent = liveState?.lockedByNickname || "—";
+  lastBuzzStatus.textContent = lockedByName;
 }
 
 function updateRound1Status() {
@@ -1089,9 +1098,10 @@ function updateRound1Status() {
   buzzPlusBtn.disabled = !liveState.lockedBySessionId;
   buzzMinusBtn.disabled = !liveState.lockedBySessionId;
 
-  if (liveState.buzzerLocked && liveState.lockedByNickname) {
-    buzzLive.textContent = `🔔 ${liveState.lockedByNickname}`;
-    buzzPriorityName.textContent = liveState.lockedByNickname;
+  const lockedByName = liveState.lockedByNickname || sessionsById[liveState.lockedBySessionId]?.nickname || "Quelqu’un";
+  if (liveState.buzzerLocked) {
+    buzzLive.textContent = `🔔 ${lockedByName}`;
+    buzzPriorityName.textContent = lockedByName;
   } else if (liveState.currentType === "viewers") {
     buzzLive.textContent = "Mode viewers";
     buzzPriorityName.textContent = "Mode viewers";

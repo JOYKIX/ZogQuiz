@@ -36,11 +36,18 @@ const m3GuestHelp = document.getElementById("m3-guest-help");
 const m3ThemeButtons = document.getElementById("m3-theme-buttons");
 
 const GUEST_STORAGE_KEY = "zogquiz.guestSession.v2";
+const ROUND1_STATE_PATH = "rooms/manche1/state";
+const ROUND1_GUEST_SESSIONS_PATH = "rooms/manche1/guestSessions";
+const ROUND1_QUESTION_BLOCKS_PATH = "rooms/manche1/questionBlocks";
+const ROUND1_BUZZES_PATH = "rooms/manche1/buzzes";
 
 let liveRound = "manche1";
-let currentSession = null;
-let currentAccount = null;
-let currentNickname = "";
+let guestAuth = {
+  account: null,
+  accountId: null,
+  nickname: "",
+  status: "logged_out",
+};
 let liveState = null;
 let currentQuestionBlocked = false;
 let watchingRound1 = false;
@@ -86,10 +93,22 @@ function setGuestMessage(text, type = "default") {
   if (type !== "default") guestMessage.classList.add(type);
 }
 
+function getCurrentSessionId() {
+  return guestAuth.accountId;
+}
+
+function getCurrentNickname() {
+  return guestAuth.nickname;
+}
+
+function isGuestConnected() {
+  return Boolean(guestAuth.account && guestAuth.accountId && guestAuth.nickname);
+}
+
 function normalizeSessionState() {
-  if (currentAccount && currentNickname) {
+  if (isGuestConnected()) {
     guestSessionMeta.classList.remove("hidden");
-    guestTitle.textContent = `Connecté : ${currentNickname}`;
+    guestTitle.textContent = `Connecté : ${getCurrentNickname()}`;
     buzzerPanel.classList.remove("hidden");
   } else {
     guestSessionMeta.classList.add("hidden");
@@ -110,10 +129,29 @@ function showLoginForm() {
   normalizeSessionState();
 }
 
+function clearCurrentGuest({ reason = "Déconnecté.", type = "default" } = {}) {
+  guestAuth = {
+    account: null,
+    accountId: null,
+    nickname: "",
+    status: "logged_out",
+  };
+  currentQuestionBlocked = false;
+  clearStoredGuestSession();
+  showLoginForm();
+  setGuestMessage(reason, type);
+  renderRound3();
+  refreshButtonState();
+}
+
 function applyConnectedState(account) {
-  currentAccount = account;
-  currentSession = account.accountId;
-  currentNickname = String(account.displayName || "").trim();
+  const nickname = String(account.displayName || "").trim();
+  guestAuth = {
+    account,
+    accountId: account.accountId,
+    nickname,
+    status: nickname ? "connected" : "awaiting_display_name",
+  };
   writeStoredGuestSession(account);
 
   const loginIdInput = document.getElementById("guest-login-id");
@@ -124,7 +162,7 @@ function applyConnectedState(account) {
     watchingRound1 = true;
   }
 
-  if (!currentNickname) {
+  if (!nickname) {
     showDisplayNameSetup();
     setGuestMessage("Première connexion : choisissez un pseudo d’affichage.");
     return;
@@ -133,6 +171,7 @@ function applyConnectedState(account) {
   showLoginForm();
   setGuestMessage("Connexion réussie.", "success");
   renderRound3();
+  refreshButtonState();
 }
 
 async function getAccountByCredentials(loginId, password) {
@@ -156,7 +195,7 @@ async function getAccountByCredentials(loginId, password) {
 }
 
 async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." } = {}) {
-  const sessionRef = ref(db, `rooms/manche1/guestSessions/${account.accountId}`);
+  const sessionRef = ref(db, `${ROUND1_GUEST_SESSIONS_PATH}/${account.accountId}`);
   const sessionSnap = await get(sessionRef);
   const existing = sessionSnap.val() || {};
   const nickname = String(account.displayName || "").trim();
@@ -165,6 +204,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
     accountId: account.accountId,
     nickname,
     loginId: account.loginId,
+    authVersion: Number(account.authVersion || 1),
     joinedAt: existing.joinedAt || Date.now(),
     reconnectAt: Date.now(),
     score: Number(existing.score || 0),
@@ -195,7 +235,7 @@ guestLoginForm.addEventListener("submit", async (event) => {
 
 guestDisplayNameForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!currentAccount?.accountId) return;
+  if (!guestAuth.accountId) return;
 
   const displayNameInput = document.getElementById("guest-display-name");
   const validation = validateDisplayName(displayNameInput.value);
@@ -205,9 +245,9 @@ guestDisplayNameForm.addEventListener("submit", async (event) => {
   }
 
   const allAccountsSnap = await get(ref(db, GUEST_ACCOUNTS_PATH));
-  const duplicate = Object.values(allAccountsSnap.val() || {}).some((account) => {
+  const duplicate = Object.entries(allAccountsSnap.val() || {}).some(([accountId, account]) => {
     if (!account?.displayName) return false;
-    if (account.accountId === currentAccount.accountId) return false;
+    if (accountId === guestAuth.accountId) return false;
     return String(account.displayName).trim().toLowerCase() === validation.value.toLowerCase();
   });
 
@@ -216,27 +256,23 @@ guestDisplayNameForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  await update(ref(db, `${GUEST_ACCOUNTS_PATH}/${currentAccount.accountId}`), {
+  await update(ref(db, `${GUEST_ACCOUNTS_PATH}/${guestAuth.accountId}`), {
     displayName: validation.value,
     updatedAt: Date.now(),
   });
 
-  currentNickname = validation.value;
-  currentAccount = { ...currentAccount, displayName: validation.value };
-  await ensureGuestSession(currentAccount, { reconnectMessage: "Pseudo enregistré." });
+  guestAuth = {
+    ...guestAuth,
+    nickname: validation.value,
+    account: { ...guestAuth.account, displayName: validation.value },
+    status: "connected",
+  };
+  await ensureGuestSession(guestAuth.account, { reconnectMessage: "Pseudo enregistré." });
   guestDisplayNameForm.reset();
 });
 
 guestLogoutBtn.addEventListener("click", () => {
-  currentSession = null;
-  currentAccount = null;
-  currentNickname = "";
-  currentQuestionBlocked = false;
-  clearStoredGuestSession();
-  showLoginForm();
-  setGuestMessage("Déconnecté.");
-  renderRound3();
-  refreshButtonState();
+  clearCurrentGuest({ reason: "Déconnecté." });
 });
 
 async function tryAutoReconnect() {
@@ -279,6 +315,7 @@ function renderByRound() {
   if (!isRound5) manche5Controller?.pauseLocalAudio?.();
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
+  refreshButtonState();
 }
 
 function renderRound2() {
@@ -297,16 +334,16 @@ function renderRound3() {
   const activePlayerId = round3State?.activePlayerId;
   const activePlayerName = sessionsById[activePlayerId]?.nickname || "Aucun";
   const activeTheme = round3Themes[round3State?.activeThemeId] || null;
-  const isCurrentPlayer = Boolean(currentSession && activePlayerId === currentSession);
+  const isCurrentPlayer = Boolean(getCurrentSessionId() && activePlayerId === getCurrentSessionId());
   const themeLocked = Boolean(round3State?.activeThemeId);
 
   m3GuestPlayer.textContent = `Joueur actif : ${activePlayerName}`;
   m3GuestTheme.textContent = `Thème actif : ${activeTheme?.name || "Aucun"}`;
 
-  if (!currentSession) {
+  if (!getCurrentSessionId()) {
     m3GuestStatus.textContent = "Connectez-vous d’abord.";
     m3GuestHelp.textContent = "Connectez-vous pour participer.";
-  } else if (!currentNickname) {
+  } else if (!getCurrentNickname()) {
     m3GuestStatus.textContent = "Pseudo requis avant de jouer.";
     m3GuestHelp.textContent = "Choisissez votre pseudo d’affichage.";
   } else if (isCurrentPlayer && !themeLocked) {
@@ -331,7 +368,7 @@ function renderRound3() {
     const btn = document.createElement("button");
     btn.className = id === round3State?.activeThemeId ? "btn btn-secondary" : "btn btn-primary";
     btn.textContent = theme.name || "Thème";
-    btn.disabled = !isCurrentPlayer || themeLocked || !currentNickname;
+    btn.disabled = !isCurrentPlayer || themeLocked || !getCurrentNickname();
     btn.setAttribute("aria-pressed", String(id === round3State?.activeThemeId));
     btn.addEventListener("click", async () => {
       if (!isCurrentPlayer) return;
@@ -348,78 +385,143 @@ function renderRound3() {
 }
 
 function watchRound1State() {
-  onValue(ref(db, "rooms/manche1/state"), async (snap) => {
+  onValue(ref(db, ROUND1_STATE_PATH), async (snap) => {
     liveState = snap.val() || {};
     triggerBuzzSound(liveState);
-    if (!liveState.currentQuestionId || !currentSession) {
+    if (!liveState.currentQuestionId || !getCurrentSessionId()) {
       currentQuestionBlocked = false;
     } else {
-      const blockedSnap = await get(ref(db, `rooms/manche1/questionBlocks/${liveState.currentQuestionId}/${currentSession}`));
+      const blockedSnap = await get(ref(db, `${ROUND1_QUESTION_BLOCKS_PATH}/${liveState.currentQuestionId}/${getCurrentSessionId()}`));
       currentQuestionBlocked = blockedSnap.exists();
     }
     refreshButtonState();
   });
 }
 
+function getBuzzAvailability() {
+  if (!liveState) return { canBuzz: false, message: "Synchronisation en cours." };
+  if (!guestAuth.accountId) return { canBuzz: false, message: "Vous n’êtes pas connecté." };
+  if (!guestAuth.account?.active) return { canBuzz: false, message: "Compte désactivé. Contactez l’admin." };
+  if (!guestAuth.nickname) return { canBuzz: false, message: "Pseudo d’affichage requis." };
+  if (liveRound !== "manche1") return { canBuzz: false, message: "Buzzer indisponible hors manche 1." };
+  if (!liveState.currentQuestionId) return { canBuzz: false, message: "Manche inactive : aucune question ouverte." };
+  if (liveState.currentType === "viewers") return { canBuzz: false, message: "Buzzer non autorisé en mode viewers." };
+  if (currentQuestionBlocked) return { canBuzz: false, message: "Vous avez déjà tenté sur cette question." };
+  if (liveState.buzzerLocked && liveState.lockedBySessionId === guestAuth.accountId) {
+    return { canBuzz: false, message: "Buzz pris : en attente de validation admin." };
+  }
+  if (liveState.buzzerLocked) return { canBuzz: false, message: `Buzz déjà pris par ${liveState.lockedByNickname || "un autre joueur"}.` };
+  return { canBuzz: true, message: "Buzzer ouvert." };
+}
+
 function refreshButtonState() {
-  if (!liveState || !buzzBtn) return;
-  if (!currentSession || !currentNickname) {
-    buzzBtn.disabled = true;
-    buzzFeedback.textContent = "Connectez-vous pour buzzer.";
-    return;
+  if (!buzzBtn) return;
+  const availability = getBuzzAvailability();
+  buzzBtn.disabled = !availability.canBuzz;
+  buzzFeedback.textContent = availability.message;
+}
+
+async function validateConnectedGuestForBuzz() {
+  if (!guestAuth.accountId) {
+    return { ok: false, reason: "Vous n’êtes pas connecté." };
   }
-  if (liveState.currentType === "viewers") {
-    buzzBtn.disabled = true;
-    buzzFeedback.textContent = "Mode viewers";
-    return;
+
+  const accountRef = ref(db, `${GUEST_ACCOUNTS_PATH}/${guestAuth.accountId}`);
+  const accountSnap = await get(accountRef);
+  if (!accountSnap.exists()) {
+    clearCurrentGuest({ reason: "Session invalide : compte supprimé.", type: "error" });
+    return { ok: false, reason: "Session invalide : compte supprimé." };
   }
-  if (currentQuestionBlocked) {
-    buzzBtn.disabled = true;
-    buzzFeedback.textContent = "Déjà tenté";
-    return;
+
+  const fresh = accountSnap.val() || {};
+  if (!fresh.active) {
+    clearCurrentGuest({ reason: "Compte désactivé par l’admin.", type: "error" });
+    return { ok: false, reason: "Compte désactivé." };
   }
-  if (liveState.buzzerLocked) {
-    buzzBtn.disabled = liveState.lockedBySessionId !== currentSession;
-    buzzFeedback.textContent = liveState.lockedBySessionId === currentSession ? "En attente admin" : `${liveState.lockedByNickname || "Quelqu'un"} a buzzé`;
-    return;
+
+  if (Number(fresh.authVersion || 1) !== Number(guestAuth.account?.authVersion || 1)) {
+    clearCurrentGuest({ reason: "Session invalide : reconnectez-vous.", type: "error" });
+    return { ok: false, reason: "Session invalide." };
   }
-  buzzBtn.disabled = false;
-  buzzFeedback.textContent = "Buzzer ouvert";
+
+  const nickname = String(fresh.displayName || "").trim();
+  if (!nickname) {
+    guestAuth = {
+      ...guestAuth,
+      account: { ...fresh, accountId: guestAuth.accountId },
+      nickname,
+      status: "awaiting_display_name",
+    };
+    showDisplayNameSetup();
+    refreshButtonState();
+    return { ok: false, reason: "Pseudo d’affichage requis." };
+  }
+
+  guestAuth = {
+    ...guestAuth,
+    account: { ...fresh, accountId: guestAuth.accountId },
+    nickname,
+    status: "connected",
+  };
+
+  const sessionSnap = await get(ref(db, `${ROUND1_GUEST_SESSIONS_PATH}/${guestAuth.accountId}`));
+  if (!sessionSnap.exists() || sessionSnap.val()?.nickname !== nickname) {
+    await ensureGuestSession(guestAuth.account, { reconnectMessage: "Session restaurée." });
+  }
+
+  return { ok: true };
 }
 
 buzzBtn.addEventListener("click", async () => {
-  if (!currentSession || !currentNickname || !liveState || liveState.currentType === "viewers") return;
+  try {
+    const validSession = await validateConnectedGuestForBuzz();
+    if (!validSession.ok) {
+      buzzFeedback.textContent = validSession.reason;
+      return;
+    }
 
-  const blockedSnap = await get(ref(db, `rooms/manche1/questionBlocks/${liveState.currentQuestionId}/${currentSession}`));
-  if (blockedSnap.exists()) {
-    currentQuestionBlocked = true;
-    refreshButtonState();
-    return;
-  }
+    const availability = getBuzzAvailability();
+    if (!availability.canBuzz) {
+      buzzFeedback.textContent = availability.message;
+      return;
+    }
 
-  const stateRef = ref(db, "rooms/manche1/state");
-  const tx = await runTransaction(stateRef, (state) => {
-    if (!state || state.currentType === "viewers" || state.buzzerLocked) return state;
-    return {
-      ...state,
-      buzzerLocked: true,
-      lockedBySessionId: currentSession,
-      lockedByNickname: currentNickname,
-      lockedAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-  });
+    const blockedSnap = await get(ref(db, `${ROUND1_QUESTION_BLOCKS_PATH}/${liveState.currentQuestionId}/${guestAuth.accountId}`));
+    if (blockedSnap.exists()) {
+      currentQuestionBlocked = true;
+      refreshButtonState();
+      return;
+    }
 
-  if (tx.committed) {
-    await push(ref(db, "rooms/manche1/buzzes"), {
-      sessionId: currentSession,
-      nickname: currentNickname,
-      questionId: liveState.currentQuestionId || null,
-      timestamp: Date.now(),
+    const stateRef = ref(db, ROUND1_STATE_PATH);
+    const tx = await runTransaction(stateRef, (state) => {
+      if (!state || !state.currentQuestionId || state.currentType === "viewers" || state.buzzerLocked) return state;
+      return {
+        ...state,
+        buzzerLocked: true,
+        lockedBySessionId: guestAuth.accountId,
+        lockedByNickname: guestAuth.nickname,
+        lockedAt: Date.now(),
+        updatedAt: Date.now(),
+      };
     });
-    buzzFeedback.textContent = "Buzz validé";
-  } else {
-    buzzFeedback.textContent = "Trop tard";
+
+    if (tx.committed) {
+      await push(ref(db, ROUND1_BUZZES_PATH), {
+        sessionId: guestAuth.accountId,
+        accountId: guestAuth.accountId,
+        loginId: guestAuth.account?.loginId || "",
+        nickname: guestAuth.nickname,
+        questionId: liveState.currentQuestionId || null,
+        timestamp: Date.now(),
+      });
+      buzzFeedback.textContent = "Buzz validé.";
+      return;
+    }
+
+    buzzFeedback.textContent = "Buzz déjà pris.";
+  } catch {
+    buzzFeedback.textContent = "Erreur réseau Firebase : réessayez.";
   }
 });
 
@@ -449,54 +551,46 @@ onValue(ref(db, "rooms/manche3/themes"), (snap) => {
   renderRound3();
 });
 
-onValue(ref(db, "rooms/manche1/guestSessions"), async (snap) => {
+onValue(ref(db, ROUND1_GUEST_SESSIONS_PATH), async (snap) => {
   sessionsById = snap.val() || {};
-  if (currentSession && !sessionsById[currentSession] && currentAccount) {
-    await ensureGuestSession(currentAccount, { reconnectMessage: "Session restaurée." });
+  if (guestAuth.accountId && !sessionsById[guestAuth.accountId] && guestAuth.account) {
+    await ensureGuestSession(guestAuth.account, { reconnectMessage: "Session restaurée." });
   }
   renderRound3();
+  refreshButtonState();
 });
 
 onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   const accounts = snap.val() || {};
-  if (!currentAccount?.accountId) return;
-  const fresh = accounts[currentAccount.accountId];
+  if (!guestAuth.accountId) return;
+  const fresh = accounts[guestAuth.accountId];
   if (!fresh) {
-    currentAccount = null;
-    currentSession = null;
-    currentNickname = "";
-    clearStoredGuestSession();
-    showLoginForm();
-    setGuestMessage("Compte supprimé : reconnexion requise.", "error");
+    clearCurrentGuest({ reason: "Compte supprimé : reconnexion requise.", type: "error" });
     return;
   }
 
   if (!fresh.active) {
-    currentAccount = null;
-    currentSession = null;
-    currentNickname = "";
-    clearStoredGuestSession();
-    showLoginForm();
-    setGuestMessage("Compte désactivé par l’admin.", "error");
+    clearCurrentGuest({ reason: "Compte désactivé par l’admin.", type: "error" });
     return;
   }
 
-  if (Number(fresh.authVersion || 1) !== Number(currentAccount.authVersion || 1)) {
-    currentAccount = null;
-    currentSession = null;
-    currentNickname = "";
-    clearStoredGuestSession();
-    showLoginForm();
-    setGuestMessage("Mot de passe modifié : reconnectez-vous.", "error");
+  if (Number(fresh.authVersion || 1) !== Number(guestAuth.account?.authVersion || 1)) {
+    clearCurrentGuest({ reason: "Mot de passe modifié : reconnectez-vous.", type: "error" });
     return;
   }
 
-  currentAccount = { ...fresh, accountId: currentAccount.accountId };
-  currentNickname = String(fresh.displayName || "").trim();
+  const nickname = String(fresh.displayName || "").trim();
+  guestAuth = {
+    ...guestAuth,
+    account: { ...fresh, accountId: guestAuth.accountId },
+    nickname,
+    status: nickname ? "connected" : "awaiting_display_name",
+  };
   normalizeSessionState();
+  refreshButtonState();
 });
 
-initManche4Guest({ getCurrentSession: () => currentSession });
+initManche4Guest({ getCurrentSession: () => guestAuth.accountId });
 manche5Controller = initManche5Guest();
 
 watchRound1State();
