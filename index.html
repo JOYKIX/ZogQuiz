@@ -108,6 +108,23 @@
               <h3>Top 5</h3>
               <ul id="quick-leaderboard" class="leaderboard"></ul>
             </article>
+            <article class="subpanel compact-panel">
+              <h3>Live viewers Twitch</h3>
+              <p id="viewer-live-status" class="message">Aucune question viewers active.</p>
+              <div class="two-col">
+                <div>
+                  <p class="muted">Gagnants</p>
+                  <ul id="viewer-live-winners" class="list compact-list"><li class="empty-state">Aucun gagnant.</li></ul>
+                </div>
+                <div>
+                  <p class="muted">Tentatives utiles</p>
+                  <ul id="viewer-live-attempts" class="list compact-list"><li class="empty-state">Aucune tentative.</li></ul>
+                </div>
+              </div>
+              <p class="muted">Flux chat (20 derniers)</p>
+              <ul id="viewer-chat-feed" class="list compact-list"><li class="empty-state">Aucun message Twitch reçu.</li></ul>
+            </article>
+
           </section>
 
           <section class="workspace-panel hidden" data-workspace-panel="players">
@@ -201,14 +218,22 @@
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
 
-                  <form id="viewer-question-form" class="subpanel stack compact-panel">
-                    <h3>Questions viewers</h3>
-                    <label>Question
-                      <textarea id="viewer-question" rows="3" required placeholder="Question"></textarea>
+                  <form id="viewer-question-form" class="subpanel stack compact-panel viewer-panel">
+                    <h3>Créer une question viewers</h3>
+                    <label>Prompt viewers
+                      <textarea id="viewer-question" rows="3" required placeholder="Question envoyée au chat Twitch"></textarea>
                     </label>
-                    <label>Réponse
-                      <input id="viewer-answer" required placeholder="Réponse" />
+                    <label>Réponses acceptées (une ligne = un alias)
+                      <textarea id="viewer-answer" rows="5" required placeholder="L'Attaque des Titans
+Attack on Titan
+SNK"></textarea>
                     </label>
+                    <div class="row compact">
+                      <label>Points<input id="viewer-points" type="number" min="1" value="1" /></label>
+                      <label>Timer (s)<input id="viewer-timer" type="number" min="0" value="30" /></label>
+                    </div>
+                    <label class="row"><input id="viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
+                    <label class="row"><input id="viewer-allow-multi" type="checkbox" /><span>Autoriser plusieurs gagnants</span></label>
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
                 </div>
@@ -219,7 +244,7 @@
                     <ul id="participant-questions-list" class="list"></ul>
                   </article>
                   <article class="subpanel compact-panel">
-                    <h3>Liste viewers</h3>
+                    <h3>Liste des questions viewers</h3>
                     <ul id="viewer-questions-list" class="list"></ul>
                   </article>
                 </div>
@@ -316,6 +341,20 @@
                     <ul id="m2-questions-list" class="list"></ul>
                   </article>
                 </div>
+                <div class="two-col">
+                  <form id="m2-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
+                    <h3>Créer une question viewers (Manche 2)</h3>
+                    <p id="m2-viewer-live-label" class="message">Aucune question viewers active.</p>
+                    <label>Prompt viewers<input id="m2-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce monument ?" /></label>
+                    <label>Réponses acceptées<textarea id="m2-viewer-aliases" rows="4" required placeholder="Tour Eiffel
+La Tour Eiffel"></textarea></label>
+                    <div class="row compact"><label>Points<input id="m2-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m2-viewer-timer" type="number" min="0" value="30" /></label></div>
+                    <label class="row"><input id="m2-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
+                    <label class="row"><input id="m2-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
+                    <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
+                  </form>
+                  <article class="subpanel compact-panel"><h3>Liste des questions viewers</h3><ul id="m2-viewer-questions-list" class="list"></ul></article>
+                </div>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:participants">
@@ -384,16 +423,29 @@
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:questions">
-                <article class="subpanel stack compact-panel panel">
-                  <h3 class="panel-title">Questions du tour</h3>
-                  <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
-                  <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
-                  <div class="toolbar">
-                    <button id="m3-pass" class="btn btn-secondary">Passer</button>
-                    <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
-                    <button id="m3-next" class="btn btn-secondary">Question suivante</button>
-                  </div>
-                </article>
+                <div class="two-col">
+                  <article class="subpanel stack compact-panel panel">
+                    <h3 class="panel-title">Questions du tour</h3>
+                    <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
+                    <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
+                    <div class="toolbar">
+                      <button id="m3-pass" class="btn btn-secondary">Passer</button>
+                      <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
+                      <button id="m3-next" class="btn btn-secondary">Question suivante</button>
+                    </div>
+                  </article>
+                  <form id="m3-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
+                    <h3>Créer une question viewers (Manche 3)</h3>
+                    <p id="m3-viewer-live-label" class="message">Aucune question viewers active.</p>
+                    <label>Prompt viewers<input id="m3-viewer-prompt" required maxlength="240" /></label>
+                    <label>Réponses acceptées<textarea id="m3-viewer-aliases" rows="4" required></textarea></label>
+                    <div class="row compact"><label>Points<input id="m3-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m3-viewer-timer" type="number" min="0" value="30" /></label></div>
+                    <label class="row"><input id="m3-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
+                    <label class="row"><input id="m3-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
+                    <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
+                  </form>
+                </div>
+                <article class="subpanel compact-panel"><h3>Liste des questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:live">
@@ -496,6 +548,18 @@
                     <button id="m4-finish" class="btn btn-secondary">Terminer</button>
                     <button id="m4-reset-round" class="btn btn-danger">Reset</button>
                   </div>
+                  <article class="viewer-panel compact-panel">
+                    <h4>Mode viewers · Grille chat</h4>
+                    <p class="muted">Les viewers répondent avec le numéro de case dans le chat Twitch.</p>
+                    <label>ID indice viewers<input id="m4-viewer-clue-id" placeholder="ex: clue_1" /></label>
+                    <label>Timer indice (s)<input id="m4-viewer-timer" type="number" min="0" value="20" /></label>
+                    <label>Points indice<input id="m4-viewer-points" type="number" min="1" value="3" /></label>
+                    <div class="row">
+                      <button id="m4-viewer-start-clue" class="btn btn-primary" type="button">Lancer indice viewers</button>
+                      <button id="m4-viewer-stop-clue" class="btn btn-secondary" type="button">Stop viewers</button>
+                    </div>
+                    <p id="m4-viewer-live-label" class="message">Aucun indice viewers actif.</p>
+                  </article>
                   <div id="m4-admin-preview" class="m4-grid-preview"></div>
                 </article>
               </section>
@@ -568,6 +632,20 @@
                     </div>
                   </form>
                   <ul id="m5-track-list" class="leaderboard"></ul>
+                </article>
+                <article class="subpanel compact-panel stack viewer-panel">
+                  <h3>Créer une question viewers (Manche 5)</h3>
+                  <p id="m5-viewer-live-label" class="message">Aucune question viewers active.</p>
+                  <form id="m5-viewer-question-form" class="stack">
+                    <label>Prompt viewers<input id="m5-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce titre ?" /></label>
+                    <label>Réponses acceptées<textarea id="m5-viewer-aliases" rows="5" required placeholder="Guren no Yumiya
+SNK OP1"></textarea></label>
+                    <div class="row compact"><label>Points<input id="m5-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m5-viewer-timer" type="number" min="0" value="25" /></label></div>
+                    <label class="row"><input id="m5-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
+                    <label class="row"><input id="m5-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
+                    <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
+                  </form>
+                  <ul id="m5-viewer-questions-list" class="list"></ul>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche5:participants">

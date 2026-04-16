@@ -13,6 +13,8 @@ import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche4Admin } from "./manche4.js";
 import { initManche5Admin } from "./manche5.js";
+import { initViewerAdmin } from "./viewer-admin.js";
+import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
 import { showConfirm, showPrompt } from "./modal.js";
 import {
   GUEST_ACCOUNTS_PATH,
@@ -208,7 +210,7 @@ function clearSession() { currentAdminId = null; localStorage.removeItem(SESSION
 async function hashPassword(password) {
   const data = new TextEncoder().encode(password);
   const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("\n");
 }
 
 function showDashboard(adminId) {
@@ -305,6 +307,11 @@ initManche4Admin({
   activateRoundSection,
 });
 initManche5Admin({
+  getCurrentAdminId: () => currentAdminId,
+  setMessage,
+  showToast,
+});
+initViewerAdmin({
   getCurrentAdminId: () => currentAdminId,
   setMessage,
   showToast,
@@ -479,16 +486,37 @@ async function createRound1Question(type, questionInputId, answerInputId) {
   const questionInput = $(questionInputId);
   const answerInput = $(answerInputId);
   const question = questionInput.value.trim();
-  const answer = answerInput.value.trim();
-  if (!question || !answer) return;
+  const rawAnswer = answerInput.value.trim();
+  if (!question || !rawAnswer) return;
 
   const listSnap = await get(ref(db, `rooms/manche1/questions/${type}`));
   const order = Object.keys(listSnap.val() || {}).length + 1;
 
+  const payload = { type, text: question, answer: rawAnswer, order, createdAt: Date.now(), createdBy: currentAdminId };
+  if (type === "viewers") {
+    const acceptedAnswers = parseAcceptedAnswers(rawAnswer);
+    payload.acceptedAnswers = acceptedAnswers;
+    payload.normalizedAnswers = acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean);
+    payload.answer = acceptedAnswers[0] || rawAnswer;
+    payload.points = Math.max(1, Number($("viewer-points")?.value || 1));
+    payload.timerSeconds = Math.max(0, Number($("viewer-timer")?.value || 0));
+    payload.settings = {
+      firstCorrectOnly: Boolean($("viewer-first-correct-only")?.checked),
+      allowMultipleWinners: Boolean($("viewer-allow-multi")?.checked),
+      caseSensitive: false,
+    };
+  }
+
   const questionRef = push(ref(db, `rooms/manche1/questions/${type}`));
-  await set(questionRef, { type, text: question, answer, order, createdAt: Date.now(), createdBy: currentAdminId });
+  await set(questionRef, payload);
   questionInput.value = "";
   answerInput.value = "";
+  if (type === "viewers") {
+    if ($("viewer-points")) $("viewer-points").value = "1";
+    if ($("viewer-timer")) $("viewer-timer").value = "30";
+    if ($("viewer-first-correct-only")) $("viewer-first-correct-only").checked = true;
+    if ($("viewer-allow-multi")) $("viewer-allow-multi").checked = false;
+  }
   showToast("Question ajoutée");
 }
 
@@ -770,6 +798,7 @@ async function resetParticipantsAndLeaderboard() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
+    set(ref(db, "rooms/viewers/liveState"), { active: false, status: "idle", updatedAt: Date.now(), updatedBy: currentAdminId }),
   ]);
 }
 
@@ -785,6 +814,10 @@ async function resetCompleteQuiz() {
     remove(ref(db, "rooms/manche2/questions")),
     remove(ref(db, "rooms/manche3/themes")),
     remove(ref(db, "rooms/manche4/grids")),
+    remove(ref(db, "rooms/viewers/questions")),
+    remove(ref(db, "rooms/viewers/attempts")),
+    remove(ref(db, "rooms/viewers/winners")),
+    remove(ref(db, "rooms/viewers/chatFeed")),
     update(ref(db, "rooms/manche1/state"), {
       currentType: "participants",
       currentQuestionId: null,
@@ -835,6 +868,7 @@ async function resetCompleteQuiz() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
+    set(ref(db, "rooms/viewers/liveState"), { active: false, status: "idle", updatedAt: Date.now(), updatedBy: currentAdminId }),
     update(ref(db, "quiz/state"), {
       activeRound: targetRound,
       liveRound: targetRound,
@@ -902,7 +936,9 @@ function renderRound1QuestionList(type, data, container) {
     const li = document.createElement("li");
     li.className = "question-item";
     const isActive = liveState?.currentQuestionId === id;
-    li.innerHTML = `<div class="question-head"><strong>Q${q.order}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><p>${q.text}</p><p class="muted">Réponse : ${q.answer}</p>`;
+    const aliases = Array.isArray(q.acceptedAnswers) && q.acceptedAnswers.length ? q.acceptedAnswers.join(' · ') : q.answer;
+    const modeLabel = type === 'viewers' ? `Mode viewers · ${Number(q.points || 1)} pt · ${Number(q.timerSeconds || 0)}s` : 'Mode participants';
+    li.innerHTML = `<div class="question-head"><strong>Q${q.order}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><p>${q.text}</p><p class="muted">Réponses acceptées : ${aliases}</p><p class="muted">${modeLabel}</p>`;
 
     const actions = document.createElement("div");
     actions.className = "row question-actions";
@@ -912,8 +948,26 @@ function renderRound1QuestionList(type, data, container) {
     askBtn.textContent = isActive ? "En direct" : "Lancer";
     askBtn.disabled = isActive;
     askBtn.addEventListener("click", async () => {
+      const now = Date.now();
       await clearBuzzData();
-      await update(ref(db, "rooms/manche1/state"), { currentType: type, currentQuestionId: id, showAnswer: false, buzzerLocked: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: Date.now() });
+      await update(ref(db, "rooms/manche1/state"), { currentType: type, currentQuestionId: id, showAnswer: false, buzzerLocked: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: now });
+      if (type === 'viewers') {
+        const timerSeconds = Number(q.timerSeconds || 0);
+        await set(ref(db, "rooms/viewers/liveState"), {
+          active: true,
+          status: 'active',
+          mode: 'viewer-question',
+          round: 'manche1',
+          questionId: id,
+          settings: q.settings || { firstCorrectOnly: true, allowMultipleWinners: false, caseSensitive: false },
+          points: Number(q.points || 1),
+          timerSeconds,
+          startedAt: now,
+          endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
+          updatedAt: now,
+          updatedBy: currentAdminId,
+        });
+      }
       activateRoundSection("manche1", "live");
     });
 
@@ -926,6 +980,31 @@ function renderRound1QuestionList(type, data, container) {
     editBtn.className = "btn btn-secondary";
     editBtn.textContent = "Éditer";
     editBtn.addEventListener("click", async () => editRound1Question(type, id, q));
+
+    if (type === "viewers") {
+      const stopBtn = document.createElement("button");
+      stopBtn.className = "btn btn-secondary";
+      stopBtn.textContent = "Stop";
+      stopBtn.addEventListener("click", async () => {
+        await update(ref(db, "rooms/viewers/liveState"), { active: false, status: "stopped", endedAt: Date.now(), updatedAt: Date.now(), updatedBy: currentAdminId || "admin" });
+        if (liveState?.currentQuestionId === id) {
+          await update(ref(db, "rooms/manche1/state"), { currentType: "participants", currentQuestionId: null, showAnswer: false, updatedAt: Date.now() });
+        }
+      });
+
+      const resetBtn = document.createElement("button");
+      resetBtn.className = "btn btn-danger";
+      resetBtn.textContent = "Reset";
+      resetBtn.addEventListener("click", async () => {
+        const sessionKey = `manche1:${id}`;
+        await Promise.all([
+          remove(ref(db, `rooms/viewers/winners/${sessionKey}`)),
+          remove(ref(db, `rooms/viewers/attempts/${sessionKey}`)),
+          remove(ref(db, `rooms/manche1/viewerWinners/${id}`)),
+        ]);
+      });
+      actions.append(stopBtn, resetBtn);
+    }
 
     actions.append(askBtn, editBtn, deleteBtn);
     li.appendChild(actions);
@@ -941,22 +1020,29 @@ async function editRound1Question(type, questionId, currentQuestion) {
     confirmText: "Enregistrer",
   });
   if (text === null) return;
-  const answer = await showPrompt("Modifier la réponse", {
+  const answer = await showPrompt(type === "viewers" ? "Modifier les réponses acceptées (une ligne = un alias)" : "Modifier la réponse", {
     title: "Éditer la réponse",
-    inputLabel: "Réponse",
-    defaultValue: currentQuestion?.answer || "",
+    inputLabel: type === "viewers" ? "Réponses acceptées" : "Réponse",
+    defaultValue: type === "viewers" ? (currentQuestion?.acceptedAnswers || [currentQuestion?.answer || ""]).join("\n") : (currentQuestion?.answer || ""),
     confirmText: "Enregistrer",
   });
   if (answer === null) return;
   const nextText = text.trim();
   const nextAnswer = answer.trim();
   if (!nextText || !nextAnswer) return showToast("Question et réponse obligatoires.", "error");
-  await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), {
+  const payload = {
     text: nextText,
     answer: nextAnswer,
     updatedAt: Date.now(),
     updatedBy: currentAdminId,
-  });
+  };
+  if (type === "viewers") {
+    const acceptedAnswers = parseAcceptedAnswers(nextAnswer);
+    payload.acceptedAnswers = acceptedAnswers;
+    payload.normalizedAnswers = acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean);
+    payload.answer = acceptedAnswers[0] || nextAnswer;
+  }
+  await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), payload);
   showToast("Question mise à jour");
 }
 
@@ -966,6 +1052,7 @@ async function deleteRound1Question(type, questionId) {
   await remove(ref(db, `rooms/manche1/questions/${type}/${questionId}`));
   if (isActive) {
     await update(ref(db, "rooms/manche1/state"), { currentType: "participants", currentQuestionId: null, showAnswer: false, buzzerLocked: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: Date.now() });
+    await update(ref(db, "rooms/viewers/liveState"), { active: false, status: "stopped", endedAt: Date.now(), updatedAt: Date.now(), updatedBy: currentAdminId || "admin" });
     await clearBuzzData();
   }
 }
