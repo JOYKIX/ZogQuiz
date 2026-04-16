@@ -197,7 +197,9 @@ let manche3Themes = {};
 let manche3State = null;
 let m3Ticker = null;
 
-const triggerBuzzSound = createBuzzSoundTrigger();
+const triggerBuzzSound = createBuzzSoundTrigger({
+  resolveBuzzerFile: (state) => sessionsById[state?.lockedBySessionId]?.buzzerSound || "buzzer.mp3",
+});
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
@@ -903,6 +905,27 @@ async function updateParticipantScore(sessionId, delta) {
   await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, updatedAt: Date.now() });
 }
 
+function normalizeBuzzerFileName(value) {
+  const trimmed = String(value || "").trim().toLowerCase();
+  if (!trimmed) return "";
+  if (!/^[a-z0-9_-]+\.mp3$/i.test(trimmed)) return null;
+  return trimmed === "buzzer.mp3" ? "" : trimmed;
+}
+
+async function updateParticipantBuzzer(sessionId, rawValue) {
+  if (!sessionId) return;
+  const normalized = normalizeBuzzerFileName(rawValue);
+  if (normalized === null) {
+    showToast("Nom de fichier invalide (ex: buzzer1.mp3).", "error");
+    return;
+  }
+  await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), {
+    buzzerSound: normalized,
+    updatedAt: Date.now(),
+  });
+  showToast(normalized ? "Buzzer personnalisé enregistré." : "Buzzer par défaut réactivé.");
+}
+
 function renderLeaderboardList(target, entries, emptyText, includeActions = false, actions = [1, -1]) {
   if (!target) return;
   target.innerHTML = "";
@@ -928,13 +951,62 @@ function renderLeaderboardList(target, entries, emptyText, includeActions = fals
   });
 }
 
+function renderParticipantsAdminList(target, entries, emptyText) {
+  if (!target) return;
+  target.innerHTML = "";
+  if (!entries.length) return (target.innerHTML = `<li class="empty-state">${emptyText}</li>`);
+
+  entries.forEach((p) => {
+    const li = document.createElement("li");
+    li.className = "leader-item has-buzzer";
+    li.innerHTML = `<span class="leader-name">${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
+
+    if (p.id) {
+      const actionWrap = document.createElement("div");
+      actionWrap.className = "score-actions";
+      [-1, 1].forEach((delta) => {
+        const button = document.createElement("button");
+        button.className = delta < 0 ? "btn btn-danger mini-btn" : "btn btn-secondary mini-btn";
+        button.textContent = `${delta > 0 ? "+" : ""}${delta}`;
+        button.addEventListener("click", () => updateParticipantScore(p.id, delta));
+        actionWrap.appendChild(button);
+      });
+
+      const buzzerWrap = document.createElement("div");
+      buzzerWrap.className = "participant-buzzer";
+
+      const buzzerInput = document.createElement("input");
+      buzzerInput.type = "text";
+      buzzerInput.placeholder = "buzzer1.mp3";
+      buzzerInput.value = p.buzzerSound || "";
+      buzzerInput.setAttribute("list", "buzzer-presets");
+
+      const saveBtn = document.createElement("button");
+      saveBtn.className = "btn btn-secondary mini-btn";
+      saveBtn.textContent = "Son";
+      saveBtn.title = "Enregistrer le buzzer";
+      saveBtn.addEventListener("click", () => updateParticipantBuzzer(p.id, buzzerInput.value));
+      buzzerInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        updateParticipantBuzzer(p.id, buzzerInput.value);
+      });
+
+      buzzerWrap.append(buzzerInput, saveBtn);
+      li.append(actionWrap, buzzerWrap);
+    }
+
+    target.appendChild(li);
+  });
+}
+
 function sortedSessions() {
   return Object.entries(sessionsById).map(([id, s]) => ({ id, ...s, score: Number(s.score || 0) })).sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
 }
 
 function renderParticipants() {
   const entries = sortedSessions();
-  renderLeaderboardList(participantsList, entries, "Aucun participant.", true, [-1, 1]);
+  renderParticipantsAdminList(participantsList, entries, "Aucun participant.");
   renderLeaderboardList(m1ParticipantsList, entries, "Aucun participant.", true, [-1, 1]);
   renderLeaderboardList(m1LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
   renderLeaderboardList(quickLeaderboard, entries.slice(0, 5), "Le classement apparaîtra ici.");

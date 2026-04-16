@@ -60,7 +60,9 @@ let round3Themes = {};
 let sessionsById = {};
 let manche5Controller = null;
 
-const triggerBuzzSound = createBuzzSoundTrigger();
+const triggerBuzzSound = createBuzzSoundTrigger({
+  resolveBuzzerFile: (state) => sessionsById[state?.lockedBySessionId]?.buzzerSound || "buzzer.mp3",
+});
 
 function readStoredGuestSession() {
   try {

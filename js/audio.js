@@ -1,17 +1,44 @@
-const BUZZER_SOUND_URL = new URL("../sound/buzzer.mp3", import.meta.url).href;
+const DEFAULT_BUZZER_FILE = "buzzer.mp3";
+const BUZZER_DIR_URL = new URL("../sound/", import.meta.url);
+const audioByFile = new Map();
 
-const buzzerAudio = new Audio(BUZZER_SOUND_URL);
-buzzerAudio.preload = "auto";
-
-export function playBuzzerSound() {
-  buzzerAudio.currentTime = 0;
-  const playback = buzzerAudio.play();
-  if (playback && typeof playback.catch === "function") {
-    playback.catch(() => {});
-  }
+function normalizeBuzzerFile(fileName) {
+  if (!fileName) return DEFAULT_BUZZER_FILE;
+  const normalized = String(fileName).trim().toLowerCase();
+  if (!/^[a-z0-9_-]+\.mp3$/i.test(normalized)) return DEFAULT_BUZZER_FILE;
+  return normalized;
 }
 
-export function createBuzzSoundTrigger() {
+function getAudioForFile(fileName) {
+  const normalized = normalizeBuzzerFile(fileName);
+  if (audioByFile.has(normalized)) return audioByFile.get(normalized);
+
+  const audio = new Audio(new URL(normalized, BUZZER_DIR_URL).href);
+  audio.preload = "auto";
+  audioByFile.set(normalized, audio);
+  return audio;
+}
+
+function tryPlayAudio(audio) {
+  audio.currentTime = 0;
+  const playback = audio.play();
+  if (!playback || typeof playback.then !== "function") return Promise.resolve(true);
+  return playback.then(() => true).catch(() => false);
+}
+
+export function playBuzzerSound(fileName = DEFAULT_BUZZER_FILE) {
+  const normalized = normalizeBuzzerFile(fileName);
+  const selectedAudio = getAudioForFile(normalized);
+
+  tryPlayAudio(selectedAudio).then((ok) => {
+    if (!ok && normalized !== DEFAULT_BUZZER_FILE) {
+      const fallbackAudio = getAudioForFile(DEFAULT_BUZZER_FILE);
+      tryPlayAudio(fallbackAudio);
+    }
+  });
+}
+
+export function createBuzzSoundTrigger({ resolveBuzzerFile } = {}) {
   let lastBuzzToken = null;
 
   return (state) => {
@@ -25,6 +52,7 @@ export function createBuzzSoundTrigger() {
     if (token === lastBuzzToken) return;
 
     lastBuzzToken = token;
-    playBuzzerSound();
+    const buzzerFile = typeof resolveBuzzerFile === "function" ? resolveBuzzerFile(state) : DEFAULT_BUZZER_FILE;
+    playBuzzerSound(buzzerFile);
   };
 }
