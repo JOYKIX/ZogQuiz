@@ -92,3 +92,21 @@
 
 .workspace-panel ul li::marker { color: rgba(163, 177, 255, 0.9); }
 .workspace-panel strong { color: #f2f5ff; }
+
+.viewer-panel {
+  border: 1px solid rgba(111, 201, 255, 0.35);
+  background: linear-gradient(180deg, rgba(36, 77, 120, 0.2), rgba(10, 16, 34, 0.8));
+}
+
+.viewer-question-card {
+  border: 1px solid rgba(125, 180, 255, 0.28);
+  border-radius: var(--radius-md);
+  padding: 0.6rem;
+  margin-bottom: 0.55rem;
+  background: rgba(14, 22, 40, 0.84);
+}
+
+.viewer-question-card-active {
+  box-shadow: 0 0 0 2px rgba(87, 229, 145, 0.32);
+  border-color: rgba(87, 229, 145, 0.7);
+}

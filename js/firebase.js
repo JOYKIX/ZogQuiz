@@ -199,6 +199,17 @@ export async function ensureRoundsSeed(uid) {
   }
 
 
+
+  const viewersLiveStateRef = ref(db, "rooms/viewers/liveState");
+  if (!(await get(viewersLiveStateRef)).exists()) {
+    await set(viewersLiveStateRef, {
+      active: false,
+      status: "idle",
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
   const blindtestLiveRef = ref(db, "blindtestLive");
   if (!(await get(blindtestLiveRef)).exists()) {
     await set(blindtestLiveRef, {

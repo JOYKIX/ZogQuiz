@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bot Twitch -> Firebase pour les questions viewers de ZogQuiz."""
+"""Bot Twitch -> Firebase pour le système viewers multi-manches de ZogQuiz."""
 
 from __future__ import annotations
 
@@ -12,12 +12,11 @@ import time
 import unicodedata
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-LOG_FORMAT = "%(asctime)s | %(levelname)s | %(message)s"
-DEFAULT_POLL_SECONDS = 2
+LOG_FORMAT = "%Y-%m-%d %H:%M:%S"
+DEFAULT_POLL_SECONDS = 1.2
 DEFAULT_RECONNECT_SECONDS = 5
 
 FIREBASE_DB_URL = "https://zogquiz-default-rtdb.europe-west1.firebasedatabase.app"
@@ -25,10 +24,13 @@ TWITCH_IRC_HOST = "irc.chat.twitch.tv"
 TWITCH_IRC_PORT = 6667
 
 
-@dataclass
-class ActiveViewerQuestion:
-    question_id: str
-    answer: str
+def normalize_answer(value: str) -> str:
+    cleaned = unicodedata.normalize("NFKD", value or "")
+    cleaned = "".join(ch for ch in cleaned if not unicodedata.combining(ch))
+    cleaned = cleaned.lower().strip()
+    cleaned = re.sub(r"[^\w\s]", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
 
 
 class FirebaseClient:
@@ -37,12 +39,8 @@ class FirebaseClient:
 
     def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        data = None
-        headers = {"Content-Type": "application/json"}
-        if payload is not None:
-            data = json.dumps(payload).encode("utf-8")
-
-        req = urllib.request.Request(url=url, data=data, method=method, headers=headers)
+        data = json.dumps(payload).encode("utf-8") if payload is not None else None
+        req = urllib.request.Request(url=url, data=data, method=method, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=12) as resp:
             raw = resp.read().decode("utf-8")
             return json.loads(raw) if raw else None
@@ -53,51 +51,119 @@ class FirebaseClient:
     def put(self, path: str, payload: dict[str, Any]) -> Any:
         return self._request("PUT", f"{path}.json", payload)
 
-    def get_active_viewer_question(self) -> ActiveViewerQuestion | None:
-        state = self.get("rooms/manche1/state") or {}
-        if state.get("currentType") != "viewers":
-            return None
+    def patch(self, path: str, payload: dict[str, Any]) -> Any:
+        return self._request("PATCH", f"{path}.json", payload)
 
-        question_id = state.get("currentQuestionId")
-        if not question_id:
-            return None
-
-        question = self.get(f"rooms/manche1/questions/viewers/{question_id}") or {}
-        answer = str(question.get("answer") or "").strip()
-        if not answer:
-            return None
-
-        winner = self.get(f"rooms/manche1/viewerWinners/{question_id}")
-        if winner:
-            return None
-
-        return ActiveViewerQuestion(question_id=question_id, answer=answer)
-
-    def reward_viewer(self, question_id: str, twitch_user: str, raw_message: str) -> bool:
-        existing = self.get(f"rooms/manche1/viewerWinners/{question_id}")
-        if existing:
-            return False
-
-        winner_payload = {
-            "twitchUser": twitch_user,
-            "rawMessage": raw_message,
-            "awardedAt": int(time.time() * 1000),
-        }
-        self.put(f"rooms/manche1/viewerWinners/{question_id}", winner_payload)
-
-        leaderboard_path = f"rooms/manche1/viewerLeaderboard/{twitch_user.lower()}"
-        previous = self.get(leaderboard_path) or {}
-        score = int(previous.get("score") or 0) + 1
-
+    def write_chat_message(self, username: str, message: str, timestamp_ms: int) -> None:
+        key = f"{timestamp_ms}_{username.lower()}"
         self.put(
-            leaderboard_path,
+            f"rooms/viewers/chatFeed/{key}",
+            {"username": username, "message": message, "timestamp": timestamp_ms},
+        )
+
+    def get_active_viewer_session(self) -> dict[str, Any] | None:
+        live_state = self.get("rooms/viewers/liveState") or {}
+        if live_state.get("active"):
+            return live_state
+
+        state = self.get("rooms/manche1/state") or {}
+        if state.get("currentType") != "viewers" or not state.get("currentQuestionId"):
+            return None
+
+        qid = str(state.get("currentQuestionId"))
+        question = self.get(f"rooms/manche1/questions/viewers/{qid}") or {}
+        return {
+            "active": True,
+            "round": "manche1",
+            "mode": "viewer-question",
+            "questionId": qid,
+            "settings": question.get("settings") or {"firstCorrectOnly": True, "allowMultipleWinners": False},
+            "points": int(question.get("points") or 1),
+        }
+
+    def load_question(self, active: dict[str, Any]) -> dict[str, Any] | None:
+        round_name = str(active.get("round") or "")
+        qid = str(active.get("questionId") or "")
+        if not round_name:
+            return None
+
+        if round_name == "manche1":
+            return self.get(f"rooms/manche1/questions/viewers/{qid}") or None
+        if round_name in {"manche2", "manche3", "manche5"}:
+            return self.get(f"rooms/viewers/questions/{round_name}/{qid}") or None
+        if round_name == "manche4":
+            return self.load_round4_context(active)
+        return None
+
+    def load_round4_context(self, active: dict[str, Any]) -> dict[str, Any] | None:
+        grid_id = str(active.get("gridId") or self.get("rooms/manche4/state/currentGridId") or "")
+        if not grid_id:
+            return None
+
+        grid = self.get(f"rooms/viewers/round4/grids/{grid_id}")
+        if not grid:
+            grid = self.get(f"rooms/manche4/grids/{grid_id}")
+
+        if not grid:
+            return None
+
+        valid_cells: list[int] = []
+        words = grid.get("words") or grid.get("cells") or []
+        for idx, word in enumerate(words, start=1):
+            role = str((word or {}).get("role") or "")
+            valid = bool((word or {}).get("valid"))
+            if role == "good" or valid:
+                valid_cells.append(idx)
+
+        return {"gridId": grid_id, "validCells": valid_cells}
+
+    @staticmethod
+    def compute_session_key(active: dict[str, Any]) -> str:
+        if active.get("round") == "manche4":
+            return f"manche4:{active.get('gridId', 'grid')}:{active.get('clueId', 'clue')}"
+        return f"{active.get('round')}:{active.get('questionId')}"
+
+    def append_attempt(self, session_key: str, username: str, message: str, correct: bool, timestamp_ms: int) -> None:
+        key = f"{timestamp_ms}_{username.lower()}"
+        self.put(
+            f"rooms/viewers/attempts/{session_key}/{key}",
             {
-                "twitchUser": twitch_user,
-                "score": score,
-                "lastWinAt": int(time.time() * 1000),
+                "username": username,
+                "message": message,
+                "correct": correct,
+                "timestamp": timestamp_ms,
             },
         )
-        return True
+
+    def has_winner(self, session_key: str, username: str) -> bool:
+        existing = self.get(f"rooms/viewers/winners/{session_key}/{username.lower()}")
+        return bool(existing)
+
+    def has_any_winner(self, session_key: str) -> bool:
+        return bool(self.get(f"rooms/viewers/winners/{session_key}"))
+
+    def reward_viewer(self, active: dict[str, Any], username: str, raw_message: str, timestamp_ms: int) -> None:
+        session_key = self.compute_session_key(active)
+        points = int(active.get("points") or 1)
+
+        self.put(
+            f"rooms/viewers/winners/{session_key}/{username.lower()}",
+            {
+                "username": username,
+                "rawMessage": raw_message,
+                "points": points,
+                "timestamp": timestamp_ms,
+                "round": active.get("round"),
+            },
+        )
+
+        leaderboard_path = f"rooms/manche1/viewerLeaderboard/{username.lower()}"
+        previous = self.get(leaderboard_path) or {}
+        score = int(previous.get("score") or 0) + points
+        self.put(
+            leaderboard_path,
+            {"twitchUser": username, "score": score, "lastWinAt": timestamp_ms},
+        )
 
 
 class TwitchIRC:
@@ -119,36 +185,21 @@ class TwitchIRC:
     def read_lines(self) -> list[str]:
         if not self.sock:
             raise RuntimeError("Socket IRC non initialisée")
-
         data = self.sock.recv(4096).decode("utf-8", errors="ignore")
         lines = [line.strip() for line in data.split("\r\n") if line.strip()]
-
         for line in lines:
             if line.startswith("PING"):
                 self.sock.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
-
         return lines
-
-
-def normalize_answer(value: str) -> str:
-    cleaned = unicodedata.normalize("NFKD", value)
-    cleaned = "".join(ch for ch in cleaned if not unicodedata.combining(ch))
-    cleaned = cleaned.lower().strip()
-    cleaned = re.sub(r"[^a-z0-9]+", "", cleaned)
-    return cleaned
 
 
 def extract_chat_message(raw_irc_line: str) -> tuple[str, str] | None:
     if "PRIVMSG" not in raw_irc_line:
         return None
-
     match = re.match(r"^:([^!]+)!.* PRIVMSG #[^ ]+ :(.*)$", raw_irc_line)
     if not match:
         return None
-
-    user = match.group(1)
-    message = match.group(2).strip()
-    return user, message
+    return match.group(1), match.group(2).strip()
 
 
 def load_env() -> tuple[str, str]:
@@ -168,13 +219,31 @@ def load_env() -> tuple[str, str]:
     return token, channel
 
 
+def is_correct(active: dict[str, Any], question: dict[str, Any], message: str) -> bool:
+    if active.get("round") == "manche4":
+        normalized = normalize_answer(message)
+        if not normalized.isdigit():
+            return False
+        choice = int(normalized)
+        return choice in list(question.get("validCells") or [])
+
+    aliases = question.get("normalizedAnswers") or []
+    if not aliases:
+        accepted = question.get("acceptedAnswers") or [question.get("answer") or ""]
+        aliases = [normalize_answer(value) for value in accepted if value]
+
+    normalized = normalize_answer(message)
+    return normalized in set(aliases)
+
+
 def run() -> None:
-    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
     token, channel = load_env()
     twitch = TwitchIRC(token=token, channel=channel)
     firebase = FirebaseClient(FIREBASE_DB_URL)
 
-    active: ActiveViewerQuestion | None = None
+    active: dict[str, Any] | None = None
+    question: dict[str, Any] | None = None
     next_poll = 0.0
 
     while True:
@@ -188,27 +257,40 @@ def run() -> None:
                     continue
 
                 user, message = parsed
-                now = time.time()
-                if now >= next_poll:
-                    active = firebase.get_active_viewer_question()
-                    next_poll = now + DEFAULT_POLL_SECONDS
+                now = int(time.time() * 1000)
+                firebase.write_chat_message(user, message, now)
 
-                if not active:
+                ts = time.time()
+                if ts >= next_poll:
+                    active = firebase.get_active_viewer_session()
+                    question = firebase.load_question(active) if active else None
+                    next_poll = ts + DEFAULT_POLL_SECONDS
+
+                if not active or not question:
                     continue
 
-                if normalize_answer(message) != normalize_answer(active.answer):
+                if active.get("endsAt") and now > int(active.get("endsAt") or 0):
                     continue
 
-                awarded = firebase.reward_viewer(
-                    question_id=active.question_id,
-                    twitch_user=user,
-                    raw_message=message,
-                )
-                if awarded:
-                    logging.info("Point viewers attribué à %s pour la question %s", user, active.question_id)
-                    active = None
-                else:
-                    logging.info("Bonne réponse ignorée pour %s (déjà attribuée).", user)
+                session_key = firebase.compute_session_key(active)
+                correct = is_correct(active, question, message)
+                firebase.append_attempt(session_key, user, message, correct, now)
+                if not correct:
+                    continue
+
+                settings = active.get("settings") or {}
+                first_only = bool(settings.get("firstCorrectOnly", True))
+                allow_multi = bool(settings.get("allowMultipleWinners", False))
+
+                if firebase.has_winner(session_key, user):
+                    continue
+                if first_only and firebase.has_any_winner(session_key):
+                    continue
+                if not allow_multi and firebase.has_any_winner(session_key):
+                    continue
+
+                firebase.reward_viewer(active, user, message, now)
+                logging.info("Bonne réponse viewers (%s) %s: %s", active.get("round"), user, message)
 
         except (ConnectionError, OSError, urllib.error.URLError, TimeoutError) as err:
             logging.warning("Connexion perdue (%s). Reconnexion dans %ss...", err, DEFAULT_RECONNECT_SECONDS)
