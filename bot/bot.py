@@ -12,6 +12,7 @@ import time
 import unicodedata
 import urllib.error
 import urllib.request
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +44,13 @@ class FirebaseClient:
         req = urllib.request.Request(url=url, data=data, method=method, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=12) as resp:
             raw = resp.read().decode("utf-8")
-            return json.loads(raw) if raw else None
+            if not raw:
+                return None
+            try:
+                return json.loads(raw)
+            except JSONDecodeError:
+                logging.warning("Réponse Firebase invalide sur %s %s", method, path)
+                return None
 
     def get(self, path: str) -> Any:
         return self._request("GET", f"{path}.json")
@@ -185,7 +192,10 @@ class TwitchIRC:
     def read_lines(self) -> list[str]:
         if not self.sock:
             raise RuntimeError("Socket IRC non initialisée")
-        data = self.sock.recv(4096).decode("utf-8", errors="ignore")
+        raw = self.sock.recv(4096)
+        if not raw:
+            raise ConnectionError("Connexion IRC fermée par le serveur")
+        data = raw.decode("utf-8", errors="ignore")
         lines = [line.strip() for line in data.split("\r\n") if line.strip()]
         for line in lines:
             if line.startswith("PING"):
@@ -269,7 +279,12 @@ def run() -> None:
                 if not active or not question:
                     continue
 
-                if active.get("endsAt") and now > int(active.get("endsAt") or 0):
+                ends_at = active.get("endsAt")
+                try:
+                    ends_at_int = int(ends_at) if ends_at else 0
+                except (TypeError, ValueError):
+                    ends_at_int = 0
+                if ends_at_int and now > ends_at_int:
                     continue
 
                 session_key = firebase.compute_session_key(active)
@@ -304,6 +319,15 @@ def run() -> None:
         except KeyboardInterrupt:
             logging.info("Arrêt demandé, fermeture du bot.")
             break
+        except Exception as err:  # filet de sécurité pour éviter un crash complet
+            logging.exception("Erreur inattendue (%s). Redémarrage de la boucle…", err)
+            try:
+                if twitch.sock:
+                    twitch.sock.close()
+            except OSError:
+                pass
+            twitch.sock = None
+            time.sleep(DEFAULT_RECONNECT_SECONDS)
 
 
 if __name__ == "__main__":
