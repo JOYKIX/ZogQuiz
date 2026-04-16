@@ -61,6 +61,10 @@ let round3Themes = {};
 let sessionsById = {};
 let manche5Controller = null;
 
+function isAccountActive(account) {
+  return account?.active !== false;
+}
+
 const triggerBuzzSound = createBuzzSoundTrigger({
   resolveBuzzerFile: (state) => sessionsById[state?.lockedBySessionId]?.buzzerSound || "buzzer.mp3",
 });
@@ -203,7 +207,7 @@ async function getAccountByCredentials(loginId, password) {
   if (!accountSnap.exists()) return { ok: false, reason: "Compte invité introuvable." };
 
   const account = accountSnap.val() || {};
-  if (!account.active) return { ok: false, reason: "Compte désactivé. Contactez l’admin." };
+  if (!isAccountActive(account)) return { ok: false, reason: "Compte désactivé. Contactez l’admin." };
 
   const passwordHash = await hashSecret(password);
   if (passwordHash !== account.passwordHash) return { ok: false, reason: "Identifiants invalides." };
@@ -226,7 +230,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
     joinedAt: existing.joinedAt || Date.now(),
     reconnectAt: Date.now(),
     score: Number(existing.score || 0),
-    active: Boolean(account.active),
+    active: isAccountActive(account),
     buzzerSound,
   });
 
@@ -307,7 +311,7 @@ async function tryAutoReconnect() {
 
   const account = accountSnap.val() || {};
   const authVersion = Number(account.authVersion || 1);
-  if (!account.active) {
+  if (!isAccountActive(account)) {
     clearStoredGuestSession();
     setGuestMessage("Session invalide : compte désactivé.", "error");
     return;
@@ -421,7 +425,7 @@ function watchRound1State() {
 function getBuzzAvailability() {
   if (!liveState) return { canBuzz: false, message: "Synchronisation en cours." };
   if (!guestAuth.accountId) return { canBuzz: false, message: "Vous n’êtes pas connecté." };
-  if (!guestAuth.account?.active) return { canBuzz: false, message: "Compte désactivé. Contactez l’admin." };
+  if (!isAccountActive(guestAuth.account)) return { canBuzz: false, message: "Compte désactivé. Contactez l’admin." };
   if (!guestAuth.nickname) return { canBuzz: false, message: "Pseudo d’affichage requis." };
   if (liveRound !== "manche1") return { canBuzz: false, message: "Buzzer indisponible hors manche 1." };
   if (!liveState.currentQuestionId) return { canBuzz: false, message: "Manche inactive : aucune question ouverte." };
@@ -454,7 +458,7 @@ async function validateConnectedGuestForBuzz() {
   }
 
   const fresh = accountSnap.val() || {};
-  if (!fresh.active) {
+  if (!isAccountActive(fresh)) {
     clearCurrentGuest({ reason: "Compte désactivé par l’admin.", type: "error" });
     return { ok: false, reason: "Compte désactivé." };
   }
@@ -589,7 +593,7 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
     return;
   }
 
-  if (!fresh.active) {
+  if (!isAccountActive(fresh)) {
     clearCurrentGuest({ reason: "Compte désactivé par l’admin.", type: "error" });
     return;
   }
