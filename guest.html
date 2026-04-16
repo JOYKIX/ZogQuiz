@@ -8,7 +8,7 @@
   </head>
   <body>
     <main class="app-shell guest-shell">
-      <section id="guest-round1" class="guest-round stack">
+      <section id="guest-auth-screen" class="guest-auth-screen">
         <section class="card panel">
           <p class="eyebrow">Accès invité</p>
           <h1>Connexion</h1>
@@ -38,58 +38,67 @@
 
           <p id="guest-message" class="message"></p>
         </section>
-
-        <section id="buzzer-panel" class="card panel hidden">
-          <h2>Buzzer</h2>
-          <button id="buzz-btn" class="buzz btn btn-primary">BUZZER</button>
-          <p id="buzz-feedback" class="message"></p>
-        </section>
       </section>
 
-      <section id="guest-round2" class="guest-round hidden">
-        <section class="card panel guest-image-card">
-          <p class="eyebrow">Manche 2</p>
-          <img id="m2-live-image" class="guest-image hidden" alt="Question manche 2" />
-          <p id="m2-empty" class="guest-empty">Aucune image active</p>
-        </section>
-      </section>
+      <section id="guest-app" class="guest-app hidden">
+        <section id="guest-round1" class="guest-round stack">
+          <section class="card panel">
+            <h2>Manche 1</h2>
+            <p class="muted">Le buzzer est disponible uniquement pendant la manche 1.</p>
+          </section>
 
-      <section id="guest-round3" class="guest-round hidden stack">
-        <section class="card panel">
-          <h2>Manche 3</h2>
-          <p id="m3-guest-status" class="message">En attente.</p>
-          <p id="m3-guest-player" class="muted">Joueur actif : —</p>
-          <p id="m3-guest-theme" class="muted">Thème actif : —</p>
+          <section id="buzzer-panel" class="card panel hidden">
+            <h2>Buzzer</h2>
+            <button id="buzz-btn" class="buzz btn btn-primary">BUZZER</button>
+            <p id="buzz-feedback" class="message"></p>
+          </section>
         </section>
 
-        <section class="card panel">
-          <h3>Choix du thème</h3>
-          <p id="m3-guest-help" class="muted">Seul le joueur actif peut choisir.</p>
-          <div id="m3-theme-buttons" class="row"></div>
+        <section id="guest-round2" class="guest-round hidden">
+          <section class="card panel guest-image-card">
+            <p class="eyebrow">Manche 2</p>
+            <img id="m2-live-image" class="guest-image hidden" alt="Question manche 2" />
+            <p id="m2-empty" class="guest-empty">Aucune image active</p>
+          </section>
         </section>
-      </section>
 
-      <section id="guest-round4" class="guest-round hidden stack">
-        <section class="card panel">
-          <h2>Manche 4 · Codenames</h2>
-          <p id="m4-guest-status" class="message">En attente du lancement.</p>
-          <p id="m4-guest-clue" class="muted">Indice : —</p>
-          <p id="m4-guest-phase" class="muted">Phase : 1/3</p>
-        </section>
-        <section class="card panel">
-          <div id="m4-guest-grid" class="m4-grid"></div>
-        </section>
-      </section>
+        <section id="guest-round3" class="guest-round hidden stack">
+          <section class="card panel">
+            <h2>Manche 3</h2>
+            <p id="m3-guest-status" class="message">En attente.</p>
+            <p id="m3-guest-player" class="muted">Joueur actif : —</p>
+            <p id="m3-guest-theme" class="muted">Thème actif : —</p>
+          </section>
 
-      <section id="guest-round5" class="guest-round hidden stack">
-        <section class="card panel">
-          <h2>Manche 5 · Blindtest</h2>
-          <p id="m5-guest-status" class="message">En attente du lancement admin.</p>
-          <p id="m5-guest-track" class="muted">Piste : —</p>
-          <p id="m5-guest-playback" class="muted">État : Attente</p>
-          <button id="m5-audio-unlock" class="btn btn-primary">Activer l’audio</button>
-          <p id="m5-audio-hint" class="muted">Cliquez une fois pour autoriser la lecture audio YouTube.</p>
-          <div id="m5-guest-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
+          <section class="card panel">
+            <h3>Choix du thème</h3>
+            <p id="m3-guest-help" class="muted">Seul le joueur actif peut choisir.</p>
+            <div id="m3-theme-buttons" class="row"></div>
+          </section>
+        </section>
+
+        <section id="guest-round4" class="guest-round hidden stack">
+          <section class="card panel">
+            <h2>Manche 4 · Codenames</h2>
+            <p id="m4-guest-status" class="message">En attente du lancement.</p>
+            <p id="m4-guest-clue" class="muted">Indice : —</p>
+            <p id="m4-guest-phase" class="muted">Phase : 1/3</p>
+          </section>
+          <section class="card panel">
+            <div id="m4-guest-grid" class="m4-grid"></div>
+          </section>
+        </section>
+
+        <section id="guest-round5" class="guest-round hidden stack">
+          <section class="card panel">
+            <h2>Manche 5 · Blindtest</h2>
+            <p id="m5-guest-status" class="message">En attente du lancement admin.</p>
+            <p id="m5-guest-track" class="muted">Piste : —</p>
+            <p id="m5-guest-playback" class="muted">État : Attente</p>
+            <button id="m5-audio-unlock" class="btn btn-primary">Activer l’audio</button>
+            <p id="m5-audio-hint" class="muted">Cliquez une fois pour autoriser la lecture audio YouTube.</p>
+            <div id="m5-guest-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
+          </section>
         </section>
       </section>
     </main>

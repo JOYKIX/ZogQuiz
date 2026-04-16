@@ -3,6 +3,23 @@
   padding-top: var(--space-5);
 }
 
+.guest-auth-screen {
+  min-height: min(82vh, 820px);
+  display: grid;
+  align-items: center;
+}
+
+.guest-auth-screen > .card {
+  max-width: 620px;
+  width: min(100%, 620px);
+  margin-inline: auto;
+}
+
+.guest-app {
+  display: grid;
+  gap: var(--space-3);
+}
+
 .guest-round {
   display: grid;
   gap: var(--space-3);
