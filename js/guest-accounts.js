@@ -28,6 +28,15 @@ export function validateDisplayName(rawValue) {
   return { valid: true, value, reason: "" };
 }
 
+export function normalizeBuzzerSoundFile(rawValue) {
+  const value = String(rawValue || "").trim().toLowerCase();
+  if (!value || value === "buzzer.mp3") return "";
+  if (!/^[a-z0-9_-]+\.mp3$/i.test(value)) {
+    throw new Error("Nom de fichier buzzer invalide (ex: buzzer1.mp3).");
+  }
+  return value;
+}
+
 export async function hashSecret(secret) {
   const payload = new TextEncoder().encode(String(secret || ""));
   const digest = await crypto.subtle.digest("SHA-256", payload);
@@ -40,10 +49,11 @@ function randomId(prefix = "guest") {
   return `${prefix}_${timePart}_${randomPart}`;
 }
 
-export async function createGuestAccount({ loginId, password, createdBy }) {
+export async function createGuestAccount({ loginId, password, createdBy, buzzerSound = "" }) {
   const normalizedLoginId = normalizeLoginId(loginId);
   if (!normalizedLoginId) throw new Error("L’ID de connexion est obligatoire.");
   if (String(password || "").length < 6) throw new Error("Le mot de passe doit contenir au moins 6 caractères.");
+  const normalizedBuzzerSound = normalizeBuzzerSoundFile(buzzerSound);
 
   const loginRef = ref(db, `${GUEST_LOGIN_INDEX_PATH}/${normalizedLoginId}`);
   if ((await get(loginRef)).exists()) {
@@ -57,6 +67,7 @@ export async function createGuestAccount({ loginId, password, createdBy }) {
     loginId: normalizedLoginId,
     passwordHash: await hashSecret(password),
     active: true,
+    buzzerSound: normalizedBuzzerSound,
     allowDisplayNameChange: false,
     displayName: "",
     authVersion: 1,

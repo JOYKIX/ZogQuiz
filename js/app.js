@@ -20,6 +20,7 @@ import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
   createGuestAccount,
+  normalizeBuzzerSoundFile,
   removeGuestAccount,
   setGuestAccountPassword,
 } from "./guest-accounts.js";
@@ -41,6 +42,7 @@ const toast = $("toast");
 const guestAccountForm = $("guest-account-form");
 const guestLoginIdInput = $("guest-login-id");
 const guestPasswordInput = $("guest-password");
+const guestBuzzerSoundInput = $("guest-buzzer-sound");
 const guestAccountsList = $("guest-accounts-list");
 const guestAccountsMessage = $("guest-accounts-message");
 
@@ -398,6 +400,7 @@ guestAccountForm?.addEventListener("submit", async (event) => {
     await createGuestAccount({
       loginId: guestLoginIdInput.value,
       password: guestPasswordInput.value,
+      buzzerSound: guestBuzzerSoundInput?.value || "",
       createdBy: currentAdminId,
     });
     guestAccountForm.reset();
@@ -663,10 +666,12 @@ function renderGuestAccounts() {
     li.className = "question-item";
     const status = account.active ? "Actif" : "Désactivé";
     const displayName = String(account.displayName || "").trim() || "Non défini";
+    const buzzerSound = String(account.buzzerSound || "").trim() || "buzzer.mp3 (défaut)";
     const createdAtLabel = account.createdAt ? new Date(account.createdAt).toLocaleString() : "—";
     li.innerHTML = `
       <div class="question-head"><strong>${account.loginId || account.id}</strong><span class="question-active-chip">${status}</span></div>
       <p><strong>Pseudo :</strong> ${displayName}</p>
+      <p><strong>Buzzer :</strong> ${buzzerSound}</p>
       <p class="muted">Créé le : ${createdAtLabel}</p>
     `;
 
@@ -905,24 +910,27 @@ async function updateParticipantScore(sessionId, delta) {
   await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), { score, updatedAt: Date.now() });
 }
 
-function normalizeBuzzerFileName(value) {
-  const trimmed = String(value || "").trim().toLowerCase();
-  if (!trimmed) return "";
-  if (!/^[a-z0-9_-]+\.mp3$/i.test(trimmed)) return null;
-  return trimmed === "buzzer.mp3" ? "" : trimmed;
-}
-
 async function updateParticipantBuzzer(sessionId, rawValue) {
   if (!sessionId) return;
-  const normalized = normalizeBuzzerFileName(rawValue);
-  if (normalized === null) {
+  let normalized = "";
+  try {
+    normalized = normalizeBuzzerSoundFile(rawValue);
+  } catch (_error) {
     showToast("Nom de fichier invalide (ex: buzzer1.mp3).", "error");
     return;
   }
-  await update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), {
-    buzzerSound: normalized,
-    updatedAt: Date.now(),
-  });
+  const updatedAt = Date.now();
+  await Promise.all([
+    update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), {
+      buzzerSound: normalized,
+      updatedAt,
+    }),
+    update(ref(db, `${GUEST_ACCOUNTS_PATH}/${sessionId}`), {
+      buzzerSound: normalized,
+      updatedAt,
+      updatedBy: currentAdminId || "admin",
+    }),
+  ]);
   showToast(normalized ? "Buzzer personnalisé enregistré." : "Buzzer par défaut réactivé.");
 }
 
