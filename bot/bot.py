@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Bot Twitch -> Firebase pour le système viewers multi-manches de ZogQuiz."""
+"""Bot Twitch -> Firebase robuste pour ZogQuiz.
+
+Architecture:
+- TwitchIRCClient: couche réseau IRC/Twitch
+- FirebaseClient: couche accès Firebase Realtime DB
+- ViewerQuizService: logique métier (sessions, validation, récompenses)
+- main(): boucle principale résiliente avec reconnexion
+"""
 
 from __future__ import annotations
 
@@ -12,14 +19,18 @@ import time
 import unicodedata
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
-LOG_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_POLL_SECONDS = 1.2
 DEFAULT_RECONNECT_SECONDS = 5
 MAX_CHAT_MESSAGE_LENGTH = 350
+SOCKET_READ_SIZE = 4096
+SOCKET_TIMEOUT_SECONDS = 30
+FIREBASE_TIMEOUT_SECONDS = 12
 
 FIREBASE_DB_URL = "https://zogquiz-default-rtdb.europe-west1.firebasedatabase.app"
 TWITCH_IRC_HOST = "irc.chat.twitch.tv"
@@ -27,6 +38,7 @@ TWITCH_IRC_PORT = 6667
 
 
 def normalize_answer(value: str) -> str:
+    """Normalise une réponse pour comparaison robuste."""
     cleaned = unicodedata.normalize("NFKD", value or "")
     cleaned = "".join(ch for ch in cleaned if not unicodedata.combining(ch))
     cleaned = cleaned.lower().strip()
@@ -35,32 +47,63 @@ def normalize_answer(value: str) -> str:
     return cleaned.strip()
 
 
+def to_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def to_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def to_list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+@dataclass
+class ChatMessage:
+    username: str
+    message: str
+
+
 class FirebaseClient:
+    """Client Firebase tolérant aux erreurs réseau/JSON."""
+
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
 
     def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}/{path.lstrip('/')}"
         data = json.dumps(payload).encode("utf-8") if payload is not None else None
-        req = urllib.request.Request(url=url, data=data, method=method, headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            raw = resp.read().decode("utf-8")
-            if not raw:
-                return None
-            try:
-                return json.loads(raw)
-            except JSONDecodeError:
-                logging.warning("Réponse Firebase invalide sur %s %s", method, path)
-                return None
+        req = urllib.request.Request(
+            url=url,
+            data=data,
+            method=method,
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=FIREBASE_TIMEOUT_SECONDS) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            logging.warning("Firebase %s %s échoué (%s)", method, path, exc)
+            return None
+
+        if not raw:
+            return None
+
+        try:
+            return json.loads(raw)
+        except JSONDecodeError:
+            logging.warning("Firebase %s %s a retourné un JSON invalide", method, path)
+            return None
 
     def get(self, path: str) -> Any:
         return self._request("GET", f"{path}.json")
 
     def put(self, path: str, payload: dict[str, Any]) -> Any:
         return self._request("PUT", f"{path}.json", payload)
-
-    def patch(self, path: str, payload: dict[str, Any]) -> Any:
-        return self._request("PATCH", f"{path}.json", payload)
 
     def write_chat_message(self, username: str, message: str, timestamp_ms: int) -> None:
         key = f"{timestamp_ms}_{username.lower()}"
@@ -70,56 +113,60 @@ class FirebaseClient:
         )
 
     def get_active_viewer_session(self) -> dict[str, Any] | None:
-        live_state = self.get("rooms/viewers/liveState") or {}
-        if live_state.get("active"):
+        """Retourne la session viewers active (compat rooms/viewers/liveState + fallback manche1)."""
+        live_state = to_dict(self.get("rooms/viewers/liveState"))
+        if bool(live_state.get("active")):
             return live_state
 
-        state = self.get("rooms/manche1/state") or {}
-        if state.get("currentType") != "viewers" or not state.get("currentQuestionId"):
+        state = to_dict(self.get("rooms/manche1/state"))
+        if state.get("currentType") != "viewers":
             return None
 
-        qid = str(state.get("currentQuestionId"))
-        question = self.get(f"rooms/manche1/questions/viewers/{qid}") or {}
+        qid_raw = state.get("currentQuestionId")
+        if not qid_raw:
+            return None
+        qid = str(qid_raw)
+
+        question = to_dict(self.get(f"rooms/manche1/questions/viewers/{qid}"))
         return {
             "active": True,
             "round": "manche1",
             "mode": "viewer-question",
             "questionId": qid,
-            "settings": question.get("settings") or {"firstCorrectOnly": True, "allowMultipleWinners": False},
-            "points": int(question.get("points") or 1),
+            "settings": to_dict(question.get("settings"))
+            or {"firstCorrectOnly": True, "allowMultipleWinners": False},
+            "points": to_int(question.get("points"), 1),
         }
 
     def load_question(self, active: dict[str, Any]) -> dict[str, Any] | None:
         round_name = str(active.get("round") or "")
         qid = str(active.get("questionId") or "")
-        if not round_name:
-            return None
 
-        if round_name == "manche1":
-            return self.get(f"rooms/manche1/questions/viewers/{qid}") or None
-        if round_name in {"manche2", "manche3", "manche5"}:
-            return self.get(f"rooms/viewers/questions/{round_name}/{qid}") or None
+        if round_name == "manche1" and qid:
+            return to_dict(self.get(f"rooms/manche1/questions/viewers/{qid}")) or None
+        if round_name in {"manche2", "manche3", "manche5"} and qid:
+            return to_dict(self.get(f"rooms/viewers/questions/{round_name}/{qid}")) or None
         if round_name == "manche4":
-            return self.load_round4_context(active)
+            return self._load_round4_context(active)
         return None
 
-    def load_round4_context(self, active: dict[str, Any]) -> dict[str, Any] | None:
+    def _load_round4_context(self, active: dict[str, Any]) -> dict[str, Any] | None:
         grid_id = str(active.get("gridId") or self.get("rooms/manche4/state/currentGridId") or "")
         if not grid_id:
             return None
 
-        grid = self.get(f"rooms/viewers/round4/grids/{grid_id}")
+        grid = to_dict(self.get(f"rooms/viewers/round4/grids/{grid_id}"))
         if not grid:
-            grid = self.get(f"rooms/manche4/grids/{grid_id}")
-
+            grid = to_dict(self.get(f"rooms/manche4/grids/{grid_id}"))
         if not grid:
             return None
 
         valid_cells: list[int] = []
-        words = grid.get("words") or grid.get("cells") or []
+        words = to_list(grid.get("words") or grid.get("cells"))
         for idx, word in enumerate(words, start=1):
-            role = str((word or {}).get("role") or "")
-            valid = bool((word or {}).get("valid"))
+            item = to_dict(word)
+            role = str(item.get("role") or "")
+            valid = bool(item.get("valid"))
             if role == "good" or valid:
                 valid_cells.append(idx)
 
@@ -127,9 +174,10 @@ class FirebaseClient:
 
     @staticmethod
     def compute_session_key(active: dict[str, Any]) -> str:
-        if active.get("round") == "manche4":
+        round_name = str(active.get("round") or "unknown")
+        if round_name == "manche4":
             return f"manche4:{active.get('gridId', 'grid')}:{active.get('clueId', 'clue')}"
-        return f"{active.get('round')}:{active.get('questionId')}"
+        return f"{round_name}:{active.get('questionId', 'unknown')}"
 
     def append_attempt(self, session_key: str, username: str, message: str, correct: bool, timestamp_ms: int) -> None:
         key = f"{timestamp_ms}_{username.lower()}"
@@ -152,7 +200,7 @@ class FirebaseClient:
 
     def reward_viewer(self, active: dict[str, Any], username: str, raw_message: str, timestamp_ms: int) -> None:
         session_key = self.compute_session_key(active)
-        points = int(active.get("points") or 1)
+        points = to_int(active.get("points"), 1)
 
         self.put(
             f"rooms/viewers/winners/{session_key}/{username.lower()}",
@@ -166,52 +214,105 @@ class FirebaseClient:
         )
 
         leaderboard_path = f"rooms/manche1/viewerLeaderboard/{username.lower()}"
-        previous = self.get(leaderboard_path) or {}
-        score = int(previous.get("score") or 0) + points
+        previous = to_dict(self.get(leaderboard_path))
+        next_score = to_int(previous.get("score"), 0) + points
         self.put(
             leaderboard_path,
-            {"twitchUser": username, "score": score, "lastWinAt": timestamp_ms},
+            {"twitchUser": username, "score": next_score, "lastWinAt": timestamp_ms},
         )
 
 
-class TwitchIRC:
+class TwitchIRCClient:
+    """Client IRC Twitch avec gestion propre des timeouts et reconnexions."""
+
     def __init__(self, token: str, channel: str, nickname: str = "zogquizbot") -> None:
         self.token = token
         self.channel = channel.lower().lstrip("#")
         self.nickname = nickname
         self.sock: socket.socket | None = None
+        self._buffer = ""
 
     def connect(self) -> None:
-        sock = socket.socket()
-        sock.settimeout(30)
+        self.close()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(SOCKET_TIMEOUT_SECONDS)
         sock.connect((TWITCH_IRC_HOST, TWITCH_IRC_PORT))
-        sock.send(f"PASS {self.token}\r\n".encode("utf-8"))
-        sock.send(f"NICK {self.nickname}\r\n".encode("utf-8"))
-        sock.send(f"JOIN #{self.channel}\r\n".encode("utf-8"))
+        self._send_raw(sock, f"PASS {self.token}")
+        self._send_raw(sock, f"NICK {self.nickname}")
+        self._send_raw(sock, f"JOIN #{self.channel}")
         self.sock = sock
-        logging.info("Connecté au chat Twitch #%s", self.channel)
+        self._buffer = ""
+        logging.info("Connecté à Twitch IRC sur #%s", self.channel)
+
+    def close(self) -> None:
+        if self.sock is not None:
+            try:
+                self.sock.close()
+            except OSError:
+                pass
+        self.sock = None
+        self._buffer = ""
+
+    @staticmethod
+    def _send_raw(sock: socket.socket, line: str) -> None:
+        sock.sendall(f"{line}\r\n".encode("utf-8"))
+
+    def _send_pong(self) -> None:
+        if not self.sock:
+            return
+        try:
+            self._send_raw(self.sock, "PONG :tmi.twitch.tv")
+        except OSError as exc:
+            raise ConnectionError(f"Impossible d'envoyer PONG: {exc}") from exc
 
     def read_lines(self) -> list[str]:
+        """Lit les lignes IRC disponibles; timeout = aucune ligne, pas une erreur fatale."""
         if not self.sock:
-            raise RuntimeError("Socket IRC non initialisée")
-        raw = self.sock.recv(4096)
-        if not raw:
+            raise ConnectionError("Socket IRC non initialisée")
+
+        try:
+            chunk = self.sock.recv(SOCKET_READ_SIZE)
+        except socket.timeout:
+            return []
+        except OSError as exc:
+            raise ConnectionError(f"Erreur lecture socket: {exc}") from exc
+
+        if not chunk:
             raise ConnectionError("Connexion IRC fermée par le serveur")
-        data = raw.decode("utf-8", errors="ignore")
-        lines = [line.strip() for line in data.split("\r\n") if line.strip()]
-        for line in lines:
+
+        self._buffer += chunk.decode("utf-8", errors="ignore")
+        if "\r\n" not in self._buffer:
+            return []
+
+        lines: list[str] = []
+        parts = self._buffer.split("\r\n")
+        self._buffer = parts.pop() if parts else ""
+
+        for raw in parts:
+            line = raw.strip()
+            if not line:
+                continue
             if line.startswith("PING"):
-                self.sock.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
+                self._send_pong()
+                continue
+            lines.append(line)
         return lines
 
 
-def extract_chat_message(raw_irc_line: str) -> tuple[str, str] | None:
+def extract_chat_message(raw_irc_line: str) -> ChatMessage | None:
     if "PRIVMSG" not in raw_irc_line:
         return None
+
     match = re.match(r"^:([^!]+)!.* PRIVMSG #[^ ]+ :(.*)$", raw_irc_line)
     if not match:
         return None
-    return match.group(1), match.group(2).strip()
+
+    username = match.group(1).strip()
+    message = match.group(2).strip()
+    if not username or not message:
+        return None
+
+    return ChatMessage(username=username, message=message)
 
 
 def load_env() -> tuple[str, str]:
@@ -232,116 +333,156 @@ def load_env() -> tuple[str, str]:
 
     token = os.getenv("TWITCH_TOKEN", "").strip()
     channel = os.getenv("TWITCH_CHANNEL", "").strip()
+
     if token and not token.startswith("oauth:"):
         token = f"oauth:{token}"
+
     if not token or token == "oauth:" or not channel:
         raise RuntimeError("TWITCH_TOKEN et TWITCH_CHANNEL doivent être configurés dans bot/.env")
+
     return token, channel
 
 
-def is_correct(active: dict[str, Any], question: dict[str, Any], message: str) -> bool:
-    if active.get("round") == "manche4":
-        normalized = normalize_answer(message)
-        if not normalized.isdigit():
-            return False
-        choice = int(normalized)
-        return choice in list(question.get("validCells") or [])
+class ViewerQuizService:
+    """Logique métier: tentative, validation, règles de gagnants/récompenses."""
 
-    aliases = question.get("normalizedAnswers") or []
-    if not aliases:
-        accepted = question.get("acceptedAnswers") or [question.get("answer") or ""]
-        aliases = [normalize_answer(value) for value in accepted if value]
+    def __init__(self, firebase: FirebaseClient, poll_seconds: float = DEFAULT_POLL_SECONDS) -> None:
+        self.firebase = firebase
+        self.poll_seconds = max(0.2, poll_seconds)
+        self.active: dict[str, Any] | None = None
+        self.question: dict[str, Any] | None = None
+        self.next_poll_ts: float = 0.0
 
-    normalized = normalize_answer(message)
-    return normalized in {normalize_answer(alias) for alias in aliases}
+    def refresh_state_if_due(self, now_ts: float) -> None:
+        if now_ts < self.next_poll_ts:
+            return
+        self.active = self.firebase.get_active_viewer_session()
+        self.question = self.firebase.load_question(self.active) if self.active else None
+        self.next_poll_ts = now_ts + self.poll_seconds
+
+    def process_message(self, chat: ChatMessage, timestamp_ms: int) -> None:
+        if len(chat.message) > MAX_CHAT_MESSAGE_LENGTH:
+            return
+
+        self.firebase.write_chat_message(chat.username, chat.message, timestamp_ms)
+        self.refresh_state_if_due(time.time())
+
+        if not self.active or not self.question:
+            return
+
+        ends_at = to_int(self.active.get("endsAt"), 0)
+        if ends_at > 0 and timestamp_ms > ends_at:
+            return
+
+        session_key = self.firebase.compute_session_key(self.active)
+        is_correct = self._is_correct_answer(self.active, self.question, chat.message)
+
+        self.firebase.append_attempt(session_key, chat.username, chat.message, is_correct, timestamp_ms)
+        if not is_correct:
+            return
+
+        settings = to_dict(self.active.get("settings"))
+        first_only = bool(settings.get("firstCorrectOnly", True))
+        allow_multi = bool(settings.get("allowMultipleWinners", False))
+
+        if self.firebase.has_winner(session_key, chat.username):
+            return
+
+        any_winner = self.firebase.has_any_winner(session_key)
+        if first_only and any_winner:
+            return
+        if not allow_multi and any_winner:
+            return
+
+        self.firebase.reward_viewer(self.active, chat.username, chat.message, timestamp_ms)
+        logging.info(
+            "Bonne réponse viewers (%s) par %s: %s",
+            self.active.get("round"),
+            chat.username,
+            chat.message,
+        )
+
+    @staticmethod
+    def _is_correct_answer(active: dict[str, Any], question: dict[str, Any], message: str) -> bool:
+        if active.get("round") == "manche4":
+            normalized = normalize_answer(message)
+            if not normalized.isdigit():
+                return False
+            choice = to_int(normalized, -1)
+            valid_cells = [to_int(v, -1) for v in to_list(question.get("validCells"))]
+            return choice in valid_cells
+
+        normalized_message = normalize_answer(message)
+        aliases = to_list(question.get("normalizedAnswers"))
+
+        normalized_aliases: set[str] = set()
+        if aliases:
+            for alias in aliases:
+                alias_text = normalize_answer(str(alias))
+                if alias_text:
+                    normalized_aliases.add(alias_text)
+        else:
+            accepted = to_list(question.get("acceptedAnswers"))
+            if not accepted:
+                fallback = question.get("answer")
+                if fallback:
+                    accepted = [fallback]
+            for value in accepted:
+                alias_text = normalize_answer(str(value))
+                if alias_text:
+                    normalized_aliases.add(alias_text)
+
+        return bool(normalized_aliases) and normalized_message in normalized_aliases
 
 
-def run() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", datefmt=LOG_FORMAT)
+def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(message)s",
+        datefmt=LOG_DATE_FORMAT,
+    )
+
     token, channel = load_env()
-    twitch = TwitchIRC(token=token, channel=channel)
-    firebase = FirebaseClient(FIREBASE_DB_URL)
 
-    active: dict[str, Any] | None = None
-    question: dict[str, Any] | None = None
-    next_poll = 0.0
+    twitch = TwitchIRCClient(token=token, channel=channel)
+    firebase = FirebaseClient(FIREBASE_DB_URL)
+    service = ViewerQuizService(firebase)
+
+    reconnect_delay = DEFAULT_RECONNECT_SECONDS
 
     while True:
         try:
             if twitch.sock is None:
                 twitch.connect()
 
-            for line in twitch.read_lines():
-                parsed = extract_chat_message(line)
-                if not parsed:
+            lines = twitch.read_lines()
+            if not lines:
+                continue
+
+            for line in lines:
+                chat = extract_chat_message(line)
+                if chat is None:
                     continue
 
-                user, message = parsed
-                if len(message) > MAX_CHAT_MESSAGE_LENGTH:
-                    continue
-                now = int(time.time() * 1000)
-                firebase.write_chat_message(user, message, now)
-
-                ts = time.time()
-                if ts >= next_poll:
-                    active = firebase.get_active_viewer_session()
-                    question = firebase.load_question(active) if active else None
-                    next_poll = ts + DEFAULT_POLL_SECONDS
-
-                if not active or not question:
-                    continue
-
-                ends_at = active.get("endsAt")
+                now_ms = int(time.time() * 1000)
                 try:
-                    ends_at_int = int(ends_at) if ends_at else 0
-                except (TypeError, ValueError):
-                    ends_at_int = 0
-                if ends_at_int and now > ends_at_int:
-                    continue
+                    service.process_message(chat, now_ms)
+                except Exception as exc:  # sécurité métier: une erreur message ne doit pas tuer la boucle
+                    logging.exception("Erreur traitement message (%s): %s", chat.username, exc)
 
-                session_key = firebase.compute_session_key(active)
-                correct = is_correct(active, question, message)
-                firebase.append_attempt(session_key, user, message, correct, now)
-                if not correct:
-                    continue
-
-                settings = active.get("settings") or {}
-                first_only = bool(settings.get("firstCorrectOnly", True))
-                allow_multi = bool(settings.get("allowMultipleWinners", False))
-                has_existing_winner = firebase.has_any_winner(session_key)
-
-                if firebase.has_winner(session_key, user):
-                    continue
-                if first_only and has_existing_winner:
-                    continue
-                if not allow_multi and has_existing_winner:
-                    continue
-
-                firebase.reward_viewer(active, user, message, now)
-                logging.info("Bonne réponse viewers (%s) %s: %s", active.get("round"), user, message)
-
-        except (ConnectionError, OSError, urllib.error.URLError, TimeoutError) as err:
-            logging.warning("Connexion perdue (%s). Reconnexion dans %ss...", err, DEFAULT_RECONNECT_SECONDS)
-            try:
-                if twitch.sock:
-                    twitch.sock.close()
-            except OSError:
-                pass
-            twitch.sock = None
-            time.sleep(DEFAULT_RECONNECT_SECONDS)
         except KeyboardInterrupt:
             logging.info("Arrêt demandé, fermeture du bot.")
+            twitch.close()
             break
-        except Exception as err:  # filet de sécurité pour éviter un crash complet
-            logging.exception("Erreur inattendue (%s). Redémarrage de la boucle…", err)
-            try:
-                if twitch.sock:
-                    twitch.sock.close()
-            except OSError:
-                pass
-            twitch.sock = None
-            time.sleep(DEFAULT_RECONNECT_SECONDS)
+        except (ConnectionError, OSError, TimeoutError) as exc:
+            logging.warning("Connexion IRC perdue (%s). Reconnexion dans %ss...", exc, reconnect_delay)
+            twitch.close()
+            time.sleep(reconnect_delay)
+        except Exception as exc:
+            logging.exception("Erreur inattendue en boucle principale (%s). Reconnexion dans %ss...", exc, reconnect_delay)
+            twitch.close()
+            time.sleep(reconnect_delay)
 
 
 if __name__ == "__main__":
-    run()
+    main()
