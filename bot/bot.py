@@ -19,6 +19,7 @@ from typing import Any
 LOG_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_POLL_SECONDS = 1.2
 DEFAULT_RECONNECT_SECONDS = 5
+MAX_CHAT_MESSAGE_LENGTH = 350
 
 FIREBASE_DB_URL = "https://zogquiz-default-rtdb.europe-west1.firebasedatabase.app"
 TWITCH_IRC_HOST = "irc.chat.twitch.tv"
@@ -182,6 +183,7 @@ class TwitchIRC:
 
     def connect(self) -> None:
         sock = socket.socket()
+        sock.settimeout(30)
         sock.connect((TWITCH_IRC_HOST, TWITCH_IRC_PORT))
         sock.send(f"PASS {self.token}\r\n".encode("utf-8"))
         sock.send(f"NICK {self.nickname}\r\n".encode("utf-8"))
@@ -213,6 +215,12 @@ def extract_chat_message(raw_irc_line: str) -> tuple[str, str] | None:
 
 
 def load_env() -> tuple[str, str]:
+    def clean_env_value(raw: str) -> str:
+        value = raw.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            return value[1:-1].strip()
+        return value
+
     env_path = Path(__file__).with_name(".env")
     if env_path.exists():
         for raw in env_path.read_text(encoding="utf-8").splitlines():
@@ -220,10 +228,12 @@ def load_env() -> tuple[str, str]:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip())
+            os.environ.setdefault(key.strip(), clean_env_value(value))
 
     token = os.getenv("TWITCH_TOKEN", "").strip()
     channel = os.getenv("TWITCH_CHANNEL", "").strip()
+    if token and not token.startswith("oauth:"):
+        token = f"oauth:{token}"
     if not token or token == "oauth:" or not channel:
         raise RuntimeError("TWITCH_TOKEN et TWITCH_CHANNEL doivent être configurés dans bot/.env")
     return token, channel
@@ -243,11 +253,11 @@ def is_correct(active: dict[str, Any], question: dict[str, Any], message: str) -
         aliases = [normalize_answer(value) for value in accepted if value]
 
     normalized = normalize_answer(message)
-    return normalized in set(aliases)
+    return normalized in {normalize_answer(alias) for alias in aliases}
 
 
 def run() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", datefmt=LOG_FORMAT)
     token, channel = load_env()
     twitch = TwitchIRC(token=token, channel=channel)
     firebase = FirebaseClient(FIREBASE_DB_URL)
@@ -267,6 +277,8 @@ def run() -> None:
                     continue
 
                 user, message = parsed
+                if len(message) > MAX_CHAT_MESSAGE_LENGTH:
+                    continue
                 now = int(time.time() * 1000)
                 firebase.write_chat_message(user, message, now)
 
@@ -296,12 +308,13 @@ def run() -> None:
                 settings = active.get("settings") or {}
                 first_only = bool(settings.get("firstCorrectOnly", True))
                 allow_multi = bool(settings.get("allowMultipleWinners", False))
+                has_existing_winner = firebase.has_any_winner(session_key)
 
                 if firebase.has_winner(session_key, user):
                     continue
-                if first_only and firebase.has_any_winner(session_key):
+                if first_only and has_existing_winner:
                     continue
-                if not allow_multi and firebase.has_any_winner(session_key):
+                if not allow_multi and has_existing_winner:
                     continue
 
                 firebase.reward_viewer(active, user, message, now)
