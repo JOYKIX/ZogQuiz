@@ -7,6 +7,7 @@ import {
   GUEST_LOGIN_INDEX_PATH,
   hashSecret,
   normalizeLoginId,
+  normalizeBuzzerSoundFile,
   validateDisplayName,
 } from "./guest-accounts.js";
 
@@ -215,6 +216,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
   const sessionSnap = await get(sessionRef);
   const existing = sessionSnap.val() || {};
   const nickname = String(account.displayName || "").trim();
+  const buzzerSound = normalizeBuzzerSoundFile(account.buzzerSound || existing.buzzerSound || "");
 
   await set(sessionRef, {
     accountId: account.accountId,
@@ -225,6 +227,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
     reconnectAt: Date.now(),
     score: Number(existing.score || 0),
     active: Boolean(account.active),
+    buzzerSound,
   });
 
   applyConnectedState(account);
