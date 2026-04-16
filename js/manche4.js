@@ -181,6 +181,7 @@ export function initManche4Admin(options) {
     adminMessage: document.getElementById("m4-admin-message"),
     activeGridLabel: document.getElementById("m4-active-grid-label"),
     phaseLabel: document.getElementById("m4-phase-label"),
+    livePhaseLabel: document.getElementById("m4-live-phase"),
     gridTitleInput: document.getElementById("m4-grid-title"),
     wordEditor: document.getElementById("m4-word-editor"),
     saveGridBtn: document.getElementById("m4-save-grid"),
@@ -205,7 +206,9 @@ export function initManche4Admin(options) {
   function refreshMeta() {
     const activeGrid = getCurrentGrid();
     els.activeGridLabel.textContent = activeGrid ? activeGrid.title : "Aucune";
-    els.phaseLabel.textContent = `Phase ${Math.min(3, Math.max(1, Number(manche4State.cluePhase || 1)))}/3`;
+    const phaseText = `Phase ${Math.min(3, Math.max(1, Number(manche4State.cluePhase || 1)))}/3`;
+    els.phaseLabel.textContent = phaseText;
+    if (els.livePhaseLabel) els.livePhaseLabel.textContent = phaseText;
   }
 
   function renderGridPreview() {

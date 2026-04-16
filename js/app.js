@@ -63,6 +63,7 @@ const buzzLive = $("buzz-live");
 const activeQuestion = $("active-question");
 const participantsList = $("participants-list");
 const m1ParticipantsList = $("m1-participants-list");
+const m1LiveScores = $("m1-live-scores");
 const quickLeaderboard = $("quick-leaderboard");
 const scoreboardPreview = $("scoreboard-preview");
 const overlayRound1FontSizeInput = $("overlay-round1-font-size");
@@ -94,6 +95,14 @@ const m2QuestionTextInput = $("m2-question-text");
 const m2QuestionsList = $("m2-questions-list");
 const m2ParticipantsList = $("m2-participants-list");
 const m2LiveStatus = $("m2-live-status");
+const m2OverviewStatus = $("m2-overview-status");
+const m2LiveScores = $("m2-live-scores");
+const m2LiveCurrentImage = $("m2-live-current-image");
+const m2LiveCurrentTitle = $("m2-live-current-title");
+const m2LiveCurrentLocation = $("m2-live-current-location");
+const m2LiveCurrentQuestion = $("m2-live-current-question");
+const m2LivePrevBtn = $("m2-live-prev");
+const m2LiveNextBtn = $("m2-live-next");
 
 const m3ThemeForm = $("m3-theme-form");
 const m3ThemeName = $("m3-theme-name");
@@ -104,6 +113,11 @@ const m3ActiveTheme = $("m3-active-theme");
 const m3CurrentQuestion = $("m3-current-question");
 const m3Timer = $("m3-timer");
 const m3TimerStatus = $("m3-timer-status");
+const m3LivePlayer = $("m3-live-player");
+const m3LiveTheme = $("m3-live-theme");
+const m3LiveQuestion = $("m3-live-question");
+const m3LiveTimer = $("m3-live-timer");
+const m3LiveScores = $("m3-live-scores");
 const m3StartBtn = $("m3-start");
 const m3PauseBtn = $("m3-pause");
 const m3ResumeBtn = $("m3-resume");
@@ -130,6 +144,7 @@ const overlayRound4MarkerSizeInput = $("overlay-round4-marker-size");
 const overlayRound4MarkerOpacityInput = $("overlay-round4-marker-opacity");
 const overlayRound4GridMaxWidthInput = $("overlay-round4-grid-max-width");
 const overlayRound4GridGapInput = $("overlay-round4-grid-gap");
+const m4LiveScores = $("m4-live-scores");
 
 const overlayRound5PrimarySizeInput = $("overlay-round5-primary-size");
 const overlayRound5SecondarySizeInput = $("overlay-round5-secondary-size");
@@ -143,6 +158,7 @@ const overlayRound5CornerRadiusInput = $("overlay-round5-corner-radius");
 const overlayRound5MaxWidthInput = $("overlay-round5-max-width");
 const overlayRound5DecorationOpacityInput = $("overlay-round5-decoration-opacity");
 const overlayRound5ProgressMaxInput = $("overlay-round5-progress-max");
+const m5LiveScores = $("m5-live-scores");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -160,7 +176,7 @@ let currentAdminId = null;
 let editingRound = "manche1";
 let broadcastRound = "manche1";
 let activeWorkspace = "dashboard";
-const activeRoundSectionByRound = { manche1: "overview", manche2: "overview", manche3: "overview", manche4: "overview", manche5: "overview", finale: "overview" };
+const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", manche5: "live", finale: "overview" };
 
 let liveState = null;
 let overlayConfigs = {
@@ -298,7 +314,7 @@ resetAllBtn?.addEventListener("click", async () => {
 });
 
 activateWorkspace("dashboard");
-activateRoundSection("manche1", "overview");
+activateRoundSection("manche1", "live");
 
 initManche4Admin({
   getCurrentAdminId: () => currentAdminId,
@@ -473,6 +489,8 @@ m3ResetBtn.addEventListener("click", async () => round3Reset());
 m3NextBtn.addEventListener("click", async () => round3Advance(false));
 m3PassBtn.addEventListener("click", async () => round3Advance(false));
 m3CorrectBtn.addEventListener("click", async () => round3Advance(true));
+m2LivePrevBtn?.addEventListener("click", async () => moveRound2Image(-1));
+m2LiveNextBtn?.addEventListener("click", async () => moveRound2Image(1));
 
 async function loginSuccess(adminId) {
   setSession(adminId);
@@ -918,6 +936,7 @@ function renderParticipants() {
   const entries = sortedSessions();
   renderLeaderboardList(participantsList, entries, "Aucun participant.", true, [-1, 1]);
   renderLeaderboardList(m1ParticipantsList, entries, "Aucun participant.", true, [-1, 1]);
+  renderLeaderboardList(m1LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
   renderLeaderboardList(quickLeaderboard, entries.slice(0, 5), "Le classement apparaîtra ici.");
   renderLeaderboardList(scoreboardPreview, entries.slice(0, 5), "Le classement apparaîtra ici.");
 }
@@ -925,6 +944,10 @@ function renderParticipants() {
 function renderRound2Participants() {
   const entries = sortedSessions();
   renderLeaderboardList(m2ParticipantsList, entries, "Aucun participant.", true, [1, 2, -1, -2]);
+  renderLeaderboardList(m2LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
+  renderLeaderboardList(m3LiveScores, entries, "Aucun participant.", true, [1, 2, -1]);
+  renderLeaderboardList(m4LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
+  renderLeaderboardList(m5LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
 }
 
 function renderRound1QuestionList(type, data, container) {
@@ -1122,6 +1145,21 @@ function renderRound2Questions() {
   }
 }
 
+function sortedRound2Entries() {
+  return Object.entries(manche2Questions || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+}
+
+async function moveRound2Image(step) {
+  const entries = sortedRound2Entries();
+  if (!entries.length) return;
+  const currentIndex = entries.findIndex(([id]) => id === manche2State?.activeQuestionId);
+  const fallbackIndex = currentIndex < 0 ? 0 : currentIndex;
+  const nextIndex = Math.max(0, Math.min(entries.length - 1, fallbackIndex + step));
+  const [nextId] = entries[nextIndex];
+  if (!nextId || nextId === manche2State?.activeQuestionId) return;
+  await update(ref(db, "rooms/manche2/state"), { activeQuestionId: nextId, updatedAt: Date.now(), updatedBy: currentAdminId });
+}
+
 async function editRound2Question(questionId, item) {
   const work = await showPrompt("Modifier l'œuvre", {
     title: "Éditer la question manche 2",
@@ -1164,6 +1202,8 @@ function refreshRound1Snapshot() {
     || "—";
   currentQuestionStatus.textContent = question ? question.text : "Aucune";
   activeQuestion.textContent = question ? `Question active : ${question.text}` : "Aucune question active.";
+  const activeQuestionLive = $("active-question-live");
+  if (activeQuestionLive) activeQuestionLive.textContent = question ? `Question active : ${question.text}` : "Aucune question active.";
   const buzzerOpen = Boolean(liveState?.currentQuestionId) && !liveState?.buzzerLocked && liveState?.currentType !== "viewers";
   buzzerStatus.textContent = liveState?.currentType === "viewers" ? "Désactivé" : buzzerOpen ? "Ouvert" : "Verrouillé";
   lastBuzzStatus.textContent = lockedByName;
@@ -1200,7 +1240,25 @@ function updateRound1Status() {
 
 function updateRound2Status() {
   const active = manche2State?.activeQuestionId ? manche2Questions[manche2State.activeQuestionId] : null;
-  setMessage(m2LiveStatus, active ? `Image live : ${active.work}` : "Aucune image active.");
+  const statusText = active ? `Image live : ${active.work}` : "Aucune image active.";
+  setMessage(m2LiveStatus, statusText);
+  setMessage(m2OverviewStatus, statusText);
+  if (m2LiveCurrentImage) {
+    if (active?.imageDataUrl) {
+      m2LiveCurrentImage.src = active.imageDataUrl;
+      m2LiveCurrentImage.classList.remove("hidden");
+    } else {
+      m2LiveCurrentImage.removeAttribute("src");
+      m2LiveCurrentImage.classList.add("hidden");
+    }
+  }
+  if (m2LiveCurrentTitle) m2LiveCurrentTitle.textContent = active?.work || "—";
+  if (m2LiveCurrentLocation) m2LiveCurrentLocation.textContent = active?.location || "—";
+  if (m2LiveCurrentQuestion) m2LiveCurrentQuestion.textContent = active?.questionText || "—";
+  const entries = sortedRound2Entries();
+  const currentIndex = entries.findIndex(([id]) => id === manche2State?.activeQuestionId);
+  if (m2LivePrevBtn) m2LivePrevBtn.disabled = currentIndex <= 0;
+  if (m2LiveNextBtn) m2LiveNextBtn.disabled = currentIndex < 0 || currentIndex >= entries.length - 1;
 }
 
 function formatTimer(ms) {
@@ -1381,6 +1439,10 @@ function renderRound3State() {
   m3ActiveTheme.textContent = activeTheme?.name || "Aucun";
   m3CurrentQuestion.textContent = current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
   m3Timer.textContent = formatTimer(remaining);
+  if (m3LivePlayer) m3LivePlayer.textContent = getRound3ActivePlayerName();
+  if (m3LiveTheme) m3LiveTheme.textContent = activeTheme?.name || "Aucun";
+  if (m3LiveQuestion) m3LiveQuestion.textContent = current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
+  if (m3LiveTimer) m3LiveTimer.textContent = formatTimer(remaining);
 
   if (remaining <= 0 || status === "ended") {
     setMessage(m3TimerStatus, "Temps écoulé", "error");

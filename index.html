@@ -183,10 +183,10 @@
 
             <section class="round-shell" data-round-panel="manche1">
               <nav class="subnav" aria-label="Sous navigation manche 1">
-                <button class="subnav-tab active" data-round="manche1" data-round-section="overview">Vue d’ensemble</button>
+                <button class="subnav-tab active" data-round="manche1" data-round-section="live">En direct</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="participants">Scores</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overlay">Overlay</button>
               </nav>
 
@@ -258,23 +258,30 @@ SNK"></textarea>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche1:live">
-                <article class="subpanel stack compact-panel">
-                  <h3>Contrôle du live</h3>
-                  <div class="live-buzz-card" role="status" aria-live="polite">
-                    <p class="muted">Premier buzz</p>
-                    <p id="buzz-priority-name" class="live-buzz-name">Personne</p>
-                    <div class="row">
-                      <button id="buzz-plus" class="btn btn-primary" disabled>+1 point</button>
-                      <button id="buzz-minus" class="btn btn-danger" disabled>-1 point</button>
+                <div class="two-col">
+                  <article class="subpanel stack compact-panel">
+                    <h3>Régie live · Manche 1</h3>
+                    <p id="active-question-live" class="highlight">Aucune question active.</p>
+                    <div class="live-buzz-card" role="status" aria-live="polite">
+                      <p class="muted">Premier buzz</p>
+                      <p id="buzz-priority-name" class="live-buzz-name">Personne</p>
+                      <div class="row">
+                        <button id="buzz-plus" class="btn btn-primary" disabled>+1 point</button>
+                        <button id="buzz-minus" class="btn btn-danger" disabled>-1 point</button>
+                      </div>
                     </div>
-                  </div>
-                  <div class="sticky-actions">
-                    <button id="toggle-answer" class="btn btn-secondary">Afficher la réponse</button>
-                    <button id="unlock-buzzer" class="btn btn-secondary">Réouvrir le buzzer</button>
-                    <button id="mark-correct" class="btn btn-primary">Bonne réponse (+1)</button>
-                    <button id="mark-wrong" class="btn btn-danger">Mauvaise réponse</button>
-                  </div>
-                </article>
+                    <div class="sticky-actions">
+                      <button id="toggle-answer" class="btn btn-secondary">Afficher la réponse</button>
+                      <button id="unlock-buzzer" class="btn btn-secondary">Réouvrir le buzzer</button>
+                      <button id="mark-correct" class="btn btn-primary">Bonne réponse (+1)</button>
+                      <button id="mark-wrong" class="btn btn-danger">Mauvaise réponse</button>
+                    </div>
+                  </article>
+                  <article class="subpanel compact-panel">
+                    <h3>Scores live</h3>
+                    <ul id="m1-live-scores" class="leaderboard"></ul>
+                  </article>
+                </div>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche1:overlay">
@@ -305,16 +312,16 @@ SNK"></textarea>
 
             <section class="round-shell hidden" data-round-panel="manche2">
               <nav class="subnav" aria-label="Sous navigation manche 2">
-                <button class="subnav-tab active" data-round="manche2" data-round-section="overview">Vue d’ensemble</button>
+                <button class="subnav-tab active" data-round="manche2" data-round-section="live">En direct</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="participants">Scores</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="overview">État</button>
               </nav>
 
               <section class="round-section" data-round-section-panel="manche2:overview">
                 <article class="subpanel compact-panel">
                   <h3>Statut manche 2</h3>
-                  <p id="m2-live-status" class="message"></p>
+                  <p id="m2-overview-status" class="message"></p>
                 </article>
               </section>
 
@@ -365,17 +372,29 @@ La Tour Eiffel"></textarea></label>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:live">
+                <div class="two-col">
+                  <article class="subpanel compact-panel stack">
+                    <h3>Régie live · Images</h3>
+                    <p id="m2-live-status" class="message"></p>
+                    <img id="m2-live-current-image" class="m2-thumb hidden" alt="Image en cours manche 2" />
+                    <p><strong>Image :</strong> <span id="m2-live-current-title">—</span></p>
+                    <p><strong>Lieu :</strong> <span id="m2-live-current-location">—</span></p>
+                    <p><strong>Question :</strong> <span id="m2-live-current-question">—</span></p>
+                    <div class="row">
+                      <button id="m2-live-prev" class="btn btn-secondary">Image précédente</button>
+                      <button id="m2-live-next" class="btn btn-primary">Image suivante</button>
+                    </div>
+                  </article>
+                  <article class="subpanel compact-panel">
+                    <h3>Scores live</h3>
+                    <ul id="m2-live-scores" class="leaderboard"></ul>
+                  </article>
+                </div>
                 <article class="subpanel compact-panel stack">
-                  <h3>Overlay manche 2</h3>
-                  <label>Largeur max image (px)
-                    <input id="overlay-round2-max-width" type="number" min="200" max="2400" step="10" value="1400" />
-                  </label>
-                  <label>Hauteur max image (px)
-                    <input id="overlay-round2-max-height" type="number" min="200" max="1400" step="10" value="820" />
-                  </label>
-                  <label>Arrondi image (px)
-                    <input id="overlay-round2-radius" type="number" min="0" max="120" step="1" value="0" />
-                  </label>
+                  <h3>Réglages overlay manche 2</h3>
+                  <label>Largeur max image (px)<input id="overlay-round2-max-width" type="number" min="200" max="2400" step="10" value="1400" /></label>
+                  <label>Hauteur max image (px)<input id="overlay-round2-max-height" type="number" min="200" max="1400" step="10" value="820" /></label>
+                  <label>Arrondi image (px)<input id="overlay-round2-radius" type="number" min="0" max="120" step="1" value="0" /></label>
                   <div class="row">
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                     <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Ouvrir overlay manche 2</a>
@@ -386,10 +405,10 @@ La Tour Eiffel"></textarea></label>
 
             <section class="round-shell hidden" data-round-panel="manche3">
               <nav class="subnav" aria-label="Sous navigation manche 3">
-                <button class="subnav-tab active" data-round="manche3" data-round-section="overview">Vue d’ensemble</button>
-                <button class="subnav-tab" data-round="manche3" data-round-section="participants">Participants</button>
+                <button class="subnav-tab active" data-round="manche3" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="participants">Thèmes</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche3" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="overlay">Overlay</button>
               </nav>
 
@@ -404,7 +423,7 @@ La Tour Eiffel"></textarea></label>
                   <article class="subpanel stack compact-panel panel">
                     <h3 class="panel-title">Chrono (1:30)</h3>
                     <p id="m3-timer" class="timer">01:30</p>
-                    <p id="m3-timer-status" class="message">Prêt</p>
+                    <p id="m3-overview-timer-status" class="message">Prêt</p>
                   </article>
                 </div>
               </section>
@@ -429,9 +448,9 @@ La Tour Eiffel"></textarea></label>
                     <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
                     <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
                     <div class="toolbar">
-                      <button id="m3-pass" class="btn btn-secondary">Passer</button>
-                      <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
-                      <button id="m3-next" class="btn btn-secondary">Question suivante</button>
+                      <button class="btn btn-secondary m3-pass-legacy">Passer</button>
+                      <button class="btn btn-primary m3-correct-legacy">Bonne réponse</button>
+                      <button class="btn btn-secondary m3-next-legacy">Question suivante</button>
                     </div>
                   </article>
                   <form id="m3-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
@@ -449,16 +468,31 @@ La Tour Eiffel"></textarea></label>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:live">
-                <article class="subpanel stack compact-panel panel">
-                  <h3 class="panel-title">Pilotage en direct</h3>
-                  <p class="muted">Contrôle du chronomètre et des étapes de tour.</p>
-                  <div class="toolbar">
-                    <button id="m3-start" class="btn btn-primary">Démarrer</button>
-                    <button id="m3-pause" class="btn btn-secondary">Pause</button>
-                    <button id="m3-resume" class="btn btn-secondary">Reprendre</button>
-                    <button id="m3-reset" class="btn btn-danger">Réinitialiser</button>
-                  </div>
-                </article>
+                <div class="two-col">
+                  <article class="subpanel stack compact-panel panel">
+                    <h3 class="panel-title">Régie live · Manche 3</h3>
+                    <p class="muted">Joueur : <strong id="m3-live-player">Aucun</strong></p>
+                    <p class="muted">Thème : <strong id="m3-live-theme">Aucun</strong></p>
+                    <p class="highlight" id="m3-live-question">En attente</p>
+                    <p class="timer" id="m3-live-timer">01:30</p>
+                    <p id="m3-timer-status" class="message">Prêt</p>
+                    <div class="toolbar">
+                      <button id="m3-start" class="btn btn-primary">Démarrer</button>
+                      <button id="m3-pause" class="btn btn-secondary">Pause</button>
+                      <button id="m3-resume" class="btn btn-secondary">Reprendre</button>
+                      <button id="m3-reset" class="btn btn-danger">Réinitialiser</button>
+                    </div>
+                    <div class="toolbar">
+                      <button id="m3-pass" class="btn btn-secondary">Passer</button>
+                      <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
+                      <button id="m3-next" class="btn btn-secondary">Question suivante</button>
+                    </div>
+                  </article>
+                  <article class="subpanel compact-panel">
+                    <h3>Scores live</h3>
+                    <ul id="m3-live-scores" class="leaderboard"></ul>
+                  </article>
+                </div>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:overlay">
@@ -487,10 +521,10 @@ La Tour Eiffel"></textarea></label>
 
             <section class="round-shell hidden" data-round-panel="manche4">
               <nav class="subnav" aria-label="Sous navigation manche 4">
-                <button class="subnav-tab active" data-round="manche4" data-round-section="overview">Vue d’ensemble</button>
+                <button class="subnav-tab active" data-round="manche4" data-round-section="live">En direct</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="questions">Grilles</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="participants">Joueurs</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="overlay">Overlay</button>
               </nav>
 
@@ -537,31 +571,38 @@ La Tour Eiffel"></textarea></label>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche4:live">
-                <article class="subpanel compact-panel stack">
-                  <h3>Contrôle de manche</h3>
-                  <label>Indice en cours
-                    <input id="m4-clue-input" placeholder="Ex: Ninja, 2" maxlength="80" />
-                  </label>
-                  <div class="row">
-                    <button id="m4-start" class="btn btn-primary">Lancer la manche</button>
-                    <button id="m4-next-clue" class="btn btn-secondary">Indice suivant</button>
-                    <button id="m4-finish" class="btn btn-secondary">Terminer</button>
-                    <button id="m4-reset-round" class="btn btn-danger">Reset</button>
-                  </div>
-                  <article class="viewer-panel compact-panel">
-                    <h4>Mode viewers · Grille chat</h4>
-                    <p class="muted">Les viewers répondent avec le numéro de case dans le chat Twitch.</p>
-                    <label>ID indice viewers<input id="m4-viewer-clue-id" placeholder="ex: clue_1" /></label>
-                    <label>Timer indice (s)<input id="m4-viewer-timer" type="number" min="0" value="20" /></label>
-                    <label>Points indice<input id="m4-viewer-points" type="number" min="1" value="3" /></label>
+                <div class="two-col">
+                  <article class="subpanel compact-panel stack">
+                    <h3>Régie live · Grille</h3>
+                    <label>Indice en cours
+                      <input id="m4-clue-input" placeholder="Ex: Ninja, 2" maxlength="80" />
+                    </label>
+                    <p class="muted">Phase active : <strong id="m4-live-phase">Phase 1/3</strong></p>
                     <div class="row">
-                      <button id="m4-viewer-start-clue" class="btn btn-primary" type="button">Lancer indice viewers</button>
-                      <button id="m4-viewer-stop-clue" class="btn btn-secondary" type="button">Stop viewers</button>
+                      <button id="m4-start" class="btn btn-primary">Lancer la manche</button>
+                      <button id="m4-next-clue" class="btn btn-secondary">Indice suivant</button>
+                      <button id="m4-finish" class="btn btn-secondary">Terminer</button>
+                      <button id="m4-reset-round" class="btn btn-danger">Reset</button>
                     </div>
-                    <p id="m4-viewer-live-label" class="message">Aucun indice viewers actif.</p>
+                    <article class="viewer-panel compact-panel">
+                      <h4>Mode viewers · Grille chat</h4>
+                      <p class="muted">Les viewers répondent avec le numéro de case dans le chat Twitch.</p>
+                      <label>ID indice viewers<input id="m4-viewer-clue-id" placeholder="ex: clue_1" /></label>
+                      <label>Timer indice (s)<input id="m4-viewer-timer" type="number" min="0" value="20" /></label>
+                      <label>Points indice<input id="m4-viewer-points" type="number" min="1" value="3" /></label>
+                      <div class="row">
+                        <button id="m4-viewer-start-clue" class="btn btn-primary" type="button">Lancer indice viewers</button>
+                        <button id="m4-viewer-stop-clue" class="btn btn-secondary" type="button">Stop viewers</button>
+                      </div>
+                      <p id="m4-viewer-live-label" class="message">Aucun indice viewers actif.</p>
+                    </article>
+                    <div id="m4-admin-preview" class="m4-grid-preview"></div>
                   </article>
-                  <div id="m4-admin-preview" class="m4-grid-preview"></div>
-                </article>
+                  <article class="subpanel compact-panel">
+                    <h3>Scores live</h3>
+                    <ul id="m4-live-scores" class="leaderboard"></ul>
+                  </article>
+                </div>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche4:overlay">
@@ -586,23 +627,17 @@ La Tour Eiffel"></textarea></label>
 
             <section class="round-shell hidden" data-round-panel="manche5">
               <nav class="subnav" aria-label="Sous navigation manche 5">
-                <button class="subnav-tab active" data-round="manche5" data-round-section="overview">Vue d’ensemble</button>
+                <button class="subnav-tab active" data-round="manche5" data-round-section="live">En direct</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="participants">Joueurs</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
               </nav>
 
               <section class="round-section" data-round-section-panel="manche5:overview">
                 <article class="subpanel compact-panel stack">
                   <h3>Vue d’ensemble manche 5 · Blindtest</h3>
-                  <p class="muted">Piste actuelle : <strong id="m5-current-track">Aucune piste active</strong></p>
-                  <p class="muted">Titre : <strong id="m5-current-track-title">—</strong></p>
-                  <p class="muted">URL YouTube : <strong id="m5-current-track-youtube">—</strong></p>
-                  <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
-                  <p id="m5-live-error" class="message error hidden"></p>
-                  <p id="m5-admin-message" class="message">En attente.</p>
-                  <div id="m5-admin-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
+                  <p class="muted">Retrouvez tous les contrôles live dans l’onglet “En direct”.</p>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche5:questions">
@@ -654,20 +689,33 @@ SNK OP1"></textarea></label>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche5:live">
-                <article class="subpanel compact-panel stack">
-                  <h3>Contrôle du blindtest</h3>
-                  <div class="row">
-                    <button id="m5-start-round" class="btn btn-primary">Démarrer la manche 5</button>
-                  </div>
-                  <div class="row">
-                    <button id="m5-play" class="btn btn-primary">Lancer la musique</button>
-                    <button id="m5-pause" class="btn btn-secondary">Pause</button>
-                    <button id="m5-resume" class="btn btn-secondary">Reprendre</button>
-                    <button id="m5-replay" class="btn btn-secondary">Rejouer</button>
-                    <button id="m5-prev" class="btn btn-secondary">Musique précédente</button>
-                    <button id="m5-next" class="btn btn-secondary">Musique suivante</button>
-                  </div>
-                </article>
+                <div class="two-col">
+                  <article class="subpanel compact-panel stack">
+                    <h3>Régie live · Audio</h3>
+                    <p class="muted">Piste actuelle : <strong id="m5-current-track">Aucune piste active</strong></p>
+                    <p class="muted">Titre : <strong id="m5-current-track-title">—</strong></p>
+                    <p class="muted">URL YouTube : <strong id="m5-current-track-youtube">—</strong></p>
+                    <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
+                    <p id="m5-live-error" class="message error hidden"></p>
+                    <p id="m5-admin-message" class="message">En attente.</p>
+                    <div id="m5-admin-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
+                    <div class="row">
+                      <button id="m5-start-round" class="btn btn-primary">Démarrer la manche 5</button>
+                    </div>
+                    <div class="row">
+                      <button id="m5-play" class="btn btn-primary">Lancer la musique</button>
+                      <button id="m5-pause" class="btn btn-secondary">Pause</button>
+                      <button id="m5-resume" class="btn btn-secondary">Reprendre</button>
+                      <button id="m5-replay" class="btn btn-secondary">Rejouer</button>
+                      <button id="m5-prev" class="btn btn-secondary">Musique précédente</button>
+                      <button id="m5-next" class="btn btn-secondary">Musique suivante</button>
+                    </div>
+                  </article>
+                  <article class="subpanel compact-panel">
+                    <h3>Scores live</h3>
+                    <ul id="m5-live-scores" class="leaderboard"></ul>
+                  </article>
+                </div>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche5:overlay">
                 <article class="subpanel compact-panel stack">
