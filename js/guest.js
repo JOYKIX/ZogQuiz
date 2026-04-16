@@ -10,6 +10,8 @@ import {
   validateDisplayName,
 } from "./guest-accounts.js";
 
+const guestAuthScreen = document.getElementById("guest-auth-screen");
+const guestAppRoot = document.getElementById("guest-app");
 const round1Root = document.getElementById("guest-round1");
 const round2Root = document.getElementById("guest-round2");
 const round3Root = document.getElementById("guest-round3");
@@ -105,8 +107,20 @@ function isGuestConnected() {
   return Boolean(guestAuth.account && guestAuth.accountId && guestAuth.nickname);
 }
 
-function normalizeSessionState() {
-  if (isGuestConnected()) {
+function isGuestAuthenticated() {
+  return Boolean(guestAuth.account && guestAuth.accountId);
+}
+
+function renderGuestView() {
+  const authenticated = isGuestAuthenticated();
+  const connected = isGuestConnected();
+  const showAuth = !authenticated || guestAuth.status === "awaiting_display_name";
+  const showApp = authenticated && guestAuth.status !== "awaiting_display_name";
+
+  guestAuthScreen.classList.toggle("hidden", !showAuth);
+  guestAppRoot.classList.toggle("hidden", !showApp);
+
+  if (connected) {
     guestSessionMeta.classList.remove("hidden");
     guestTitle.textContent = `Connecté : ${getCurrentNickname()}`;
     buzzerPanel.classList.remove("hidden");
@@ -120,13 +134,13 @@ function normalizeSessionState() {
 function showDisplayNameSetup() {
   guestLoginForm.classList.add("hidden");
   guestDisplayNameForm.classList.remove("hidden");
-  normalizeSessionState();
+  renderGuestView();
 }
 
 function showLoginForm() {
   guestLoginForm.classList.remove("hidden");
   guestDisplayNameForm.classList.add("hidden");
-  normalizeSessionState();
+  renderGuestView();
 }
 
 function clearCurrentGuest({ reason = "Déconnecté.", type = "default" } = {}) {
@@ -315,6 +329,7 @@ function renderByRound() {
   if (!isRound5) manche5Controller?.pauseLocalAudio?.();
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
+  renderGuestView();
   refreshButtonState();
 }
 
@@ -586,7 +601,7 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
     nickname,
     status: nickname ? "connected" : "awaiting_display_name",
   };
-  normalizeSessionState();
+  renderGuestView();
   refreshButtonState();
 });
 
