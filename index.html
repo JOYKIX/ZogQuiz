@@ -12,7 +12,7 @@
         <div class="brand-block">
           <p class="eyebrow">ZogQuiz Studio</p>
           <h1>Régie live</h1>
-          <p class="header-subtitle">Pilotage unifié des manches, joueurs, overlays et diffusion.</p>
+          <p class="header-subtitle">Interface régie claire pour piloter le live, les contenus, les viewers et les overlays.</p>
         </div>
         <div class="session-actions">
           <span id="admin-email" class="status-chip">Hors ligne</span>
@@ -59,10 +59,10 @@
       <section id="dashboard" class="hidden dashboard-shell">
         <aside class="sidebar" aria-label="Navigation principale">
           <p class="sidebar-label">Espaces</p>
-          <button class="nav-item active" data-workspace="dashboard">Vue live</button>
+          <button class="nav-item active" data-workspace="dashboard">Live</button>
           <button class="nav-item" data-workspace="players">Joueurs</button>
-          <button class="nav-item" data-workspace="rounds">Manches</button>
-          <button class="nav-item" data-workspace="broadcast">Overlays</button>
+          <button class="nav-item" data-workspace="rounds">Rondes</button>
+          <button class="nav-item" data-workspace="broadcast">Diffusion</button>
         </aside>
 
         <div class="content-stack">
@@ -73,7 +73,7 @@
 
           <section class="workspace-panel" data-workspace-panel="dashboard">
             <div class="panel-head split">
-              <h2>État de la session</h2>
+              <h2>Pilotage direct</h2>
               <div class="row compact">
                 <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Ouvrir une manche</button>
                 <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Ouvrir overlays</button>
@@ -184,8 +184,8 @@
             <section class="round-shell" data-round-panel="manche1">
               <nav class="subnav" aria-label="Sous navigation manche 1">
                 <button class="subnav-tab active" data-round="manche1" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="participants">Scores</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="participants">Viewers</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overlay">Overlay</button>
               </nav>
@@ -313,8 +313,9 @@ SNK"></textarea>
             <section class="round-shell hidden" data-round-panel="manche2">
               <nav class="subnav" aria-label="Sous navigation manche 2">
                 <button class="subnav-tab active" data-round="manche2" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="participants">Scores</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="participants">Viewers</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="overlay">Overlay</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="overview">État</button>
               </nav>
 
@@ -390,8 +391,11 @@ La Tour Eiffel"></textarea></label>
                     <ul id="m2-live-scores" class="leaderboard"></ul>
                   </article>
                 </div>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche2:overlay">
                 <article class="subpanel compact-panel stack">
-                  <h3>Réglages overlay manche 2</h3>
+                  <h3>Overlay manche 2</h3>
                   <label>Largeur max image (px)<input id="overlay-round2-max-width" type="number" min="200" max="2400" step="10" value="1400" /></label>
                   <label>Hauteur max image (px)<input id="overlay-round2-max-height" type="number" min="200" max="1400" step="10" value="820" /></label>
                   <label>Arrondi image (px)<input id="overlay-round2-radius" type="number" min="0" max="120" step="1" value="0" /></label>
@@ -406,8 +410,8 @@ La Tour Eiffel"></textarea></label>
             <section class="round-shell hidden" data-round-panel="manche3">
               <nav class="subnav" aria-label="Sous navigation manche 3">
                 <button class="subnav-tab active" data-round="manche3" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche3" data-round-section="participants">Thèmes</button>
-                <button class="subnav-tab" data-round="manche3" data-round-section="questions">Questions</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="participants">Contenu</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="questions">Viewers</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="overlay">Overlay</button>
               </nav>
@@ -522,8 +526,8 @@ La Tour Eiffel"></textarea></label>
             <section class="round-shell hidden" data-round-panel="manche4">
               <nav class="subnav" aria-label="Sous navigation manche 4">
                 <button class="subnav-tab active" data-round="manche4" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="questions">Grilles</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="participants">Joueurs</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="participants">Viewers</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="overlay">Overlay</button>
               </nav>
@@ -628,8 +632,8 @@ La Tour Eiffel"></textarea></label>
             <section class="round-shell hidden" data-round-panel="manche5">
               <nav class="subnav" aria-label="Sous navigation manche 5">
                 <button class="subnav-tab active" data-round="manche5" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="participants">Joueurs</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="participants">Viewers</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
               </nav>
@@ -760,7 +764,7 @@ SNK OP1"></textarea></label>
 
           <section class="workspace-panel hidden" data-workspace-panel="broadcast">
             <div class="panel-head">
-              <h2>Diffusion</h2>
+              <h2>Centre diffusion</h2>
             </div>
             <div class="two-col">
               <article class="subpanel compact-panel">

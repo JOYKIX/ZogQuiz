@@ -246,10 +246,10 @@ function showAuth() {
 }
 
 function workspaceLabel(workspace) {
-  if (workspace === "dashboard") return "Vue live";
+  if (workspace === "dashboard") return "Live";
   if (workspace === "players") return "Joueurs";
-  if (workspace === "broadcast") return "Overlays";
-  return `Manches • ${formatRound(editingRound)}`;
+  if (workspace === "broadcast") return "Diffusion";
+  return `Rondes • ${formatRound(editingRound)}`;
 }
 function formatRound(round) { return round === "finale" ? "Finale" : round.replace("manche", "Manche "); }
 
