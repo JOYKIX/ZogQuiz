@@ -23,8 +23,10 @@ from urllib import error, request
 ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
 DEFAULT_DB_URL = "https://zogquiz-default-rtdb.europe-west1.firebasedatabase.app"
 
-PING_RE = re.compile(r"^PING\s+:(.+)$")
+PING_RE = re.compile(r"^PING\\s+:(.+)$")
 PRIVMSG_RE = re.compile(r"^(?:@(?P<tags>[^ ]+) )?:(?P<prefix>[^ ]+) PRIVMSG #[^ ]+ :(?P<message>.*)$")
+NOTICE_RE = re.compile(r"^(?:@(?P<tags>[^ ]+) )?:[^ ]+ NOTICE [^ ]+ :(?P<message>.*)$")
+MAX_CHAT_MESSAGE_LEN = 250
 
 
 @dataclass
@@ -33,7 +35,8 @@ class Config:
     twitch_channel: str
     twitch_nick: str
     firebase_db_url: str
-    poll_interval_sec: float = 0.0
+    twitch_host: str = "irc.chat.twitch.tv"
+    twitch_port: int = 6697
 
 
 class FirebaseClient:
@@ -68,25 +71,28 @@ class FirebaseClient:
                 return False
             raise
 
-    def patch(self, path: str, data: Dict[str, Any]) -> None:
-        headers = {"Content-Type": "application/json"}
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        req = request.Request(self._url(path), data=body, headers=headers, method="PATCH")
-        with request.urlopen(req, timeout=10):
-            return
-
 
 def load_env_file(path: str) -> Dict[str, str]:
     values: Dict[str, str] = {}
     if not os.path.exists(path):
         return values
+
     with open(path, "r", encoding="utf-8") as f:
         for raw_line in f:
             line = raw_line.strip()
             if not line or line.startswith("#") or "=" not in line:
                 continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+
             key, value = line.split("=", 1)
-            values[key.strip()] = value.strip().strip('"').strip("'")
+            key = key.strip()
+            value = value.strip()
+            # Supporte KEY=value # commentaire
+            if " #" in value:
+                value = value.split(" #", 1)[0].strip()
+            values[key] = value.strip('"').strip("'")
+
     return values
 
 
@@ -109,12 +115,19 @@ def load_config() -> Config:
             "Configuration incomplète. Renseigne TWITCH_TOKEN et TWITCH_CHANNEL dans bot/.env."
         )
 
+    if not nick:
+        raise SystemExit("TWITCH_NICK est vide. Renseigne un pseudo Twitch valide.")
+
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,25}", nick):
+        raise SystemExit(
+            "TWITCH_NICK invalide. Autorisé: lettres/chiffres/_ (3 à 25 caractères)."
+        )
+
     return Config(
         twitch_token=token,
         twitch_channel=channel,
         twitch_nick=nick,
         firebase_db_url=db_url,
-        poll_interval_sec=0.0,
     )
 
 
@@ -161,9 +174,14 @@ class ZogQuizViewerBot:
                 backoff = min(backoff * 2, 30)
 
     def _run_once(self) -> None:
-        print(f"Connexion Twitch IRC: #{self.cfg.twitch_channel} (nick={self.cfg.twitch_nick})")
-        sock = socket.create_connection(("irc.chat.twitch.tv", 6697), timeout=20)
-        tls_sock = ssl.create_default_context().wrap_socket(sock, server_hostname="irc.chat.twitch.tv")
+        self._ensure_firebase_online()
+
+        print(
+            f"Connexion Twitch IRC: #{self.cfg.twitch_channel} "
+            f"(nick={self.cfg.twitch_nick}, host={self.cfg.twitch_host}:{self.cfg.twitch_port})"
+        )
+        sock = socket.create_connection((self.cfg.twitch_host, self.cfg.twitch_port), timeout=20)
+        tls_sock = ssl.create_default_context().wrap_socket(sock, server_hostname=self.cfg.twitch_host)
         file = tls_sock.makefile("r", encoding="utf-8", newline="\r\n")
 
         self._send_line(tls_sock, f"PASS {self.cfg.twitch_token}")
@@ -183,6 +201,14 @@ class ZogQuizViewerBot:
                 self._send_line(tls_sock, f"PONG :{ping.group(1)}")
                 continue
 
+            notice = NOTICE_RE.match(line)
+            if notice:
+                message = notice.group("message") or ""
+                lower = message.lower()
+                if "improperly formatted auth" in lower or "login authentication failed" in lower:
+                    raise RuntimeError(f"Authentification Twitch refusée: {message}")
+                continue
+
             parsed = PRIVMSG_RE.match(line)
             if not parsed:
                 continue
@@ -198,6 +224,12 @@ class ZogQuizViewerBot:
     @staticmethod
     def _send_line(sock: ssl.SSLSocket, line: str) -> None:
         sock.sendall((line + "\r\n").encode("utf-8"))
+
+    def _ensure_firebase_online(self) -> None:
+        try:
+            self.firebase.get("rooms/manche1/state")
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(f"Connexion Firebase impossible ({self.cfg.firebase_db_url}): {exc}") from exc
 
     def _process_message(self, username: str, user_id: str, message: str) -> None:
         if not message:
@@ -257,12 +289,23 @@ class ZogQuizViewerBot:
 
     def _get_normalized_answers(self, question: Dict[str, Any]) -> set[str]:
         answers: list[str] = []
+
         if isinstance(question.get("normalizedAnswers"), list):
             answers.extend(str(a) for a in question.get("normalizedAnswers") if str(a).strip())
-        elif isinstance(question.get("acceptedAnswers"), list):
+
+        if isinstance(question.get("acceptedAnswers"), list):
             answers.extend(normalize_answer(str(a)) for a in question.get("acceptedAnswers") if str(a).strip())
-        elif question.get("answer"):
-            answers.append(normalize_answer(str(question.get("answer"))))
+
+        answer_raw = question.get("answer")
+        if isinstance(answer_raw, str) and answer_raw.strip():
+            answer_text = answer_raw.strip()
+            answers.append(normalize_answer(answer_text))
+
+            # Compat: accepte des réponses séparées par | / ;
+            if any(sep in answer_text for sep in ("|", ";", "/")):
+                parts = re.split(r"[|;/]", answer_text)
+                answers.extend(normalize_answer(part) for part in parts if part.strip())
+
         return {a.strip() for a in answers if a and a.strip()}
 
     def _register_first_winner(self, question_id: str, payload: Dict[str, Any]) -> bool:
@@ -297,14 +340,14 @@ class ZogQuizViewerBot:
 
     def _append_chat_feed(self, username: str, user_id: str, message: str, now: int) -> None:
         # Flux best-effort pour panneau admin viewers.
-        safe = "".join(ch for ch in username.lower() if ch in string.ascii_lowercase + string.digits + "_-" )
+        safe_user = "".join(ch for ch in username.lower() if ch in string.ascii_lowercase + string.digits + "_-")
         suffix = "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(4))
-        key = f"{now}_{safe or 'viewer'}_{suffix}"
+        key = f"{now}_{safe_user or 'viewer'}_{suffix}"
         path = f"rooms/viewers/chatFeed/{key}"
         payload = {
             "username": username,
             "userId": user_id,
-            "message": message,
+            "message": message[:MAX_CHAT_MESSAGE_LEN],
             "timestamp": now,
         }
         try:
