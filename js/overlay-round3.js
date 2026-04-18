@@ -1,6 +1,8 @@
 import { db, ref, onValue } from "./firebase.js";
 import { watchOverlayConfig } from "./overlay-config.js";
+import { autoFitText } from "./auto-fit-text.js";
 
+const rootNode = document.querySelector(".overlay-round3");
 const themeNode = document.getElementById("m3-overlay-theme");
 const questionNode = document.getElementById("m3-overlay-question");
 const timerNode = document.getElementById("m3-overlay-timer");
@@ -9,6 +11,7 @@ const DURATION = 90_000;
 let themes = {};
 let state = null;
 let overlayConfig = null;
+let rafId = 0;
 
 function formatTimer(ms) {
   const sec = Math.max(0, Math.floor(ms / 1000));
@@ -24,8 +27,8 @@ function remainingMs() {
 }
 
 function applyOverlayConfig() {
-  if (!overlayConfig) return;
-  questionNode.style.fontSize = `${overlayConfig.questionFontSizePx}px`;
+  if (!overlayConfig || !rootNode) return;
+
   questionNode.style.color = overlayConfig.questionColor;
   themeNode.style.fontSize = `${overlayConfig.themeFontSizePx}px`;
   themeNode.style.color = overlayConfig.themeColor;
@@ -36,10 +39,31 @@ function applyOverlayConfig() {
   questionNode.style.fontWeight = String(overlayConfig.fontWeight);
   timerNode.style.fontWeight = String(overlayConfig.fontWeight);
 
-  const root = document.querySelector(".overlay-round3");
-  root.style.textAlign = overlayConfig.align;
-  root.style.gap = `${overlayConfig.blockGapPx}px`;
-  questionNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
+  rootNode.style.textAlign = overlayConfig.align;
+  rootNode.style.gap = `${overlayConfig.blockGapPx}px`;
+  rootNode.style.padding = `${overlayConfig.questionPaddingPx}px`;
+}
+
+function runAutoFit() {
+  if (!overlayConfig || !rootNode || !questionNode) return;
+
+  autoFitText({
+    container: rootNode,
+    textElement: questionNode,
+    minFontSizePx: overlayConfig.questionMinFontSizePx,
+    maxFontSizePx: overlayConfig.questionMaxFontSizePx,
+    paddingPx: overlayConfig.questionPaddingPx,
+    lineHeight: overlayConfig.questionLineHeight,
+    maxWidthPx: overlayConfig.maxWidthPx,
+  });
+}
+
+function scheduleAutoFit() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(() => {
+    rafId = 0;
+    runAutoFit();
+  });
 }
 
 function render() {
@@ -51,6 +75,7 @@ function render() {
   questionNode.textContent = current?.text || (theme ? "Fin des questions" : "En attente du thème.");
   timerNode.textContent = formatTimer(remainingMs());
   applyOverlayConfig();
+  scheduleAutoFit();
 }
 
 onValue(ref(db, "rooms/manche3/state"), (snap) => {
@@ -67,5 +92,11 @@ watchOverlayConfig("round3", (config) => {
   overlayConfig = config;
   render();
 });
+
+if (window.ResizeObserver && rootNode) {
+  new ResizeObserver(() => scheduleAutoFit()).observe(rootNode);
+}
+window.addEventListener("resize", scheduleAutoFit);
+document.fonts?.ready?.then(() => scheduleAutoFit());
 
 setInterval(render, 250);

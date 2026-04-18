@@ -1,5 +1,6 @@
 import { db, ref, onValue } from "./firebase.js";
 import { watchOverlayConfig } from "./overlay-config.js";
+import { autoFitText } from "./auto-fit-text.js";
 
 const rootNode = document.querySelector(".overlay-round1");
 const textNode = document.getElementById("m1-text");
@@ -44,45 +45,28 @@ function applyOverlayConfig() {
   textNode.style.color = overlayConfig.textColor;
   textNode.style.fontWeight = String(overlayConfig.fontWeight);
   textNode.style.textAlign = overlayConfig.horizontalAlign;
-  textNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
   textNode.style.textShadow = overlayConfig.textShadow ? "0 2px 12px rgba(0,0,0,0.45)" : "none";
 }
 
-function fitsAtSize(sizePx, maxWidth, maxHeight) {
-  textNode.style.fontSize = `${sizePx}px`;
-  return textNode.scrollWidth <= maxWidth && textNode.scrollHeight <= maxHeight;
-}
-
-function autoFitText() {
+function runAutoFit() {
   if (!overlayConfig || !rootNode || !textNode) return;
 
-  const maxWidth = Math.max(1, rootNode.clientWidth);
-  const maxHeight = Math.max(1, rootNode.clientHeight);
-  const minSize = Math.max(8, Number(overlayConfig.minFontSizePx || 20));
-  const maxSize = Math.max(minSize, Number(overlayConfig.maxFontSizePx || 180));
-
-  let low = minSize;
-  let high = maxSize;
-  let best = minSize;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (fitsAtSize(mid, maxWidth, maxHeight)) {
-      best = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  textNode.style.fontSize = `${best}px`;
+  autoFitText({
+    container: rootNode,
+    textElement: textNode,
+    minFontSizePx: overlayConfig.minFontSizePx,
+    maxFontSizePx: overlayConfig.maxFontSizePx,
+    paddingPx: overlayConfig.safePaddingPx,
+    lineHeight: overlayConfig.lineHeight,
+    maxWidthPx: overlayConfig.maxWidthPx,
+  });
 }
 
 function scheduleAutoFit() {
   if (rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(() => {
     rafId = 0;
-    autoFitText();
+    runAutoFit();
   });
 }
 
