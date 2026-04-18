@@ -101,8 +101,15 @@ export async function ensureRoundsSeed(uid) {
   const manche1OverlayRef = ref(db, "rooms/manche1/overlaySettings");
   if (!(await get(manche1OverlayRef)).exists()) {
     await set(manche1OverlayRef, {
-      questionFontSizePx: 72,
-      questionColor: "#ffffff",
+      maxFontSizePx: 180,
+      minFontSizePx: 28,
+      textColor: "#ffffff",
+      fontWeight: 800,
+      textShadow: true,
+      horizontalAlign: "center",
+      verticalAlign: "center",
+      safePaddingPx: 48,
+      maxWidthPx: 1600,
       updatedBy: uid,
       updatedAt: Date.now(),
     });
@@ -138,10 +145,14 @@ export async function ensureRoundsSeed(uid) {
   if (!(await get(overlayConfigsRef)).exists()) {
     await set(overlayConfigsRef, {
       round1: {
-        questionFontSizePx: 72,
-        questionColor: "#ffffff",
-        questionFontWeight: 800,
-        questionAlign: "center",
+        maxFontSizePx: 180,
+        minFontSizePx: 28,
+        textColor: "#ffffff",
+        fontWeight: 800,
+        textShadow: true,
+        horizontalAlign: "center",
+        verticalAlign: "center",
+        safePaddingPx: 48,
         maxWidthPx: 1600,
         updatedBy: uid,
         updatedAt: Date.now(),

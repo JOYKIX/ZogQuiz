@@ -298,8 +298,11 @@ SNK"></textarea>
               <section class="round-section hidden" data-round-section-panel="manche1:overlay">
                 <article class="subpanel stack compact-panel">
                   <h3>Overlay manche 1</h3>
-                  <label>Taille du texte (px)
-                    <input id="overlay-round1-font-size" type="number" min="24" max="200" step="1" value="72" />
+                  <label>Taille max du texte (px)
+                    <input id="overlay-round1-max-font-size" type="number" min="36" max="320" step="1" value="180" />
+                  </label>
+                  <label>Taille min du texte (px)
+                    <input id="overlay-round1-min-font-size" type="number" min="14" max="140" step="1" value="28" />
                   </label>
                   <label>Couleur du texte
                     <input id="overlay-round1-text-color" type="color" value="#ffffff" />
@@ -307,8 +310,17 @@ SNK"></textarea>
                   <label>Graisse
                     <input id="overlay-round1-font-weight" type="number" min="300" max="900" step="100" value="800" />
                   </label>
-                  <label>Alignement
+                  <label>Ombre légère du texte
+                    <input id="overlay-round1-text-shadow" type="checkbox" checked />
+                  </label>
+                  <label>Alignement horizontal
                     <select id="overlay-round1-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select>
+                  </label>
+                  <label>Alignement vertical
+                    <select id="overlay-round1-vertical-align"><option value="top">Haut</option><option value="center" selected>Centre</option><option value="bottom">Bas</option></select>
+                  </label>
+                  <label>Padding de sécurité (px)
+                    <input id="overlay-round1-safe-padding" type="number" min="8" max="220" step="2" value="48" />
                   </label>
                   <label>Largeur max (px)
                     <input id="overlay-round1-max-width" type="number" min="400" max="2200" step="10" value="1600" />

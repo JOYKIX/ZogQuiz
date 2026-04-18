@@ -68,10 +68,14 @@ const m1ParticipantsList = $("m1-participants-list");
 const m1LiveScores = $("m1-live-scores");
 const quickLeaderboard = $("quick-leaderboard");
 const scoreboardPreview = $("scoreboard-preview");
-const overlayRound1FontSizeInput = $("overlay-round1-font-size");
+const overlayRound1MaxFontSizeInput = $("overlay-round1-max-font-size");
+const overlayRound1MinFontSizeInput = $("overlay-round1-min-font-size");
 const overlayRound1ColorInput = $("overlay-round1-text-color");
 const overlayRound1FontWeightInput = $("overlay-round1-font-weight");
+const overlayRound1ShadowInput = $("overlay-round1-text-shadow");
 const overlayRound1AlignInput = $("overlay-round1-align");
+const overlayRound1VerticalAlignInput = $("overlay-round1-vertical-align");
+const overlayRound1PaddingInput = $("overlay-round1-safe-padding");
 const overlayRound1MaxWidthInput = $("overlay-round1-max-width");
 
 const overlayRound2MaxWidthInput = $("overlay-round2-max-width");
@@ -455,7 +459,8 @@ buzzMinusBtn.addEventListener("click", async () => {
 });
 
 [
-  overlayRound1FontSizeInput, overlayRound1ColorInput, overlayRound1FontWeightInput, overlayRound1AlignInput, overlayRound1MaxWidthInput,
+  overlayRound1MaxFontSizeInput, overlayRound1MinFontSizeInput, overlayRound1ColorInput, overlayRound1FontWeightInput,
+  overlayRound1ShadowInput, overlayRound1AlignInput, overlayRound1VerticalAlignInput, overlayRound1PaddingInput, overlayRound1MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round1")));
 [
   overlayRound2MaxWidthInput, overlayRound2MaxHeightInput, overlayRound2RadiusInput,
@@ -1582,10 +1587,14 @@ function startRound3Ticker() {
 
 function syncOverlayInputs() {
   const r1 = overlayConfigs.round1;
-  if (overlayRound1FontSizeInput) overlayRound1FontSizeInput.value = String(r1.questionFontSizePx);
-  if (overlayRound1ColorInput) overlayRound1ColorInput.value = r1.questionColor;
-  if (overlayRound1FontWeightInput) overlayRound1FontWeightInput.value = String(r1.questionFontWeight);
-  if (overlayRound1AlignInput) overlayRound1AlignInput.value = r1.questionAlign;
+  if (overlayRound1MaxFontSizeInput) overlayRound1MaxFontSizeInput.value = String(r1.maxFontSizePx);
+  if (overlayRound1MinFontSizeInput) overlayRound1MinFontSizeInput.value = String(r1.minFontSizePx);
+  if (overlayRound1ColorInput) overlayRound1ColorInput.value = r1.textColor;
+  if (overlayRound1FontWeightInput) overlayRound1FontWeightInput.value = String(r1.fontWeight);
+  if (overlayRound1ShadowInput) overlayRound1ShadowInput.checked = Boolean(r1.textShadow);
+  if (overlayRound1AlignInput) overlayRound1AlignInput.value = r1.horizontalAlign;
+  if (overlayRound1VerticalAlignInput) overlayRound1VerticalAlignInput.value = r1.verticalAlign;
+  if (overlayRound1PaddingInput) overlayRound1PaddingInput.value = String(r1.safePaddingPx);
   if (overlayRound1MaxWidthInput) overlayRound1MaxWidthInput.value = String(r1.maxWidthPx);
 
   const r2 = overlayConfigs.round2;
@@ -1633,10 +1642,14 @@ function syncOverlayInputs() {
 function readOverlayConfigInputs(roundKey) {
   if (roundKey === "round1") {
     return {
-      questionFontSizePx: overlayRound1FontSizeInput?.value,
-      questionColor: overlayRound1ColorInput?.value,
-      questionFontWeight: overlayRound1FontWeightInput?.value,
-      questionAlign: overlayRound1AlignInput?.value,
+      maxFontSizePx: overlayRound1MaxFontSizeInput?.value,
+      minFontSizePx: overlayRound1MinFontSizeInput?.value,
+      textColor: overlayRound1ColorInput?.value,
+      fontWeight: overlayRound1FontWeightInput?.value,
+      textShadow: overlayRound1ShadowInput?.checked,
+      horizontalAlign: overlayRound1AlignInput?.value,
+      verticalAlign: overlayRound1VerticalAlignInput?.value,
+      safePaddingPx: overlayRound1PaddingInput?.value,
       maxWidthPx: overlayRound1MaxWidthInput?.value,
     };
   }

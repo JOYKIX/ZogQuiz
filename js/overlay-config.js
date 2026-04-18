@@ -4,10 +4,14 @@ export const OVERLAY_CONFIGS_PATH = "overlayConfigs";
 
 export const OVERLAY_DEFAULTS = {
   round1: {
-    questionFontSizePx: 72,
-    questionColor: "#ffffff",
-    questionFontWeight: 800,
-    questionAlign: "center",
+    maxFontSizePx: 180,
+    minFontSizePx: 28,
+    textColor: "#ffffff",
+    fontWeight: 800,
+    textShadow: true,
+    horizontalAlign: "center",
+    verticalAlign: "center",
+    safePaddingPx: 48,
     maxWidthPx: 1600,
   },
   round2: {
@@ -55,6 +59,7 @@ export const OVERLAY_DEFAULTS = {
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 const ALIGN_VALUES = new Set(["left", "center", "right"]);
+const V_ALIGN_VALUES = new Set(["top", "center", "bottom"]);
 
 function clampInt(value, fallback, min, max) {
   const numeric = Number(value);
@@ -80,11 +85,21 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
   const defaults = OVERLAY_DEFAULTS[roundKey] || {};
 
   if (roundKey === "round1") {
+    const textColor = asColor(raw.textColor ?? raw.questionColor, defaults.textColor);
+    const fontWeight = clampInt(raw.fontWeight ?? raw.questionFontWeight, defaults.fontWeight, 300, 900);
+    const horizontalAlign = asAlign(raw.horizontalAlign ?? raw.questionAlign, defaults.horizontalAlign);
+    const verticalAlign = V_ALIGN_VALUES.has(raw.verticalAlign) ? raw.verticalAlign : defaults.verticalAlign;
+    const maxFontSizePx = clampInt(raw.maxFontSizePx ?? raw.questionFontSizePx, defaults.maxFontSizePx, 36, 320);
+    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, 140);
     return {
-      questionFontSizePx: clampInt(raw.questionFontSizePx, defaults.questionFontSizePx, 24, 200),
-      questionColor: asColor(raw.questionColor, defaults.questionColor),
-      questionFontWeight: clampInt(raw.questionFontWeight, defaults.questionFontWeight, 300, 900),
-      questionAlign: asAlign(raw.questionAlign, defaults.questionAlign),
+      maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
+      minFontSizePx: Math.min(minFontSizePx, maxFontSizePx),
+      textColor,
+      fontWeight,
+      textShadow: Boolean(raw.textShadow ?? true),
+      horizontalAlign,
+      verticalAlign,
+      safePaddingPx: clampInt(raw.safePaddingPx, defaults.safePaddingPx, 8, 220),
       maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2200),
     };
   }
