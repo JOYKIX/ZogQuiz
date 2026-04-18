@@ -4,14 +4,15 @@ export const OVERLAY_CONFIGS_PATH = "overlayConfigs";
 
 export const OVERLAY_DEFAULTS = {
   round1: {
-    maxFontSizePx: 180,
-    minFontSizePx: 28,
+    maxFontSizePx: 80,
+    minFontSizePx: 24,
     textColor: "#ffffff",
     fontWeight: 800,
     textShadow: true,
     horizontalAlign: "center",
     verticalAlign: "center",
-    safePaddingPx: 48,
+    safePaddingPx: 40,
+    lineHeight: 1.2,
     maxWidthPx: 1600,
   },
   round2: {
@@ -21,6 +22,10 @@ export const OVERLAY_DEFAULTS = {
   },
   round3: {
     questionFontSizePx: 74,
+    questionMaxFontSizePx: 80,
+    questionMinFontSizePx: 24,
+    questionPaddingPx: 40,
+    questionLineHeight: 1.2,
     themeFontSizePx: 34,
     timerFontSizePx: 72,
     questionColor: "#ffffff",
@@ -91,6 +96,7 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
     const verticalAlign = V_ALIGN_VALUES.has(raw.verticalAlign) ? raw.verticalAlign : defaults.verticalAlign;
     const maxFontSizePx = clampInt(raw.maxFontSizePx ?? raw.questionFontSizePx, defaults.maxFontSizePx, 36, 320);
     const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, 140);
+    const lineHeight = clampFloat(raw.lineHeight ?? raw.questionLineHeight, defaults.lineHeight, 1, 2);
     return {
       maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
       minFontSizePx: Math.min(minFontSizePx, maxFontSizePx),
@@ -99,7 +105,8 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       textShadow: Boolean(raw.textShadow ?? true),
       horizontalAlign,
       verticalAlign,
-      safePaddingPx: clampInt(raw.safePaddingPx, defaults.safePaddingPx, 8, 220),
+      safePaddingPx: clampInt(raw.safePaddingPx ?? raw.paddingPx, defaults.safePaddingPx, 8, 220),
+      lineHeight,
       maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2200),
     };
   }
@@ -113,8 +120,24 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
   }
 
   if (roundKey === "round3") {
+    const questionMaxFontSizePx = clampInt(
+      raw.questionMaxFontSizePx ?? raw.maxFontSizePx ?? raw.questionFontSizePx,
+      defaults.questionMaxFontSizePx,
+      20,
+      220,
+    );
+    const questionMinFontSizePx = clampInt(
+      raw.questionMinFontSizePx ?? raw.minFontSizePx,
+      defaults.questionMinFontSizePx,
+      14,
+      140,
+    );
     return {
       questionFontSizePx: clampInt(raw.questionFontSizePx, defaults.questionFontSizePx, 20, 200),
+      questionMaxFontSizePx: Math.max(questionMinFontSizePx, questionMaxFontSizePx),
+      questionMinFontSizePx: Math.min(questionMinFontSizePx, questionMaxFontSizePx),
+      questionPaddingPx: clampInt(raw.questionPaddingPx ?? raw.paddingPx, defaults.questionPaddingPx, 0, 220),
+      questionLineHeight: clampFloat(raw.questionLineHeight ?? raw.lineHeight, defaults.questionLineHeight, 1, 2),
       themeFontSizePx: clampInt(raw.themeFontSizePx, defaults.themeFontSizePx, 14, 120),
       timerFontSizePx: clampInt(raw.timerFontSizePx, defaults.timerFontSizePx, 20, 220),
       questionColor: asColor(raw.questionColor, defaults.questionColor),

@@ -3,6 +3,10 @@
   justify-items: center;
   align-content: center;
   gap: 0.8rem;
+  width: 100vw;
+  height: 100vh;
+  padding: 40px;
+  box-sizing: border-box;
 }
 
 .m3-theme,
@@ -13,9 +17,10 @@
 }
 
 .m3-question {
-  line-height: 1.08;
-  text-wrap: balance;
-  max-width: min(88vw, 1400px);
+  line-height: 1.2;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  width: 100%;
   padding: 0.9rem 1.15rem;
   border-radius: 18px;
   border: 1px solid rgba(230, 235, 255, 0.5);
