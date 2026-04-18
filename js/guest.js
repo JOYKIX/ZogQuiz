@@ -29,6 +29,9 @@ const guestLogoutBtn = document.getElementById("guest-logout");
 const buzzerPanel = document.getElementById("buzzer-panel");
 const buzzBtn = document.getElementById("buzz-btn");
 const buzzFeedback = document.getElementById("buzz-feedback");
+const buzzKeybindLabel = document.getElementById("buzz-keybind-label");
+const buzzKeybindChangeBtn = document.getElementById("buzz-keybind-change");
+const buzzKeybindHint = document.getElementById("buzz-keybind-hint");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -40,10 +43,25 @@ const m3GuestHelp = document.getElementById("m3-guest-help");
 const m3ThemeButtons = document.getElementById("m3-theme-buttons");
 
 const GUEST_STORAGE_KEY = "zogquiz.guestSession.v2";
+const BUZZ_KEYBIND_STORAGE_KEY = "zogquiz.guestBuzzKeybind.v1";
 const ROUND1_STATE_PATH = "rooms/manche1/state";
 const ROUND1_GUEST_SESSIONS_PATH = "rooms/manche1/guestSessions";
 const ROUND1_QUESTION_BLOCKS_PATH = "rooms/manche1/questionBlocks";
 const ROUND1_BUZZES_PATH = "rooms/manche1/buzzes";
+const DEFAULT_BUZZ_KEY = "Space";
+
+const FRIENDLY_KEY_NAMES = {
+  Space: "Espace",
+  Enter: "Entrée",
+  Escape: "Échap",
+  Tab: "Tabulation",
+  Backspace: "Retour arrière",
+  Delete: "Suppr",
+  ArrowUp: "Flèche haut",
+  ArrowDown: "Flèche bas",
+  ArrowLeft: "Flèche gauche",
+  ArrowRight: "Flèche droite",
+};
 
 let liveRound = "manche1";
 let guestAuth = {
@@ -61,9 +79,62 @@ let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
 let manche5Controller = null;
+let buzzKeybindCode = DEFAULT_BUZZ_KEY;
+let isKeybindCaptureActive = false;
 
 function isAccountActive(account) {
   return account?.active !== false;
+}
+
+function readStoredBuzzKeybind() {
+  try {
+    const stored = String(localStorage.getItem(BUZZ_KEYBIND_STORAGE_KEY) || "").trim();
+    return stored || DEFAULT_BUZZ_KEY;
+  } catch {
+    return DEFAULT_BUZZ_KEY;
+  }
+}
+
+function writeStoredBuzzKeybind(code) {
+  localStorage.setItem(BUZZ_KEYBIND_STORAGE_KEY, code);
+}
+
+function formatKeybindLabel(code) {
+  if (FRIENDLY_KEY_NAMES[code]) return FRIENDLY_KEY_NAMES[code];
+  if (!code) return FRIENDLY_KEY_NAMES[DEFAULT_BUZZ_KEY];
+  if (code.startsWith("Key")) return code.slice(3).toUpperCase();
+  if (code.startsWith("Digit")) return code.slice(5);
+  return code;
+}
+
+function renderBuzzKeybind() {
+  if (!buzzKeybindLabel) return;
+  buzzKeybindLabel.textContent = `Touche actuelle : ${formatKeybindLabel(buzzKeybindCode)}`;
+}
+
+function isTypingContext(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tagName = target.tagName.toLowerCase();
+  if (tagName === "textarea" || tagName === "select") return true;
+  if (tagName !== "input") return false;
+  const input = target;
+  const inputType = String(input.type || "text").toLowerCase();
+  const textLikeTypes = new Set([
+    "text",
+    "search",
+    "email",
+    "password",
+    "url",
+    "tel",
+    "number",
+    "date",
+    "datetime-local",
+    "month",
+    "time",
+    "week",
+  ]);
+  return textLikeTypes.has(inputType);
 }
 
 const triggerBuzzSound = createBuzzSoundTrigger({
@@ -499,25 +570,25 @@ async function validateConnectedGuestForBuzz() {
   return { ok: true };
 }
 
-buzzBtn.addEventListener("click", async () => {
+async function attemptBuzz() {
   try {
     const validSession = await validateConnectedGuestForBuzz();
     if (!validSession.ok) {
       buzzFeedback.textContent = validSession.reason;
-      return;
+      return false;
     }
 
     const availability = getBuzzAvailability();
     if (!availability.canBuzz) {
       buzzFeedback.textContent = availability.message;
-      return;
+      return false;
     }
 
     const blockedSnap = await get(ref(db, `${ROUND1_QUESTION_BLOCKS_PATH}/${liveState.currentQuestionId}/${guestAuth.accountId}`));
     if (blockedSnap.exists()) {
       currentQuestionBlocked = true;
       refreshButtonState();
-      return;
+      return false;
     }
 
     const stateRef = ref(db, ROUND1_STATE_PATH);
@@ -543,13 +614,53 @@ buzzBtn.addEventListener("click", async () => {
         timestamp: Date.now(),
       });
       buzzFeedback.textContent = "Buzz validé.";
-      return;
+      return true;
     }
 
     buzzFeedback.textContent = "Buzz déjà pris.";
+    return false;
   } catch {
     buzzFeedback.textContent = "Erreur réseau Firebase : réessayez.";
+    return false;
   }
+}
+
+buzzBtn.addEventListener("click", async () => {
+  await attemptBuzz();
+});
+
+buzzKeybindChangeBtn?.addEventListener("click", () => {
+  isKeybindCaptureActive = true;
+  buzzKeybindHint?.classList.remove("hidden");
+  buzzKeybindChangeBtn.textContent = "Appuyez sur une touche…";
+});
+
+document.addEventListener("keydown", async (event) => {
+  const pressedCode = event.code || event.key;
+
+  if (isKeybindCaptureActive) {
+    event.preventDefault();
+    if (pressedCode) {
+      buzzKeybindCode = pressedCode;
+      writeStoredBuzzKeybind(buzzKeybindCode);
+      renderBuzzKeybind();
+    }
+    isKeybindCaptureActive = false;
+    buzzKeybindHint?.classList.add("hidden");
+    buzzKeybindChangeBtn.textContent = "Changer la touche";
+    return;
+  }
+
+  if (event.repeat) return;
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  if (isTypingContext(event.target)) return;
+  if (pressedCode !== buzzKeybindCode) return;
+
+  const availability = getBuzzAvailability();
+  if (!availability.canBuzz) return;
+
+  event.preventDefault();
+  await attemptBuzz();
 });
 
 onValue(ref(db, "quiz/state"), (snap) => {
@@ -624,4 +735,6 @@ watchRound1State();
 watchingRound1 = true;
 renderByRound();
 showLoginForm();
+buzzKeybindCode = readStoredBuzzKeybind();
+renderBuzzKeybind();
 tryAutoReconnect();
