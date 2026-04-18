@@ -1,4 +1,4 @@
-import { db, ref, set, get, push, update, remove, onValue } from "./firebase.js";
+import { db, ref, set, push, update, remove, onValue } from "./firebase.js";
 import { showConfirm, showPrompt } from "./modal.js";
 import { normalizeViewerAnswer, parseAcceptedAnswers } from "./viewer-utils.js";
 
@@ -90,7 +90,6 @@ function buildQuestionPayload(round, cfg, adminId) {
 
 function computeSessionKey(liveState) {
   if (!liveState?.active) return null;
-  if (liveState.round === "manche4") return `manche4:${liveState.gridId || "grid"}:${liveState.clueId || "clue"}`;
   return `${liveState.round}:${liveState.questionId}`;
 }
 
@@ -139,45 +138,6 @@ export function initViewerAdmin(options) {
     renderLivePanels(state);
   });
 
-
-  const m4StartBtn = document.getElementById("m4-viewer-start-clue");
-  const m4StopBtn = document.getElementById("m4-viewer-stop-clue");
-  const m4LiveLabel = document.getElementById("m4-viewer-live-label");
-
-  m4StartBtn?.addEventListener("click", async () => {
-    const clueId = (document.getElementById("m4-viewer-clue-id")?.value || "").trim() || `clue_${Date.now()}`;
-    const timerSeconds = Math.max(0, Number(document.getElementById("m4-viewer-timer")?.value || 20));
-    const points = Math.max(1, Number(document.getElementById("m4-viewer-points")?.value || 3));
-    const gridId = String((await get(ref(db, "rooms/manche4/state/currentGridId"))).val() || "");
-    const now = Date.now();
-    await set(ref(db, LIVE_STATE_PATH), {
-      active: true,
-      status: "active",
-      mode: "viewer-grid",
-      round: "manche4",
-      gridId,
-      clueId,
-      timerSeconds,
-      points,
-      settings: { firstCorrectOnly: true, allowMultipleWinners: false, numericOnly: true },
-      startedAt: now,
-      endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
-      updatedAt: now,
-      updatedBy: getCurrentAdminId?.() || "admin",
-    });
-    if (m4LiveLabel) m4LiveLabel.textContent = `Indice viewers actif (${clueId})`;
-  });
-
-  m4StopBtn?.addEventListener("click", async () => {
-    await update(ref(db, LIVE_STATE_PATH), {
-      active: false,
-      status: "stopped",
-      endedAt: Date.now(),
-      updatedAt: Date.now(),
-      updatedBy: getCurrentAdminId?.() || "admin",
-    });
-    if (m4LiveLabel) m4LiveLabel.textContent = "Aucun indice viewers actif.";
-  });
 
   onValue(ref(db, CHAT_FEED_PATH), (snap) => {
     const feed = snap.val() || {};

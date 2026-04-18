@@ -1,4 +1,4 @@
-import { db, ref, get, set, update, remove, onValue } from "./firebase.js";
+import { db, ref, get, set, update, remove, onValue, runTransaction } from "./firebase.js";
 import { showConfirm } from "./modal.js";
 import { getDefaultParticipantColor, normalizeParticipantColor } from "./participants.js";
 
@@ -20,6 +20,15 @@ export const manche4State = {
 
 export function computeManche4Score(progress) {
   return computeRound4Scores(progress).finalRound4Score;
+}
+
+function normalizeState(rawState = {}) {
+  return {
+    ...rawState,
+    cluePhase: Math.min(3, Math.max(1, Number(rawState.cluePhase || 1))),
+    allowedPlayers: Array.isArray(rawState.allowedPlayers) ? rawState.allowedPlayers : [],
+    playerProgress: rawState.playerProgress || {},
+  };
 }
 
 function defaultProgress() {
@@ -408,14 +417,8 @@ export function initManche4Admin(options) {
   });
 
   onValue(ref(db, M4_STATE_PATH), (snap) => {
-    const state = snap.val() || {};
-    Object.assign(manche4State, {
-      ...manche4State,
-      ...state,
-      cluePhase: Math.min(3, Math.max(1, Number(state.cluePhase || 1))),
-      allowedPlayers: Array.isArray(state.allowedPlayers) ? state.allowedPlayers : [],
-      playerProgress: state.playerProgress || {},
-    });
+    const state = normalizeState(snap.val() || {});
+    Object.assign(manche4State, { ...manche4State, ...state });
     if (els.clueInput && document.activeElement !== els.clueInput) els.clueInput.value = manche4State.currentClue || "";
     refreshMeta();
     renderParticipants();
@@ -463,49 +466,64 @@ export function initManche4Guest(options) {
   }
 
   async function selectWord(wordId) {
-    if (!manche4State.active || manche4State.finished) return;
     const sessionId = getCurrentSession?.();
-    if (!sessionId || !canPlay()) return;
-    const grid = getCurrentGrid();
-    if (!grid) return;
+    if (!sessionId || !wordId) return;
 
-    const progress = { ...defaultProgress(), ...(manche4State.playerProgress[sessionId] || {}) };
-    if (progress.lockedForCurrentClue && Number(progress.lockedCluePhase) === Number(manche4State.cluePhase)) return;
+    await runTransaction(ref(db, M4_STATE_PATH), (currentRaw) => {
+      const current = normalizeState(currentRaw || {});
+      if (!current.active || current.finished) return currentRaw;
+      if (!Array.isArray(current.allowedPlayers) || !current.allowedPlayers.includes(sessionId)) return currentRaw;
 
-    if (progress.lockedForCurrentClue && Number(progress.lockedCluePhase) !== Number(manche4State.cluePhase)) {
-      progress.lockedForCurrentClue = false;
-      progress.lockedCluePhase = null;
-    }
+      const grid = (manche4State.grids || []).find((item) => item.id === current.currentGridId);
+      if (!grid) return currentRaw;
+      const word = grid.words.find((item) => item.id === wordId);
+      if (!word) return currentRaw;
 
-    const selectedWords = new Set(progress.selectedWords || []);
-    if (selectedWords.has(wordId)) return;
-    selectedWords.add(wordId);
+      const progress = { ...defaultProgress(), ...(current.playerProgress?.[sessionId] || {}) };
+      const cluePhase = Math.min(3, Math.max(1, Number(current.cluePhase || 1)));
+      if (progress.lockedForCurrentClue && Number(progress.lockedCluePhase) === cluePhase) return currentRaw;
+      if (progress.lockedForCurrentClue && Number(progress.lockedCluePhase) !== cluePhase) {
+        progress.lockedForCurrentClue = false;
+        progress.lockedCluePhase = null;
+      }
 
-    const word = grid.words.find((item) => item.id === wordId);
-    let shouldLockForCurrentClue = false;
-    if (word?.role === "good" && !progress.foundGoodWords?.[wordId]) {
-      progress.foundGoodWords = { ...(progress.foundGoodWords || {}), [wordId]: manche4State.cluePhase };
-      const foundWords = new Set(progress.foundWords || []);
-      foundWords.add(wordId);
-      progress.foundWords = Array.from(foundWords);
-    } else if (word?.role === "black") {
-      progress.blackWordPenalty = true;
-      progress.hitBlackWord = true;
-      shouldLockForCurrentClue = true;
-    } else {
-      shouldLockForCurrentClue = true;
-    }
+      const selectedWords = new Set(progress.selectedWords || []);
+      if (selectedWords.has(wordId)) return currentRaw;
+      selectedWords.add(wordId);
 
-    if (shouldLockForCurrentClue) {
-      progress.lockedForCurrentClue = true;
-      progress.lockedCluePhase = Number(manche4State.cluePhase);
-    }
+      let shouldLockForCurrentClue = false;
+      if (word.role === "good" && !progress.foundGoodWords?.[wordId]) {
+        progress.foundGoodWords = { ...(progress.foundGoodWords || {}), [wordId]: cluePhase };
+        const foundWords = new Set(progress.foundWords || []);
+        foundWords.add(wordId);
+        progress.foundWords = Array.from(foundWords);
+      } else if (word.role === "black") {
+        progress.blackWordPenalty = true;
+        progress.hitBlackWord = true;
+        shouldLockForCurrentClue = true;
+      } else {
+        shouldLockForCurrentClue = true;
+      }
 
-    progress.selectedWords = Array.from(selectedWords);
-    const { rawRound4Score, finalRound4Score } = computeRound4Scores(progress);
-    progress.rawRound4Score = rawRound4Score;
-    progress.finalRound4Score = finalRound4Score;
-    await update(ref(db, `${M4_STATE_PATH}/playerProgress/${sessionId}`), progress);
+      if (shouldLockForCurrentClue) {
+        progress.lockedForCurrentClue = true;
+        progress.lockedCluePhase = cluePhase;
+      }
+
+      progress.selectedWords = Array.from(selectedWords);
+      const { rawRound4Score, finalRound4Score } = computeRound4Scores(progress);
+      progress.rawRound4Score = rawRound4Score;
+      progress.finalRound4Score = finalRound4Score;
+
+      return {
+        ...current,
+        playerProgress: {
+          ...(current.playerProgress || {}),
+          [sessionId]: progress,
+        },
+        updatedAt: Date.now(),
+      };
+    });
   }
 
   function renderGuestGrid() {
@@ -517,7 +535,7 @@ export function initManche4Guest(options) {
     }
 
     const sessionId = getCurrentSession?.();
-    const progress = { ...defaultProgress(), ...(manche4State.playerProgress[sessionId] || {}) };
+    const progress = { ...defaultProgress(), ...((sessionId && manche4State.playerProgress[sessionId]) || {}) };
     const isLockedForCurrentClue = Boolean(progress.lockedForCurrentClue)
       && Number(progress.lockedCluePhase) === Number(manche4State.cluePhase);
     const selected = new Set(progress.selectedWords || []);
@@ -558,14 +576,8 @@ export function initManche4Guest(options) {
   }
 
   onValue(ref(db, M4_STATE_PATH), (snap) => {
-    const state = snap.val() || {};
-    Object.assign(manche4State, {
-      ...manche4State,
-      ...state,
-      cluePhase: Math.min(3, Math.max(1, Number(state.cluePhase || 1))),
-      allowedPlayers: Array.isArray(state.allowedPlayers) ? state.allowedPlayers : [],
-      playerProgress: state.playerProgress || {},
-    });
+    const state = normalizeState(snap.val() || {});
+    Object.assign(manche4State, { ...manche4State, ...state });
     renderGuestStatus();
     renderGuestGrid();
   });
