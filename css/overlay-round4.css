@@ -42,7 +42,7 @@
   right: 5px;
   bottom: 5px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 4px;
   max-width: 72%;
@@ -71,4 +71,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(12, 18, 34, 0.46);
 }

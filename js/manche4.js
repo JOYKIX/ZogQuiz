@@ -1,5 +1,6 @@
 import { db, ref, get, set, update, remove, onValue } from "./firebase.js";
 import { showConfirm } from "./modal.js";
+import { getDefaultParticipantColor, normalizeParticipantColor } from "./participants.js";
 
 const M4_STATE_PATH = "rooms/manche4/state";
 const M4_GRIDS_PATH = "rooms/manche4/grids";
@@ -298,9 +299,10 @@ export function initManche4Admin(options) {
 
     entries.forEach(([sessionId, session]) => {
       const checked = manche4State.allowedPlayers.includes(sessionId);
+      const color = normalizeParticipantColor(session?.color, getDefaultParticipantColor(sessionId));
       const li = document.createElement("li");
       li.className = "leader-item";
-      li.innerHTML = `<label><input type="checkbox" data-session-id="${sessionId}" ${checked ? "checked" : ""} /> ${escapeHtml(session.nickname || sessionId)}</label>`;
+      li.innerHTML = `<label><input type="checkbox" data-session-id="${sessionId}" ${checked ? "checked" : ""} /> <span class="leader-name"><span class="leader-color-dot" style="background-color:${color}"></span>${escapeHtml(session.nickname || sessionId)}</span></label>`;
       els.participantsList.appendChild(li);
     });
   }
@@ -324,7 +326,8 @@ export function initManche4Admin(options) {
     rows.forEach((row) => {
       const li = document.createElement("li");
       li.className = "leader-item";
-      li.innerHTML = `<span class="leader-name">${escapeHtml(row.nickname)}</span><span class="leader-score">${row.score} pt</span><p class="muted">${row.selectedCount} sélections · ${row.goodCount}/5 bons · ${row.hitBlackWord ? "mot noir touché" : "mot noir non touché"}</p>`;
+      const color = normalizeParticipantColor(localState.sessionsById[row.sessionId]?.color, getDefaultParticipantColor(row.sessionId));
+      li.innerHTML = `<span class="leader-name"><span class="leader-color-dot" style="background-color:${color}"></span>${escapeHtml(row.nickname)}</span><span class="leader-score">${row.score} pt</span><p class="muted">${row.selectedCount} sélections · ${row.goodCount}/5 bons · ${row.hitBlackWord ? "mot noir touché" : "mot noir non touché"}</p>`;
       els.progressList.appendChild(li);
     });
   }

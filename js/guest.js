@@ -10,6 +10,7 @@ import {
   normalizeBuzzerSoundFile,
   validateDisplayName,
 } from "./guest-accounts.js";
+import { getDefaultParticipantColor, normalizeParticipantColor } from "./participants.js";
 
 const guestAuthScreen = document.getElementById("guest-auth-screen");
 const guestAppRoot = document.getElementById("guest-app");
@@ -221,6 +222,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
   const existing = sessionSnap.val() || {};
   const nickname = String(account.displayName || "").trim();
   const buzzerSound = normalizeBuzzerSoundFile(account.buzzerSound || existing.buzzerSound || "");
+  const color = normalizeParticipantColor(account.color || existing.color, getDefaultParticipantColor(account.accountId));
 
   await set(sessionRef, {
     accountId: account.accountId,
@@ -232,6 +234,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
     score: Number(existing.score || 0),
     active: isAccountActive(account),
     buzzerSound,
+    color,
   });
 
   applyConnectedState(account);
