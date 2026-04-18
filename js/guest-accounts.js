@@ -1,4 +1,5 @@
 import { db, ref, get, set, update, remove } from "./firebase.js";
+import { getDefaultParticipantColor, normalizeParticipantColor } from "./participants.js";
 
 export const GUEST_ACCOUNTS_PATH = "rooms/manche1/guestAccounts";
 export const GUEST_LOGIN_INDEX_PATH = "rooms/manche1/guestLoginIndex";
@@ -62,12 +63,14 @@ export async function createGuestAccount({ loginId, password, createdBy, buzzerS
 
   const accountId = randomId();
   const now = Date.now();
+  const color = getDefaultParticipantColor(accountId);
   await set(ref(db, `${GUEST_ACCOUNTS_PATH}/${accountId}`), {
     accountId,
     loginId: normalizedLoginId,
     passwordHash: await hashSecret(password),
     active: true,
     buzzerSound: normalizedBuzzerSound,
+    color,
     allowDisplayNameChange: false,
     displayName: "",
     authVersion: 1,
@@ -77,6 +80,21 @@ export async function createGuestAccount({ loginId, password, createdBy, buzzerS
   });
   await set(loginRef, accountId);
   return accountId;
+}
+
+export async function updateParticipantColor({ participantId, color, updatedBy = "admin" }) {
+  if (!participantId) throw new Error("Participant introuvable.");
+  const normalizedColor = normalizeParticipantColor(color);
+  const payload = {
+    color: normalizedColor,
+    updatedAt: Date.now(),
+    updatedBy,
+  };
+  await Promise.all([
+    update(ref(db, `${GUEST_ACCOUNTS_PATH}/${participantId}`), payload),
+    update(ref(db, `rooms/manche1/guestSessions/${participantId}`), payload),
+  ]);
+  return normalizedColor;
 }
 
 export async function removeGuestAccount(account) {

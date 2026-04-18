@@ -1,5 +1,11 @@
 import { db, ref, onValue } from "./firebase.js";
 import { watchOverlayConfig } from "./overlay-config.js";
+import {
+  buildMarkerBorderColor,
+  computeReadableTextColor,
+  getDefaultParticipantColor,
+  normalizeParticipantColor,
+} from "./participants.js";
 
 const clueNode = document.getElementById("m4-overlay-clue");
 const gridNode = document.getElementById("m4-overlay-grid");
@@ -10,9 +16,8 @@ let gridsById = {};
 let sessionsById = {};
 let overlayConfig = null;
 
-function colorForIndex(index) {
-  const hue = (index * 67) % 360;
-  return `hsl(${hue}deg 82% 62%)`;
+function participantColor(sessionId) {
+  return normalizeParticipantColor(sessionsById[sessionId]?.color, getDefaultParticipantColor(sessionId));
 }
 
 function buildSelectionsByWord() {
@@ -33,17 +38,21 @@ function playerName(sessionId) {
 
 function renderLegend(players) {
   legendNode.innerHTML = "";
-  players.forEach((sessionId, index) => {
+  players.forEach((sessionId) => {
+    const color = participantColor(sessionId);
     const li = document.createElement("li");
     const marker = document.createElement("span");
     marker.className = "m4-marker";
     marker.style.width = `${overlayConfig.markerSizePx}px`;
     marker.style.height = `${overlayConfig.markerSizePx}px`;
     marker.style.opacity = String(overlayConfig.markerOpacity);
-    marker.style.backgroundColor = colorForIndex(index);
+    marker.style.backgroundColor = color;
+    marker.style.borderColor = buildMarkerBorderColor(color);
 
     const name = document.createElement("span");
     name.textContent = playerName(sessionId);
+    name.style.color = computeReadableTextColor(color);
+    name.style.textShadow = "0 1px 2px rgba(0, 0, 0, 0.75), 0 0 10px rgba(0, 0, 0, 0.45)";
 
     li.append(marker, name);
     legendNode.appendChild(li);
@@ -60,7 +69,6 @@ function render() {
   if (!activeGrid || !overlayConfig) return;
 
   const players = Object.keys(state.playerProgress || {}).sort((a, b) => playerName(a).localeCompare(playerName(b), "fr"));
-  const playersIndex = Object.fromEntries(players.map((id, idx) => [id, idx]));
   const selectionsByWord = buildSelectionsByWord();
 
   gridNode.style.maxWidth = `${overlayConfig.gridMaxWidthPx}px`;
@@ -80,14 +88,17 @@ function render() {
     markers.className = "m4-cell-markers";
 
     const selectors = selectionsByWord[word.id] || [];
-    selectors.forEach((sessionId) => {
+    selectors.forEach((sessionId, index) => {
+      const color = participantColor(sessionId);
       const marker = document.createElement("span");
       marker.className = "m4-marker";
       marker.title = playerName(sessionId);
       marker.style.width = `${overlayConfig.markerSizePx}px`;
       marker.style.height = `${overlayConfig.markerSizePx}px`;
       marker.style.opacity = String(overlayConfig.markerOpacity);
-      marker.style.backgroundColor = colorForIndex(playersIndex[sessionId] || 0);
+      marker.style.backgroundColor = color;
+      marker.style.borderColor = buildMarkerBorderColor(color);
+      marker.style.transform = `translateX(${Math.min(index, 4) * -3}px)`;
       markers.appendChild(marker);
     });
 

@@ -23,7 +23,14 @@ import {
   normalizeBuzzerSoundFile,
   removeGuestAccount,
   setGuestAccountPassword,
+  updateParticipantColor as saveParticipantColor,
 } from "./guest-accounts.js";
+import {
+  getDefaultParticipantColor,
+  normalizeParticipantColor,
+  groupParticipantsByColor,
+  computeReadableTextColor,
+} from "./participants.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -609,6 +616,7 @@ function initListeners() {
 
   onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
     sessionsById = snap.val() || {};
+    ensureParticipantColorsInFirebase();
     renderParticipants();
     renderRound2Participants();
     renderRound3Players();
@@ -650,6 +658,25 @@ function initListeners() {
     renderRound3State();
     startRound3Ticker();
   });
+}
+
+async function ensureParticipantColorsInFirebase() {
+  const updates = [];
+  const takenColors = Object.values(sessionsById)
+    .map((session) => (session?.color ? normalizeParticipantColor(session.color) : ""))
+    .filter(Boolean);
+  Object.entries(sessionsById).forEach(([sessionId, session]) => {
+    const normalizedColor = normalizeParticipantColor(session?.color, getDefaultParticipantColor(sessionId, takenColors));
+    if (String(session?.color || "").toLowerCase() === normalizedColor) return;
+    updates.push(
+      saveParticipantColor({
+        participantId: sessionId,
+        color: normalizedColor,
+        updatedBy: currentAdminId || "system",
+      }).catch(() => {})
+    );
+  });
+  if (updates.length) await Promise.all(updates);
 }
 
 function renderGuestAccounts() {
@@ -939,15 +966,30 @@ async function updateParticipantBuzzer(sessionId, rawValue) {
   showToast(normalized ? "Buzzer personnalisé enregistré." : "Buzzer par défaut réactivé.");
 }
 
+async function updateParticipantColor(sessionId, rawColor) {
+  if (!sessionId) return;
+  try {
+    await saveParticipantColor({
+      participantId: sessionId,
+      color: normalizeParticipantColor(rawColor, getDefaultParticipantColor(sessionId)),
+      updatedBy: currentAdminId || "admin",
+    });
+    showToast("Couleur enregistrée.");
+  } catch (error) {
+    showToast(error.message || "Impossible de sauvegarder la couleur.", "error");
+  }
+}
+
 function renderLeaderboardList(target, entries, emptyText, includeActions = false, actions = [1, -1]) {
   if (!target) return;
   target.innerHTML = "";
   if (!entries.length) return (target.innerHTML = `<li class="empty-state">${emptyText}</li>`);
 
   entries.forEach((p) => {
+    const color = normalizeParticipantColor(p.color, getDefaultParticipantColor(p.id));
     const li = document.createElement("li");
     li.className = "leader-item";
-    li.innerHTML = `<span class="leader-name">${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
+    li.innerHTML = `<span class="leader-name"><span class="leader-color-dot" style="background-color:${color}"></span>${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
     if (includeActions && p.id) {
       const actionWrap = document.createElement("div");
       actionWrap.className = "score-actions";
@@ -969,10 +1011,16 @@ function renderParticipantsAdminList(target, entries, emptyText) {
   target.innerHTML = "";
   if (!entries.length) return (target.innerHTML = `<li class="empty-state">${emptyText}</li>`);
 
+  const duplicatesByColor = groupParticipantsByColor(
+    Object.fromEntries(entries.map((entry) => [entry.id, entry]))
+  );
+
   entries.forEach((p) => {
     const li = document.createElement("li");
     li.className = "leader-item has-buzzer";
-    li.innerHTML = `<span class="leader-name">${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
+    const color = normalizeParticipantColor(p.color, getDefaultParticipantColor(p.id));
+    const textColor = computeReadableTextColor(color);
+    li.innerHTML = `<span class="leader-name"><span class="leader-color-dot" style="background-color:${color}"></span>${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
 
     if (p.id) {
       const actionWrap = document.createElement("div");
@@ -1006,7 +1054,64 @@ function renderParticipantsAdminList(target, entries, emptyText) {
       });
 
       buzzerWrap.append(buzzerInput, saveBtn);
-      li.append(actionWrap, buzzerWrap);
+
+      const colorWrap = document.createElement("div");
+      colorWrap.className = "participant-color";
+
+      const swatch = document.createElement("span");
+      swatch.className = "participant-color-swatch";
+      swatch.style.backgroundColor = color;
+      swatch.style.color = textColor;
+      swatch.textContent = color.toUpperCase();
+
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.value = color;
+      colorInput.title = "Couleur du participant";
+
+      const hexInput = document.createElement("input");
+      hexInput.type = "text";
+      hexInput.value = color.toUpperCase();
+      hexInput.placeholder = "#AABBCC";
+      hexInput.pattern = "^#[0-9A-Fa-f]{6}$";
+      hexInput.maxLength = 7;
+
+      const syncPreview = (value) => {
+        const nextColor = normalizeParticipantColor(value, color);
+        swatch.style.backgroundColor = nextColor;
+        swatch.style.color = computeReadableTextColor(nextColor);
+        swatch.textContent = nextColor.toUpperCase();
+      };
+
+      colorInput.addEventListener("input", () => {
+        hexInput.value = colorInput.value.toUpperCase();
+        syncPreview(colorInput.value);
+      });
+      colorInput.addEventListener("change", () => updateParticipantColor(p.id, colorInput.value));
+
+      hexInput.addEventListener("input", () => syncPreview(hexInput.value));
+      hexInput.addEventListener("blur", () => {
+        const normalized = normalizeParticipantColor(hexInput.value, color);
+        colorInput.value = normalized;
+        hexInput.value = normalized.toUpperCase();
+        updateParticipantColor(p.id, normalized);
+      });
+      hexInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        hexInput.blur();
+      });
+
+      const duplicateWarning = document.createElement("p");
+      duplicateWarning.className = "participant-color-warning hidden";
+      const sameColorParticipants = duplicatesByColor.get(color) || [];
+      if (sameColorParticipants.length > 1) {
+        duplicateWarning.classList.remove("hidden");
+        duplicateWarning.textContent = "⚠ Couleur identique à un autre participant.";
+      }
+
+      colorWrap.append(swatch, colorInput, hexInput, duplicateWarning);
+      li.append(actionWrap, buzzerWrap, colorWrap);
     }
 
     target.appendChild(li);
@@ -1014,7 +1119,17 @@ function renderParticipantsAdminList(target, entries, emptyText) {
 }
 
 function sortedSessions() {
-  return Object.entries(sessionsById).map(([id, s]) => ({ id, ...s, score: Number(s.score || 0) })).sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
+  const takenColors = Object.values(sessionsById)
+    .map((session) => (session?.color ? normalizeParticipantColor(session.color) : ""))
+    .filter(Boolean);
+  return Object.entries(sessionsById)
+    .map(([id, session]) => ({
+      id,
+      ...session,
+      color: normalizeParticipantColor(session?.color, getDefaultParticipantColor(id, takenColors)),
+      score: Number(session.score || 0),
+    }))
+    .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
 }
 
 function renderParticipants() {
