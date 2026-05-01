@@ -1,38 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("./variables.css");
 @import url("./base.css");
-@import url("./components.css");
 @import url("./layout.css");
-@import url("./pages/admin.css");
+@import url("./components.css");
+@import url("./dashboard.css");
+@import url("./rounds.css");
+@import url("./participants.css");
+@import url("./overlays.css");
 @import url("./pages/guest.css");
 @import url("./modal.css");
-
-.hero {
-  padding: var(--space-5);
-  display: grid;
-  gap: 0.5rem;
-}
-
-.card {
-  padding: var(--space-4);
-  display: grid;
-  gap: var(--space-3);
-}
-
-.scoreboard-grid {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-
-.scoreboard-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.scoreboard-card::before {
-  content: "";
-  position: absolute;
-  inset: auto -40% -70% -40%;
-  height: 160px;
-  background: radial-gradient(closest-side, rgba(142, 123, 255, 0.22), transparent 72%);
-  pointer-events: none;
-}

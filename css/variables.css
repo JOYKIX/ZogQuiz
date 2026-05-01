@@ -1,0 +1,17 @@
+:root {
+  --bg-app: #070B18;
+  --bg-surface: #101729;
+  --bg-surface-2: #151E33;
+  --border-soft: rgba(255,255,255,.1);
+  --text-main: #F8FAFC;
+  --text-muted: #9CA3AF;
+  --accent: #8B5CF6;
+  --accent-2: #EC4899;
+  --success: #10B981;
+  --danger: #EF476F;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --sidebar-width: 240px;
+  --topbar-height: 64px;
+}
