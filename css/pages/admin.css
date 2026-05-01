@@ -43,6 +43,17 @@
   border-bottom: 1px dashed var(--line-soft);
 }
 
+#participant-questions-list,
+#viewer-questions-list,
+#m2-questions-list,
+#m2-viewer-questions-list,
+#m3-viewer-questions-list,
+#m5-viewer-questions-list {
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
 #m3-theme-buttons .btn.active,
 #m3-theme-buttons .btn[aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--brand-violet) 64%, white 36%);
@@ -51,9 +62,17 @@
 
 .m2-thumb {
   width: min(340px, 100%);
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-soft);
   margin: 8px 0;
+}
+
+#m2-live-current-image {
+  width: min(560px, 100%);
+  max-height: 380px;
 }
 
 .question-card {
