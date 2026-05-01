@@ -8,7 +8,7 @@
   </head>
   <body class="admin-app">
     <main class="app-shell">
-      <header class="app-header">
+      <header class="app-topbar">
         <div class="brand-block">
           <p class="eyebrow">ZogQuiz Studio</p>
           <h1>Live Control Dashboard</h1>
@@ -73,7 +73,8 @@
       </section>
 
       <section id="dashboard" class="hidden dashboard-shell">
-        <aside class="sidebar" aria-label="Navigation principale">
+        <aside class="app-sidebar" aria-label="Navigation principale">
+        <div class="sidebar">
           <div class="sidebar-scroll">
             <p class="sidebar-label">Dashboard</p>
             <button class="nav-item active" data-workspace="dashboard">🏠 Live</button>
@@ -95,14 +96,17 @@
             <a class="nav-item" href="overlay-round4.html" target="_blank" rel="noopener">🪄 Overlay R4</a>
             <a class="nav-item" href="overlay-round5.html" target="_blank" rel="noopener">🪄 Overlay R5</a>
           </div>
+        </div>
         </aside>
 
-        <div class="content-stack">
-          <div class="context-bar">
+        <div class="app-main">
+          <div class="content-stack">
+            <div class="context-bar">
             <p id="breadcrumb" class="muted">Vue live</p>
             <span class="status-chip live-chip">En direct</span>
           </div>
 
+            <div class="app-workspace">
           <section class="workspace-panel" data-workspace-panel="dashboard">
             <div class="panel-head split">
               <h2>Live</h2>
@@ -831,6 +835,8 @@ SNK OP1"></textarea></label>
               </article>
             </div>
           </section>
+            </div>
+          </div>
         </div>
       </section>
 
