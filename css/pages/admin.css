@@ -56,6 +56,18 @@
   margin: 8px 0;
 }
 
+.question-card {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: rgba(16, 23, 42, 0.78);
+}
+
+.question-card.selected {
+  border-color: rgba(255, 79, 216, 0.72);
+  box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.22);
+}
+
 .m4-word-editor {
   display: grid;
   gap: 8px;
