@@ -91,6 +91,10 @@ const overlayRound2RadiusInput = $("overlay-round2-radius");
 
 const sessionStatus = $("session-status");
 const activeRoundStatus = $("active-round-status");
+
+const activeRoundStatusHeader = $("active-round-status-header");
+const sessionStatusHeader = $("session-status-header");
+
 const editingRoundStatus = $("editing-round-status");
 const liveRoundStatus = $("live-round-status");
 const currentQuestionStatus = $("current-question-status");
@@ -177,7 +181,7 @@ const overlayRound5DecorationOpacityInput = $("overlay-round5-decoration-opacity
 const overlayRound5ProgressMaxInput = $("overlay-round5-progress-max");
 const m5LiveScores = $("m5-live-scores");
 
-const workspaceLinks = Array.from(document.querySelectorAll(".nav-item"));
+const workspaceLinks = Array.from(document.querySelectorAll(".nav-item[data-workspace]"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
 const quickNavBtns = Array.from(document.querySelectorAll(".quick-nav"));
 const roundTabs = Array.from(document.querySelectorAll(".round-tab"));
@@ -255,6 +259,7 @@ function showDashboard(adminId) {
   logoutBtn.classList.remove("hidden");
   adminEmail.textContent = `Connecté : ${adminId}`;
   sessionStatus.textContent = "Active";
+  if (sessionStatusHeader) sessionStatusHeader.textContent = "Connecté";
 }
 
 function showAuth() {
@@ -263,6 +268,7 @@ function showAuth() {
   logoutBtn.classList.add("hidden");
   adminEmail.textContent = "Hors ligne";
   sessionStatus.textContent = "Hors ligne";
+  if (sessionStatusHeader) sessionStatusHeader.textContent = "Hors ligne";
 }
 
 function workspaceLabel(workspace) {
