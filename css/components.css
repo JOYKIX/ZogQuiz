@@ -312,3 +312,18 @@ button:disabled { opacity: 0.45; cursor: not-allowed; filter: saturate(0.75); }
     width: 100%;
   }
 }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-item-muted {
+  height: 38px;
+  min-height: 38px;
+  font-size: 0.86rem;
+  opacity: 0.9;
+  background: rgba(255,255,255,0.02);
+}
+.brand-block { display:grid; gap:6px; }
+.header-subtitle { color: var(--text-soft); max-width: 68ch; }

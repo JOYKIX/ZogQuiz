@@ -14,3 +14,40 @@
 .question-list { padding-right: 6px; }
 @media (max-width:1200px){ .app-shell{padding:10px;} .dashboard-shell{grid-template-columns: 78px minmax(0,1fr);} .sidebar .nav-item{font-size:0; position:relative;} .sidebar .nav-item::before{font-size:12px; content:attr(data-workspace);} }
 @media (max-width:980px){ .dashboard-shell{grid-template-columns:1fr; } .sidebar{height:auto; display:flex; flex-wrap:wrap;} .question-manager{grid-template-columns:1fr;} }
+
+/* Dashboard v2 shell */
+.app-shell { padding: 18px; gap: 18px; }
+.app-header {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) minmax(280px, 1fr) auto;
+  gap: 16px;
+  align-items: stretch;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0)), rgba(9,16,31,0.82);
+}
+.header-status-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.header-status-card { padding: 10px 12px; border:1px solid var(--line-soft); border-radius: 14px; background: rgba(255,255,255,0.03); display:grid; gap:4px; }
+.session-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; }
+.dashboard-shell { grid-template-columns: 270px minmax(0,1fr); gap: 18px; }
+.sidebar { padding: 10px; overflow: hidden; }
+.sidebar-scroll { min-height:0; height:100%; overflow:auto; display:grid; align-content:start; gap:8px; padding-right:4px; }
+.sidebar-label { margin-top: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-muted); }
+.content-stack { gap: 12px; }
+.context-bar { padding: 12px 14px; }
+.workspace-panel { overflow:auto; padding: 6px; }
+.workspace-panel > * { margin: 0 6px 12px; }
+.two-col { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:12px; }
+
+@media (max-width: 1280px) {
+  .app-header { grid-template-columns: 1fr; }
+  .session-actions { justify-content:flex-start; }
+  .header-status-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 980px) {
+  .dashboard-shell { grid-template-columns: 1fr; }
+  .sidebar { max-height: 220px; }
+  .two-col { grid-template-columns: 1fr; }
+  .header-status-grid { grid-template-columns: 1fr; }
+}

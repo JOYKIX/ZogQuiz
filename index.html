@@ -11,10 +11,26 @@
       <header class="app-header">
         <div class="brand-block">
           <p class="eyebrow">ZogQuiz Studio</p>
-          <h1>Régie live</h1>
-          <p class="header-subtitle">Interface régie claire pour piloter le live, les contenus, les viewers et les overlays.</p>
+          <h1>Live Control Dashboard</h1>
+          <p class="header-subtitle">Régie complète pour orchestrer les manches, les joueurs, Firebase et les overlays OBS en temps réel.</p>
+        </div>
+        <div class="header-status-grid">
+          <article class="header-status-card">
+            <p class="muted">Room</p>
+            <p class="highlight">ZogQuiz Main</p>
+          </article>
+          <article class="header-status-card">
+            <p class="muted">Manche active</p>
+            <p id="active-round-status-header">Manche 1</p>
+          </article>
+          <article class="header-status-card">
+            <p class="muted">Firebase</p>
+            <p id="session-status-header">Connecté</p>
+          </article>
         </div>
         <div class="session-actions">
+          <a href="guest.html" class="btn btn-secondary" target="_blank" rel="noopener">Vue invité</a>
+          <button class="btn btn-primary quick-nav" data-workspace-target="broadcast">Overlay Live</button>
           <span id="admin-email" class="status-chip">Hors ligne</span>
           <button id="logout" class="btn btn-danger hidden">Déconnexion</button>
         </div>
@@ -58,11 +74,27 @@
 
       <section id="dashboard" class="hidden dashboard-shell">
         <aside class="sidebar" aria-label="Navigation principale">
-          <p class="sidebar-label">Espaces</p>
-          <button class="nav-item active" data-workspace="dashboard">Live</button>
-          <button class="nav-item" data-workspace="players">Participants</button>
-          <button class="nav-item" data-workspace="rounds">Manches</button>
-          <button class="nav-item" data-workspace="broadcast">Overlay</button>
+          <div class="sidebar-scroll">
+            <p class="sidebar-label">Dashboard</p>
+            <button class="nav-item active" data-workspace="dashboard">🏠 Live</button>
+            <button class="nav-item" data-workspace="players">👥 Participants</button>
+            <button class="nav-item" data-workspace="rounds">🎯 Manches</button>
+            <button class="nav-item" data-workspace="broadcast">📺 Overlay</button>
+
+            <p class="sidebar-label">Navigation manches</p>
+            <button class="nav-item nav-item-muted quick-nav" data-workspace-target="rounds">① Manche 1</button>
+            <button class="nav-item nav-item-muted quick-nav" data-workspace-target="rounds">② Manche 2</button>
+            <button class="nav-item nav-item-muted quick-nav" data-workspace-target="rounds">③ Manche 3</button>
+            <button class="nav-item nav-item-muted quick-nav" data-workspace-target="rounds">④ Manche 4</button>
+            <button class="nav-item nav-item-muted quick-nav" data-workspace-target="rounds">🎵 Blind Test</button>
+
+            <p class="sidebar-label">Système</p>
+            <a class="nav-item" href="overlay-round1.html" target="_blank" rel="noopener">🪄 Overlay R1</a>
+            <a class="nav-item" href="overlay-round2.html" target="_blank" rel="noopener">🪄 Overlay R2</a>
+            <a class="nav-item" href="overlay-round3.html" target="_blank" rel="noopener">🪄 Overlay R3</a>
+            <a class="nav-item" href="overlay-round4.html" target="_blank" rel="noopener">🪄 Overlay R4</a>
+            <a class="nav-item" href="overlay-round5.html" target="_blank" rel="noopener">🪄 Overlay R5</a>
+          </div>
         </aside>
 
         <div class="content-stack">
