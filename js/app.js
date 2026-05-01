@@ -116,6 +116,10 @@ const m2LiveCurrentLocation = $("m2-live-current-location");
 const m2LiveCurrentQuestion = $("m2-live-current-question");
 const m2LivePrevBtn = $("m2-live-prev");
 const m2LiveNextBtn = $("m2-live-next");
+const m2QuestionSearch = $("m2-question-search");
+const m2QuestionCount = $("m2-question-count");
+const m2EditorMode = $("m2-editor-mode");
+const m2NewQuestionBtn = $("m2-new-question");
 
 const m3ThemeForm = $("m3-theme-form");
 const m3ThemeName = $("m3-theme-name");
@@ -204,6 +208,7 @@ let participantQuestions = {};
 let viewerQuestions = {};
 let manche2Questions = {};
 let manche2State = null;
+let selectedManche2QuestionId = null;
 let buzzesById = {};
 let guestAccountsById = {};
 let manche3Themes = {};
@@ -310,6 +315,8 @@ workspaceLinks.forEach((btn) => btn.addEventListener("click", () => activateWork
 quickNavBtns.forEach((btn) => btn.addEventListener("click", () => activateWorkspace(btn.dataset.workspaceTarget)));
 roundTabs.forEach((btn) => btn.addEventListener("click", async () => setEditingRound(btn.dataset.round)));
 roundSectionTabs.forEach((btn) => btn.addEventListener("click", () => activateRoundSection(btn.dataset.round, btn.dataset.roundSection)));
+m2QuestionSearch?.addEventListener("input", () => renderRound2Questions());
+m2NewQuestionBtn?.addEventListener("click", () => selectRound2Question(null));
 pushLiveRoundBtn?.addEventListener("click", async () => {
   if (!isLoggedIn()) return;
   await update(ref(db, "quiz/state"), { liveRound: editingRound, updatedAt: Date.now(), updatedBy: currentAdminId });
@@ -560,18 +567,31 @@ async function createRound2Question() {
   const work = m2WorkInput.value.trim();
   const location = m2LocationInput.value.trim();
   const questionText = m2QuestionTextInput.value.trim();
-  if (!file || !work || !location) return;
-  if (!file.type.startsWith("image/")) return setMessage(m2LiveStatus, "Image invalide.", "error");
-  if (file.size > MAX_IMAGE_SIZE) return setMessage(m2LiveStatus, "Image trop lourde (3 Mo max).", "error");
+  if (!work || !location) return showToast("Œuvre et lieu obligatoires.", "error");
+  if (!selectedManche2QuestionId && !file) return showToast("Image obligatoire pour une nouvelle question.", "error");
+  if (file && !file.type.startsWith("image/")) return setMessage(m2LiveStatus, "Image invalide.", "error");
+  if (file && file.size > MAX_IMAGE_SIZE) return setMessage(m2LiveStatus, "Image trop lourde (3 Mo max).", "error");
 
-  setMessage(m2LiveStatus, "Upload...", "loading");
-  const imageDataUrl = await readFileAsDataURL(file);
-  const listSnap = await get(ref(db, "rooms/manche2/questions"));
-  const order = Object.keys(listSnap.val() || {}).length + 1;
-  const questionRef = push(ref(db, "rooms/manche2/questions"));
-  await set(questionRef, { imageDataUrl, work, location, questionText, fileName: file.name, mimeType: file.type, order, createdAt: Date.now(), createdBy: currentAdminId });
+  setMessage(m2LiveStatus, selectedManche2QuestionId ? "Mise à jour..." : "Upload...", "loading");
+  const imageDataUrl = file ? await readFileAsDataURL(file) : null;
+  if (selectedManche2QuestionId) {
+    const patch = { work, location, questionText, updatedAt: Date.now(), updatedBy: currentAdminId };
+    if (imageDataUrl) {
+      patch.imageDataUrl = imageDataUrl;
+      patch.fileName = file.name;
+      patch.mimeType = file.type;
+    }
+    await update(ref(db, `rooms/manche2/questions/${selectedManche2QuestionId}`), patch);
+  } else {
+    const listSnap = await get(ref(db, "rooms/manche2/questions"));
+    const order = Object.keys(listSnap.val() || {}).length + 1;
+    const questionRef = push(ref(db, "rooms/manche2/questions"));
+    await set(questionRef, { imageDataUrl, work, location, questionText, fileName: file.name, mimeType: file.type, order, createdAt: Date.now(), createdBy: currentAdminId });
+  }
   m2QuestionForm.reset();
-  setMessage(m2LiveStatus, "Image ajoutée.", "success");
+  selectRound2Question(null);
+  setMessage(m2LiveStatus, "Question enregistrée.", "success");
+  showToast("Question manche 2 enregistrée");
 }
 
 function readFileAsDataURL(file) {
@@ -1302,15 +1322,23 @@ function renderBuzzOrder() {
 }
 
 function renderRound2Questions() {
-  const entries = Object.entries(manche2Questions || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+  const search = (m2QuestionSearch?.value || "").trim().toLowerCase();
+  const entries = Object.entries(manche2Questions || {})
+    .sort((a, b) => (a[1].order || 0) - (b[1].order || 0))
+    .filter(([, item]) => !search || `${item.work || ""} ${item.location || ""} ${item.questionText || ""}`.toLowerCase().includes(search));
+  if (m2QuestionCount) m2QuestionCount.textContent = `${entries.length} question${entries.length > 1 ? "s" : ""}`;
   m2QuestionsList.innerHTML = "";
-  if (!entries.length) return (m2QuestionsList.innerHTML = "<li class='empty-state'>Aucune image.</li>");
+  if (!entries.length) return (m2QuestionsList.innerHTML = "<li class='empty-state'>Aucune question pour cette manche.</li>");
 
   for (const [id, item] of entries) {
     const li = document.createElement("li");
     const isActive = manche2State?.activeQuestionId === id;
-    li.className = "question-item";
+    li.className = `question-item question-card ${selectedManche2QuestionId === id ? "selected" : ""}`;
     li.innerHTML = `<div class="question-head"><strong>Q${item.order || "?"}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><img src="${item.imageDataUrl}" alt="Question manche 2" class="m2-thumb" /><p><strong>Œuvre :</strong> ${item.work}</p><p><strong>Lieu :</strong> ${item.location}</p><p><strong>Question :</strong> ${item.questionText || "—"}</p>`;
+    li.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      selectRound2Question(id);
+    });
     const actions = document.createElement("div");
     actions.className = "row";
 
@@ -1343,6 +1371,17 @@ function renderRound2Questions() {
     li.appendChild(actions);
     m2QuestionsList.appendChild(li);
   }
+}
+
+function selectRound2Question(questionId) {
+  selectedManche2QuestionId = questionId;
+  const item = questionId ? manche2Questions?.[questionId] : null;
+  if (m2EditorMode) m2EditorMode.textContent = item ? `Édition • Q${item.order || "?"}` : "Mode création";
+  if (m2WorkInput) m2WorkInput.value = item?.work || "";
+  if (m2LocationInput) m2LocationInput.value = item?.location || "";
+  if (m2QuestionTextInput) m2QuestionTextInput.value = item?.questionText || "";
+  if (m2ImageInput) m2ImageInput.required = !item;
+  renderRound2Questions();
 }
 
 function sortedRound2Entries() {

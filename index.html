@@ -6,7 +6,7 @@
     <title>ZogQuiz Admin</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body>
+  <body class="admin-app">
     <main class="app-shell">
       <header class="app-header">
         <div class="brand-block">
@@ -350,11 +350,11 @@ SNK"></textarea>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:questions">
-                <div class="two-col">
-                  <form id="m2-question-form" class="subpanel stack compact-panel">
-                    <h3>Images manche 2</h3>
+                <div class="question-manager">
+                  <form id="m2-question-form" class="subpanel stack compact-panel question-editor">
+                    <div class="panel-header"><h3>Éditeur de question manche 2</h3><p id="m2-editor-mode" class="muted">Mode création</p></div>
                     <label>Image
-                      <input id="m2-image" type="file" accept="image/*" required />
+                      <input id="m2-image" type="file" accept="image/*" />
                     </label>
                     <label>Œuvre
                       <input id="m2-work" required maxlength="120" />
@@ -365,11 +365,12 @@ SNK"></textarea>
                     <label>Question (optionnel)
                       <input id="m2-question-text" maxlength="240" placeholder="Ex: Où se trouve cette œuvre ?" />
                     </label>
-                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                    <div class="row"><button type="button" id="m2-new-question" class="btn btn-secondary">Nouvelle question</button><button type="submit" id="m2-save-question" class="btn btn-primary">Enregistrer</button></div>
                   </form>
-                  <article class="subpanel compact-panel">
-                    <h3>Banque d’images</h3>
-                    <ul id="m2-questions-list" class="list"></ul>
+                  <article class="subpanel compact-panel question-list-panel">
+                    <div class="panel-header"><h3>Banque d’images</h3><p id="m2-question-count" class="muted">0 question</p></div>
+                    <input id="m2-question-search" type="search" placeholder="Rechercher une question..." />
+                    <ul id="m2-questions-list" class="list question-list scroll-area"></ul>
                   </article>
                 </div>
                 <div class="two-col">
