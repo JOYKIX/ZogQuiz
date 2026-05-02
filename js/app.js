@@ -1340,7 +1340,15 @@ function renderRound2Questions() {
     const li = document.createElement("li");
     const isActive = manche2State?.activeQuestionId === id;
     li.className = `question-item question-card ${selectedManche2QuestionId === id ? "selected" : ""}`;
-    li.innerHTML = `<div class="question-head"><strong>Q${item.order || "?"}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><img src="${item.imageDataUrl}" alt="Question manche 2" class="m2-thumb" /><p><strong>Œuvre :</strong> ${item.work}</p><p><strong>Lieu :</strong> ${item.location}</p><p><strong>Question :</strong> ${item.questionText || "—"}</p>`;
+    li.innerHTML = `<div class="question-head"><strong>Q${item.order || "?"}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><p><strong>Œuvre :</strong> ${item.work}</p><p><strong>Lieu :</strong> ${item.location}</p><p><strong>Question :</strong> ${item.questionText || "—"}</p>`;
+
+    const image = document.createElement("img");
+    image.className = "m2-thumb";
+    image.alt = "Question manche 2";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.src = item.imageDataUrl;
+    li.insertBefore(image, li.querySelector("p"));
     li.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
       selectRound2Question(id);
