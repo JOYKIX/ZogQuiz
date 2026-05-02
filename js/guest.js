@@ -727,7 +727,10 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   refreshButtonState();
 });
 
-manche5Controller = initManche5Guest();
+manche5Controller = initManche5Guest({
+  getSessionId: getCurrentSessionId,
+  getNickname: getCurrentNickname,
+});
 
 watchRound1State();
 watchingRound1 = true;
