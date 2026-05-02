@@ -31,7 +31,7 @@ const ROUND_CONFIGS = {
     firstCorrectOnlyId: "m3-viewer-first-correct-only",
     allowMultiId: "m3-viewer-allow-multi",
   },
-  manche5: {
+  manche4: {
     createFormId: "m5-viewer-question-form",
     listId: "m5-viewer-questions-list",
     liveLabelId: "m5-viewer-live-label",
@@ -46,7 +46,7 @@ const ROUND_CONFIGS = {
 
 
 function formatRoundLabel(round) {
-  if (round === "manche5") return "manche 4";
+  if (round === "manche4") return "manche 4";
   return round;
 }
 
@@ -101,7 +101,7 @@ function computeSessionKey(liveState) {
 
 export function initViewerAdmin(options) {
   const { getCurrentAdminId, showToast, setMessage } = options;
-  const state = { liveState: null, questions: { manche2: {}, manche3: {}, manche5: {} }, attempts: {}, winners: {} };
+  const state = { liveState: null, questions: { manche2: {}, manche3: {}, manche4: {} }, attempts: {}, winners: {} };
 
   Object.entries(ROUND_CONFIGS).forEach(([round, cfg]) => {
     const form = document.getElementById(cfg.createFormId);

@@ -76,7 +76,7 @@ let manche2State = null;
 let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
-let manche5Controller = null;
+let manche4Controller = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 
@@ -405,7 +405,7 @@ function renderByRound() {
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
   round4Root.classList.toggle("hidden", !isRound4);
-  if (!isRound4) manche5Controller?.pauseLocalAudio?.();
+  if (!isRound4) manche4Controller?.pauseLocalAudio?.();
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
   renderGuestView();
@@ -724,7 +724,7 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   refreshButtonState();
 });
 
-manche5Controller = initManche5Guest({
+manche4Controller = initManche5Guest({
   getSessionId: getCurrentSessionId,
   getNickname: getCurrentNickname,
 });
