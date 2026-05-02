@@ -44,6 +44,12 @@ const ROUND_CONFIGS = {
   },
 };
 
+
+function formatRoundLabel(round) {
+  if (round === "manche5") return "manche 4";
+  return round;
+}
+
 function qPath(round) {
   return `${VIEWER_ROOT}/questions/${round}`;
 }
@@ -110,7 +116,7 @@ export function initViewerAdmin(options) {
         const questionRef = push(ref(db, qPath(round)));
         await set(questionRef, payload);
         form.reset();
-        showToast?.(`Question viewers ${round} ajoutée`);
+        showToast?.(`Question viewers ${formatRoundLabel(round)} ajoutée`);
       } catch (error) {
         setMessage?.(liveLabel, error.message, "error");
       }
@@ -224,7 +230,7 @@ function renderQuestionList(round, cfg, state, options) {
         updatedAt: now,
         updatedBy: options.getCurrentAdminId?.() || "admin",
       });
-      options.showToast?.(`Question viewers ${round} activée`);
+      options.showToast?.(`Question viewers ${formatRoundLabel(round)} activée`);
     });
 
     const stopBtn = document.createElement("button");
@@ -302,7 +308,7 @@ function renderQuestionList(round, cfg, state, options) {
     const current = state.liveState;
     if (current?.active && current.round === round) {
       const timerLabel = current.endsAt ? ` · ⏱ ${formatRemaining(current.endsAt)}` : "";
-      liveLabel.textContent = `Question viewers active (${round})${timerLabel}`;
+      liveLabel.textContent = `Question viewers active (${formatRoundLabel(round)})${timerLabel}`;
       liveLabel.classList.add("success");
     } else {
       liveLabel.textContent = "Aucune question viewers active.";
