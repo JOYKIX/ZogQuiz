@@ -17,7 +17,6 @@ const round1Root = document.getElementById("guest-round1");
 const round2Root = document.getElementById("guest-round2");
 const round3Root = document.getElementById("guest-round3");
 const round4Root = document.getElementById("guest-round4");
-const round5Root = document.getElementById("guest-round5");
 
 const guestLoginForm = document.getElementById("guest-login-form");
 const guestDisplayNameForm = document.getElementById("guest-display-name-form");
@@ -402,12 +401,10 @@ function renderByRound() {
   const isRound2 = liveRound === "manche2";
   const isRound3 = liveRound === "manche3";
   const isRound4 = liveRound === "manche4";
-  const isRound5 = false;
-  round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4 || isRound5);
+  round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
   round4Root.classList.toggle("hidden", !isRound4);
-  round5Root.classList.toggle("hidden", !isRound5);
   if (!isRound4) manche5Controller?.pauseLocalAudio?.();
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
