@@ -12,6 +12,7 @@ let themes = {};
 let state = null;
 let overlayConfig = null;
 let rafId = 0;
+let timerIntervalId = 0;
 
 function formatTimer(ms) {
   const sec = Math.max(0, Math.floor(ms / 1000));
@@ -78,6 +79,14 @@ function render() {
   scheduleAutoFit();
 }
 
+function startTimerTicker() {
+  if (timerIntervalId) return;
+  timerIntervalId = window.setInterval(() => {
+    if (!timerNode) return;
+    timerNode.textContent = formatTimer(remainingMs());
+  }, 250);
+}
+
 onValue(ref(db, "rooms/manche3/state"), (snap) => {
   state = snap.val() || {};
   render();
@@ -98,5 +107,4 @@ if (window.ResizeObserver && rootNode) {
 }
 window.addEventListener("resize", scheduleAutoFit);
 document.fonts?.ready?.then(() => scheduleAutoFit());
-
-setInterval(render, 250);
+startTimerTicker();

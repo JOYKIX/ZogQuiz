@@ -14,6 +14,8 @@ let tracks = [];
 let liveState = defaultBlindtestLiveState();
 let overlayConfig = null;
 let lastAppliedSyncVersion = -1;
+let progressIntervalId = 0;
+let lastProgressSignature = "";
 
 const player = new YoutubeAudioPlayer({
   hostId: "m5-overlay-youtube-host",
@@ -100,6 +102,30 @@ function render() {
   applyConfig();
 }
 
+function updateProgressOnly() {
+  if (!overlayConfig) return;
+  const ratio = Math.min(1, computeTargetSeconds(liveState) / Math.max(1, overlayConfig.progressMaxSeconds));
+  const width = `${Math.round(ratio * 100)}%`;
+  const playbackState = liveState.playbackState || "stopped";
+  const signature = `${width}|${playbackState}`;
+  if (signature === lastProgressSignature) return;
+  lastProgressSignature = signature;
+
+  progressNode.style.width = width;
+  if (playbackState === "playing") playbackNode.style.color = overlayConfig.playingColor;
+  else if (playbackState === "paused") playbackNode.style.color = overlayConfig.pausedColor;
+  else playbackNode.style.color = overlayConfig.stoppedColor;
+  timeNode.textContent = formatTime(computeTargetSeconds(liveState));
+}
+
+function startProgressTicker() {
+  if (progressIntervalId) return;
+  progressIntervalId = window.setInterval(() => {
+    if (!liveState.active || liveState.playbackState !== "playing") return;
+    updateProgressOnly();
+  }, 250);
+}
+
 async function syncAudio() {
   const { currentTrack } = resolveCurrentTrack();
   if (!currentTrack?.videoId || !liveState.active || liveState.playbackState === "stopped") {
@@ -145,5 +171,4 @@ watchOverlayConfig("round5", (config) => {
   overlayConfig = config;
   render();
 });
-
-setInterval(render, 250);
+startProgressTicker();
