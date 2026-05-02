@@ -1,6 +1,5 @@
 import { db, ref, get, set, push, onValue, runTransaction, update } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
-import { initManche4Guest } from "./manche4.js";
 import { initManche5Guest } from "./manche5.js";
 import {
   GUEST_ACCOUNTS_PATH,
@@ -403,13 +402,13 @@ function renderByRound() {
   const isRound2 = liveRound === "manche2";
   const isRound3 = liveRound === "manche3";
   const isRound4 = liveRound === "manche4";
-  const isRound5 = liveRound === "manche5";
+  const isRound5 = false;
   round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4 || isRound5);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
   round4Root.classList.toggle("hidden", !isRound4);
   round5Root.classList.toggle("hidden", !isRound5);
-  if (!isRound5) manche5Controller?.pauseLocalAudio?.();
+  if (!isRound4) manche5Controller?.pauseLocalAudio?.();
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
   renderGuestView();
@@ -728,7 +727,6 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   refreshButtonState();
 });
 
-initManche4Guest({ getCurrentSession: () => guestAuth.accountId });
 manche5Controller = initManche5Guest();
 
 watchRound1State();

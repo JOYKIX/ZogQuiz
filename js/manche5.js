@@ -440,8 +440,8 @@ export function initManche5Admin(options) {
 
     await Promise.all([
       update(ref(db, "quiz/state"), {
-        activeRound: "manche5",
-        liveRound: "manche5",
+        activeRound: "manche4",
+        liveRound: "manche4",
         updatedAt: Date.now(),
         updatedBy: adminId,
       }),
