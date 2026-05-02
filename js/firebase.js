@@ -232,6 +232,8 @@ export async function ensureRoundsSeed(uid) {
       pausedAtSeconds: 0,
       syncVersion: 0,
       lastError: "",
+      stopOnAnswer: false,
+      participantAnswers: {},
       updatedBy: uid,
       updatedAt: Date.now(),
     });
