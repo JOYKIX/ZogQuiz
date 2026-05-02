@@ -11,7 +11,7 @@ import {
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
-import { initManche5Admin } from "./manche5.js";
+import { initManche5Admin } from "./manche4.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
 import { showConfirm, showPrompt } from "./modal.js";
@@ -196,7 +196,7 @@ let currentAdminId = null;
 let editingRound = "manche1";
 let broadcastRound = "manche1";
 let activeWorkspace = "dashboard";
-const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", manche5: "live", finale: "overview" };
+const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", finale: "overview" };
 
 let liveState = null;
 let overlayConfigs = {
@@ -276,7 +276,11 @@ function workspaceLabel(workspace) {
   if (workspace === "broadcast") return "Diffusion";
   return `Rondes • ${formatRound(editingRound)}`;
 }
-function formatRound(round) { return round === "finale" ? "Finale" : round.replace("manche", "Manche "); }
+function formatRound(round) {
+  if (round === "finale") return "Finale";
+  if (round === "manche4") return "Manche 4";
+  return round.replace("manche", "Manche ");
+}
 
 function activateWorkspace(workspace) {
   activeWorkspace = workspace;

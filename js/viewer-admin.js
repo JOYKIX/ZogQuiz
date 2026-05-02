@@ -31,7 +31,7 @@ const ROUND_CONFIGS = {
     firstCorrectOnlyId: "m3-viewer-first-correct-only",
     allowMultiId: "m3-viewer-allow-multi",
   },
-  manche5: {
+  manche4: {
     createFormId: "m5-viewer-question-form",
     listId: "m5-viewer-questions-list",
     liveLabelId: "m5-viewer-live-label",
@@ -43,6 +43,12 @@ const ROUND_CONFIGS = {
     allowMultiId: "m5-viewer-allow-multi",
   },
 };
+
+
+function formatRoundLabel(round) {
+  if (round === "manche4") return "manche 4";
+  return round;
+}
 
 function qPath(round) {
   return `${VIEWER_ROOT}/questions/${round}`;
@@ -95,7 +101,7 @@ function computeSessionKey(liveState) {
 
 export function initViewerAdmin(options) {
   const { getCurrentAdminId, showToast, setMessage } = options;
-  const state = { liveState: null, questions: { manche2: {}, manche3: {}, manche5: {} }, attempts: {}, winners: {} };
+  const state = { liveState: null, questions: { manche2: {}, manche3: {}, manche4: {} }, attempts: {}, winners: {} };
 
   Object.entries(ROUND_CONFIGS).forEach(([round, cfg]) => {
     const form = document.getElementById(cfg.createFormId);
@@ -110,7 +116,7 @@ export function initViewerAdmin(options) {
         const questionRef = push(ref(db, qPath(round)));
         await set(questionRef, payload);
         form.reset();
-        showToast?.(`Question viewers ${round} ajoutée`);
+        showToast?.(`Question viewers ${formatRoundLabel(round)} ajoutée`);
       } catch (error) {
         setMessage?.(liveLabel, error.message, "error");
       }
@@ -224,7 +230,7 @@ function renderQuestionList(round, cfg, state, options) {
         updatedAt: now,
         updatedBy: options.getCurrentAdminId?.() || "admin",
       });
-      options.showToast?.(`Question viewers ${round} activée`);
+      options.showToast?.(`Question viewers ${formatRoundLabel(round)} activée`);
     });
 
     const stopBtn = document.createElement("button");
@@ -302,7 +308,7 @@ function renderQuestionList(round, cfg, state, options) {
     const current = state.liveState;
     if (current?.active && current.round === round) {
       const timerLabel = current.endsAt ? ` · ⏱ ${formatRemaining(current.endsAt)}` : "";
-      liveLabel.textContent = `Question viewers active (${round})${timerLabel}`;
+      liveLabel.textContent = `Question viewers active (${formatRoundLabel(round)})${timerLabel}`;
       liveLabel.classList.add("success");
     } else {
       liveLabel.textContent = "Aucune question viewers active.";

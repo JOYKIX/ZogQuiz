@@ -482,7 +482,7 @@ export function initManche5Admin(options) {
       }),
     ]);
 
-    showToast?.(firstTrack ? "Manche 5 activée" : "Manche 5 activée sans piste (base vide)");
+    showToast?.(firstTrack ? "Manche 4 activée" : "Manche 4 activée sans piste (base vide)");
   });
 
   els.playBtn.addEventListener("click", async () => {

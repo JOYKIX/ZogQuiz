@@ -221,7 +221,7 @@
               <button class="round-tab active" data-round="manche1" aria-selected="true">Manche 1</button>
               <button class="round-tab" data-round="manche2" aria-selected="false">Manche 2</button>
               <button class="round-tab" data-round="manche3" aria-selected="false">Manche 3</button>
-              <button class="round-tab" data-round="manche5" aria-selected="false">Manche 4</button>
+              <button class="round-tab" data-round="manche4" aria-selected="false">Manche 4</button>
               
               <button class="round-tab" data-round="finale" aria-selected="false">Finale</button>
             </nav>
@@ -592,105 +592,11 @@ La Tour Eiffel"></textarea></label>
 
               <section class="round-section" data-round-section-panel="manche4:overview">
                 <article class="subpanel compact-panel stack">
-                  <h3>Manche 4 · Codenames</h3>
-                  <p id="m4-admin-message" class="message">Configurez une grille, sélectionnez les joueurs puis lancez la manche.</p>
-                  <p class="muted">Objectif : faire trouver 5 mots (mot noir = score final divisé par 2).</p>
-                  <div class="row">
-                    <p class="muted">Grille active : <strong id="m4-active-grid-label">Aucune</strong></p>
-                    <p class="muted">Indice : <strong id="m4-phase-label">Phase 1/3</strong></p>
-                  </div>
-                </article>
-              </section>
-
-              <section class="round-section hidden" data-round-section-panel="manche4:questions">
-                <div class="two-col">
-                  <article class="subpanel compact-panel stack">
-                    <h3>Créer / éditer une grille</h3>
-                    <label>Titre
-                      <input id="m4-grid-title" placeholder="Ex: Manga Légendaires" />
-                    </label>
-                    <div id="m4-word-editor" class="m4-word-editor"></div>
-                    <div class="row">
-                      <button id="m4-save-grid" class="btn btn-primary">Sauvegarder grille</button>
-                      <button id="m4-reset-grid-form" class="btn btn-secondary">Vider formulaire</button>
-                    </div>
-                    <p id="m4-grid-error" class="message"></p>
-                  </article>
-
-                  <article class="subpanel compact-panel stack">
-                    <h3>Grilles disponibles</h3>
-                    <ul id="m4-grids-list" class="list"></ul>
-                  </article>
-                </div>
-              </section>
-
-              <section class="round-section hidden" data-round-section-panel="manche4:participants">
-                <article class="subpanel compact-panel stack">
-                  <h3>Participants autorisés</h3>
-                  <p class="muted">Coché = participe · décoché = bloqué</p>
-                  <ul id="m4-participants-list" class="leaderboard"></ul>
-                </article>
-              </section>
-
-              <section class="round-section hidden" data-round-section-panel="manche4:live">
-                <div class="two-col">
-                  <article class="subpanel compact-panel stack">
-                    <h3>Régie live · Grille</h3>
-                    <label>Indice en cours
-                      <input id="m4-clue-input" placeholder="Ex: Ninja, 2" maxlength="80" />
-                    </label>
-                    <p class="muted">Phase active : <strong id="m4-live-phase">Phase 1/3</strong></p>
-                    <div class="row">
-                      <button id="m4-start" class="btn btn-primary">Lancer la manche</button>
-                      <button id="m4-next-clue" class="btn btn-secondary">Indice suivant</button>
-                      <button id="m4-finish" class="btn btn-secondary">Terminer</button>
-                      <button id="m4-reset-round" class="btn btn-danger">Reset</button>
-                    </div>
-                    <div id="m4-admin-preview" class="m4-grid-preview"></div>
-                  </article>
-                  <article class="subpanel compact-panel">
-                    <h3>Scores live</h3>
-                    <ul id="m4-live-scores" class="leaderboard"></ul>
-                  </article>
-                </div>
-              </section>
-
-              <section class="round-section hidden" data-round-section-panel="manche4:overlay">
-                <article class="subpanel compact-panel stack">
-                  <h3>Overlay manche 4</h3>
-                  <div class="row">
-                    <a class="btn btn-secondary" href="overlay-round4.html" target="_blank" rel="noopener">Ouvrir overlay manche 4</a>
-                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
-                  </div>
-                  <label>Taille texte indice (px)<input id="overlay-round4-clue-size" type="number" min="16" max="140" value="40" /></label>
-                  <label>Couleur indice<input id="overlay-round4-clue-color" type="color" value="#ffffff" /></label>
-                  <label>Taille mots grille (px)<input id="overlay-round4-word-size" type="number" min="12" max="92" value="28" /></label>
-                  <label>Arrondi cases (px)<input id="overlay-round4-cell-radius" type="number" min="0" max="60" value="14" /></label>
-                  <label>Taille marqueurs (px)<input id="overlay-round4-marker-size" type="number" min="8" max="42" value="18" /></label>
-                  <label>Opacité marqueurs (0-1)<input id="overlay-round4-marker-opacity" type="number" min="0.1" max="1" step="0.05" value="0.95" /></label>
-                  <label>Taille max grille (px)<input id="overlay-round4-grid-max-width" type="number" min="500" max="2200" value="1500" /></label>
-                  <label>Espacement grille (px)<input id="overlay-round4-grid-gap" type="number" min="0" max="40" value="10" /></label>
-                  <ul id="m4-progress-list" class="leaderboard"></ul>
-                </article>
-              </section>
-            </section>
-
-            <section class="round-shell hidden" data-round-panel="manche5">
-              <nav class="subnav" aria-label="Sous navigation manche 5">
-                <button class="subnav-tab active" data-round="manche5" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="questions">Contenu</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="overview">État</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
-              </nav>
-
-              <section class="round-section" data-round-section-panel="manche5:overview">
-                <article class="subpanel compact-panel stack">
                   <h3>Vue d’ensemble manche 4 · Blindtest</h3>
                   <p class="muted">Retrouvez tous les contrôles live dans l’onglet “En direct”.</p>
                 </article>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche5:questions">
+              <section class="round-section hidden" data-round-section-panel="manche4:questions">
                 <article class="subpanel compact-panel stack">
                   <h3>Catalogue des pistes YouTube</h3>
                   <form id="m5-track-form" class="stack">
@@ -733,7 +639,7 @@ SNK OP1"></textarea></label>
                   <ul id="m5-viewer-questions-list" class="list"></ul>
                 </article>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche5:participants">
+              <section class="round-section hidden" data-round-section-panel="manche4:participants">
                 <article class="subpanel compact-panel stack">
                   <h3>Réponses participants (blindtest)</h3>
                   <label class="row"><input id="m5-stop-on-answer" type="checkbox" /><span>Couper la musique dès qu’un participant répond</span></label>
@@ -741,7 +647,7 @@ SNK OP1"></textarea></label>
                   <ul id="m5-participants-answers" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                 </article>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche5:live">
+              <section class="round-section hidden" data-round-section-panel="manche4:live">
                 <div class="two-col">
                   <article class="subpanel compact-panel stack">
                     <h3>Régie live · Audio</h3>
@@ -770,7 +676,7 @@ SNK OP1"></textarea></label>
                   </article>
                 </div>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche5:overlay">
+              <section class="round-section hidden" data-round-section-panel="manche4:overlay">
                 <article class="subpanel compact-panel stack">
                   <h3>Overlay manche 4</h3>
                   <p class="muted">Affichage stream sans spoiler (état, statut lecture, piste, progression).</p>
