@@ -11,7 +11,6 @@ import {
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
-import { initManche4Admin } from "./manche4.js";
 import { initManche5Admin } from "./manche5.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
@@ -344,12 +343,7 @@ resetAllBtn?.addEventListener("click", async () => {
 activateWorkspace("dashboard");
 activateRoundSection("manche1", "live");
 
-initManche4Admin({
-  getCurrentAdminId: () => currentAdminId,
-  setMessage,
-  showToast,
-  activateRoundSection,
-});
+// Manche 4 utilise désormais le blindtest (anciennement manche 5).
 initManche5Admin({
   getCurrentAdminId: () => currentAdminId,
   setMessage,

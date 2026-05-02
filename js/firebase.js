@@ -24,7 +24,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "manche5", "finale"];
+export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "finale"];
 
 export async function ensureRoundsSeed(uid) {
   for (const round of ROUNDS) {
