@@ -276,7 +276,11 @@ function workspaceLabel(workspace) {
   if (workspace === "broadcast") return "Diffusion";
   return `Rondes • ${formatRound(editingRound)}`;
 }
-function formatRound(round) { return round === "finale" ? "Finale" : round.replace("manche", "Manche "); }
+function formatRound(round) {
+  if (round === "finale") return "Finale";
+  if (round === "manche5") return "Manche 4";
+  return round.replace("manche", "Manche ");
+}
 
 function activateWorkspace(workspace) {
   activeWorkspace = workspace;
