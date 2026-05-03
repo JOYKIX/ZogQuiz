@@ -1,6 +1,6 @@
 import { db, ref, get, set, push, onValue, runTransaction, update } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
-import { initManche5Guest } from "./manche5.js";
+import { initManche5Guest } from "./manche4.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,

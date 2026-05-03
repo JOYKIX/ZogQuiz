@@ -48,7 +48,7 @@ function resolveCurrentTrack() {
 
 function applyConfig() {
   if (!overlayConfig) return;
-  document.querySelector(".overlay-round5").style.maxWidth = `${overlayConfig.maxWidthPx}px`;
+  document.querySelector(".overlay-round4").style.maxWidth = `${overlayConfig.maxWidthPx}px`;
   stateNode.style.fontSize = `${overlayConfig.secondaryFontSizePx}px`;
   stateNode.style.color = overlayConfig.secondaryColor;
   playbackNode.style.fontSize = `${overlayConfig.primaryFontSizePx}px`;
@@ -167,7 +167,7 @@ watchBlindtestLive(async (nextLiveState) => {
   }
 });
 
-watchOverlayConfig("round5", (config) => {
+watchOverlayConfig("round4", (config) => {
   overlayConfig = config;
   render();
 });
