@@ -190,7 +190,7 @@ export async function ensureRoundsSeed(uid) {
         updatedBy: uid,
         updatedAt: Date.now(),
       },
-      round5: {
+      round4: {
         primaryFontSizePx: 52,
         secondaryFontSizePx: 30,
         primaryColor: "#ffffff",

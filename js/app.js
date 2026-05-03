@@ -11,7 +11,7 @@ import {
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
-import { initManche5Admin } from "./manche5.js";
+import { initManche5Admin } from "./manche4.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
 import { showConfirm, showPrompt } from "./modal.js";
@@ -166,18 +166,18 @@ const overlayRound4GridMaxWidthInput = $("overlay-round4-grid-max-width");
 const overlayRound4GridGapInput = $("overlay-round4-grid-gap");
 const m4LiveScores = $("m4-live-scores");
 
-const overlayRound5PrimarySizeInput = $("overlay-round5-primary-size");
-const overlayRound5SecondarySizeInput = $("overlay-round5-secondary-size");
-const overlayRound5PrimaryColorInput = $("overlay-round5-primary-color");
-const overlayRound5SecondaryColorInput = $("overlay-round5-secondary-color");
-const overlayRound5PlayingColorInput = $("overlay-round5-playing-color");
-const overlayRound5PausedColorInput = $("overlay-round5-paused-color");
-const overlayRound5StoppedColorInput = $("overlay-round5-stopped-color");
-const overlayRound5ProgressHeightInput = $("overlay-round5-progress-height");
-const overlayRound5CornerRadiusInput = $("overlay-round5-corner-radius");
-const overlayRound5MaxWidthInput = $("overlay-round5-max-width");
-const overlayRound5DecorationOpacityInput = $("overlay-round5-decoration-opacity");
-const overlayRound5ProgressMaxInput = $("overlay-round5-progress-max");
+const overlayRound5PrimarySizeInput = $("overlay-round4-primary-size");
+const overlayRound5SecondarySizeInput = $("overlay-round4-secondary-size");
+const overlayRound5PrimaryColorInput = $("overlay-round4-primary-color");
+const overlayRound5SecondaryColorInput = $("overlay-round4-secondary-color");
+const overlayRound5PlayingColorInput = $("overlay-round4-playing-color");
+const overlayRound5PausedColorInput = $("overlay-round4-paused-color");
+const overlayRound5StoppedColorInput = $("overlay-round4-stopped-color");
+const overlayRound5ProgressHeightInput = $("overlay-round4-progress-height");
+const overlayRound5CornerRadiusInput = $("overlay-round4-corner-radius");
+const overlayRound5MaxWidthInput = $("overlay-round4-max-width");
+const overlayRound5DecorationOpacityInput = $("overlay-round4-decoration-opacity");
+const overlayRound5ProgressMaxInput = $("overlay-round4-progress-max");
 const m5LiveScores = $("m5-live-scores");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item[data-workspace]"));
@@ -204,7 +204,7 @@ let overlayConfigs = {
   round2: { ...OVERLAY_DEFAULTS.round2 },
   round3: { ...OVERLAY_DEFAULTS.round3 },
   round4: { ...OVERLAY_DEFAULTS.round4 },
-  round5: { ...OVERLAY_DEFAULTS.round5 },
+  round4: { ...OVERLAY_DEFAULTS.round4 },
 };
 let sessionsById = {};
 let participantQuestions = {};
@@ -347,7 +347,7 @@ resetAllBtn?.addEventListener("click", async () => {
 activateWorkspace("dashboard");
 activateRoundSection("manche1", "live");
 
-// Blindtest (ancienne manche 5) administré via le module manche5.
+// Blindtest (ancienne manche 4) administré via le module manche4.
 initManche5Admin({
   getCurrentAdminId: () => currentAdminId,
   setMessage,
@@ -498,7 +498,7 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound5SecondaryColorInput, overlayRound5PlayingColorInput, overlayRound5PausedColorInput,
   overlayRound5StoppedColorInput, overlayRound5ProgressHeightInput, overlayRound5CornerRadiusInput,
   overlayRound5MaxWidthInput, overlayRound5DecorationOpacityInput, overlayRound5ProgressMaxInput,
-].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round5")));
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round4")));
 
 m3ThemeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -669,8 +669,8 @@ function initListeners() {
     overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
     syncOverlayInputs();
   });
-  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round5`), (snap) => {
-    overlayConfigs.round5 = normalizeOverlayConfig("round5", snap.val() || OVERLAY_DEFAULTS.round5);
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round4`), (snap) => {
+    overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
     syncOverlayInputs();
   });
 
@@ -1790,7 +1790,7 @@ function syncOverlayInputs() {
   if (overlayRound4GridMaxWidthInput) overlayRound4GridMaxWidthInput.value = String(r4.gridMaxWidthPx);
   if (overlayRound4GridGapInput) overlayRound4GridGapInput.value = String(r4.gridGapPx);
 
-  const r5 = overlayConfigs.round5;
+  const r5 = overlayConfigs.round4;
   if (overlayRound5PrimarySizeInput) overlayRound5PrimarySizeInput.value = String(r5.primaryFontSizePx);
   if (overlayRound5SecondarySizeInput) overlayRound5SecondarySizeInput.value = String(r5.secondaryFontSizePx);
   if (overlayRound5PrimaryColorInput) overlayRound5PrimaryColorInput.value = r5.primaryColor;
@@ -1852,7 +1852,7 @@ function readOverlayConfigInputs(roundKey) {
       gridGapPx: overlayRound4GridGapInput?.value,
     };
   }
-  if (roundKey === "round5") {
+  if (roundKey === "round4") {
     return {
       primaryFontSizePx: overlayRound5PrimarySizeInput?.value,
       secondaryFontSizePx: overlayRound5SecondarySizeInput?.value,
