@@ -16,6 +16,7 @@ export function defaultBlindtestLiveState(updatedBy = "system") {
     lastError: "",
     stopOnAnswer: false,
     participantAnswers: {},
+    showAnswer: false,
   };
 }
 
@@ -33,6 +34,7 @@ export function normalizeBlindtestLiveState(raw = {}) {
     startedAt: Number.isFinite(Number(raw.startedAt)) ? Number(raw.startedAt) : null,
     stopOnAnswer: Boolean(raw.stopOnAnswer),
     participantAnswers: raw.participantAnswers && typeof raw.participantAnswers === "object" ? raw.participantAnswers : {},
+    showAnswer: Boolean(raw.showAnswer),
   };
 }
 

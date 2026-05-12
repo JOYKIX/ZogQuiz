@@ -9,6 +9,7 @@ const playbackNode = document.getElementById("m5-overlay-playback");
 const timeNode = document.getElementById("m5-overlay-time");
 const errorNode = document.getElementById("m5-overlay-error");
 const progressNode = document.getElementById("m5-overlay-progress");
+const answerNode = document.getElementById("m5-overlay-answer");
 
 let tracks = [];
 let liveState = defaultBlindtestLiveState();
@@ -77,10 +78,16 @@ function render() {
 
   const labels = { playing: "Lecture", paused: "Pause", stopped: "Arrêt" };
 
-  stateNode.textContent = liveState.active ? "Blindtest en direct" : "Blindtest prêt";
+  const prompts = {
+    opening: "D'où provient cet opening ?",
+    ending: "D'où provient cet ending ?",
+    ost: "D'où provient cette OST ?",
+  };
+  stateNode.textContent = prompts[currentTrack?.category || "opening"] || prompts.opening;
   trackNode.textContent = `Piste ${index >= 0 ? index + 1 : 0} / ${enabled.length}`;
   playbackNode.textContent = labels[liveState.playbackState] || "Arrêt";
   timeNode.textContent = formatTime(computeTargetSeconds(liveState));
+  if (answerNode) answerNode.textContent = liveState.showAnswer ? `Réponse : ${currentTrack?.answer || "—"}` : "";
 
   if (overlayConfig) {
     if (liveState.playbackState === "playing") playbackNode.style.color = overlayConfig.playingColor;
@@ -128,13 +135,15 @@ function startProgressTicker() {
 
 async function syncAudio() {
   const { currentTrack } = resolveCurrentTrack();
-  if (!currentTrack?.videoId || !liveState.active || liveState.playbackState === "stopped") {
+  const sourceUrl = liveState.showAnswer && currentTrack?.revealYoutubeUrl ? currentTrack.revealYoutubeUrl : currentTrack?.youtubeUrl;
+  const videoId = sourceUrl ? (sourceUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/) || [])[1] : null;
+  if (!videoId || !liveState.active || liveState.playbackState === "stopped") {
     player.stop();
     return;
   }
 
   const target = computeTargetSeconds(liveState);
-  await player.loadVideo(currentTrack.videoId, target, false);
+  await player.loadVideo(videoId, target, false);
 
   if (liveState.playbackState === "paused") {
     player.pause();
