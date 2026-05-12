@@ -178,7 +178,6 @@ const overlayRound5CornerRadiusInput = $("overlay-round4-corner-radius");
 const overlayRound5MaxWidthInput = $("overlay-round4-max-width");
 const overlayRound5DecorationOpacityInput = $("overlay-round4-decoration-opacity");
 const overlayRound5ProgressMaxInput = $("overlay-round4-progress-max");
-const m4LiveScores = $("m4-live-scores");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item[data-workspace]"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -204,7 +203,7 @@ let overlayConfigs = {
   round2: { ...OVERLAY_DEFAULTS.round2 },
   round3: { ...OVERLAY_DEFAULTS.round3 },
   round4: { ...OVERLAY_DEFAULTS.round4 },
-  round4: { ...OVERLAY_DEFAULTS.round4 },
+  round5: { ...OVERLAY_DEFAULTS.round5 },
 };
 let sessionsById = {};
 let participantQuestions = {};

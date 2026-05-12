@@ -46,7 +46,7 @@ export const OVERLAY_DEFAULTS = {
     gridMaxWidthPx: 1500,
     gridGapPx: 10,
   },
-  round4: {
+  round5: {
     primaryFontSizePx: 52,
     secondaryFontSizePx: 30,
     primaryColor: "#ffffff",
@@ -163,7 +163,7 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
     };
   }
 
-  if (roundKey === "round4") {
+  if (roundKey === "round5") {
     return {
       primaryFontSizePx: clampInt(raw.primaryFontSizePx, defaults.primaryFontSizePx, 18, 140),
       secondaryFontSizePx: clampInt(raw.secondaryFontSizePx, defaults.secondaryFontSizePx, 12, 96),
