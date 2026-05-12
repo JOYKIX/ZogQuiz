@@ -3,13 +3,13 @@ import { computeTargetSeconds, defaultBlindtestLiveState, watchBlindtestLive } f
 import { YoutubeAudioPlayer, parseYoutubeError } from "./blindtest/youtube.js";
 import { watchOverlayConfig } from "./overlay-config.js";
 
-const stateNode = document.getElementById("m5-overlay-state");
-const trackNode = document.getElementById("m5-overlay-track");
-const playbackNode = document.getElementById("m5-overlay-playback");
-const timeNode = document.getElementById("m5-overlay-time");
-const errorNode = document.getElementById("m5-overlay-error");
-const progressNode = document.getElementById("m5-overlay-progress");
-const answerNode = document.getElementById("m5-overlay-answer");
+const stateNode = document.getElementById("m4-overlay-state");
+const trackNode = document.getElementById("m4-overlay-track");
+const playbackNode = document.getElementById("m4-overlay-playback");
+const timeNode = document.getElementById("m4-overlay-time");
+const errorNode = document.getElementById("m4-overlay-error");
+const progressNode = document.getElementById("m4-overlay-progress");
+const answerNode = document.getElementById("m4-overlay-answer");
 
 let tracks = [];
 let liveState = defaultBlindtestLiveState();
@@ -19,7 +19,7 @@ let progressIntervalId = 0;
 let lastProgressSignature = "";
 
 const player = new YoutubeAudioPlayer({
-  hostId: "m5-overlay-youtube-host",
+  hostId: "m4-overlay-youtube-host",
   onError: (event) => {
     const message = parseYoutubeError(event?.data);
     if (errorNode) {
@@ -58,9 +58,9 @@ function applyConfig() {
   timeNode.style.fontSize = `${overlayConfig.secondaryFontSizePx}px`;
   timeNode.style.color = overlayConfig.secondaryColor;
   progressNode.style.height = `${overlayConfig.progressHeightPx}px`;
-  document.querySelector(".m5-progress-shell").style.borderRadius = `${overlayConfig.cornerRadiusPx}px`;
+  document.querySelector(".m4-progress-shell").style.borderRadius = `${overlayConfig.cornerRadiusPx}px`;
   progressNode.style.borderRadius = `${overlayConfig.cornerRadiusPx}px`;
-  document.querySelector(".m5-progress-shell").style.backgroundColor = `rgba(255,255,255,${overlayConfig.decorationOpacity})`;
+  document.querySelector(".m4-progress-shell").style.backgroundColor = `rgba(255,255,255,${overlayConfig.decorationOpacity})`;
 }
 
 function render() {

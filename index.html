@@ -592,95 +592,95 @@ La Tour Eiffel"></textarea></label>
               <section class="round-section hidden" data-round-section-panel="manche4:questions">
                 <article class="subpanel compact-panel stack">
                   <h3>Catalogue des pistes YouTube</h3>
-                  <form id="m5-track-form" class="stack">
-                    <h4 id="m5-track-form-title">Ajouter une piste</h4>
+                  <form id="m4-track-form" class="stack">
+                    <h4 id="m4-track-form-title">Ajouter une piste</h4>
                     <label>Titre
-                      <input id="m5-track-title-input" required placeholder="Titre de la musique" />
+                      <input id="m4-track-title-input" required placeholder="Titre de la musique" />
                     </label>
                     <label>Lien YouTube
-                      <input id="m5-track-url-input" required placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" />
+                      <input id="m4-track-url-input" required placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" />
                     </label>
                     <label>Réponse attendue
-                      <input id="m5-track-answer-input" placeholder="Réponse (optionnelle)" />
+                      <input id="m4-track-answer-input" placeholder="Réponse (optionnelle)" />
                     </label>
                     <label>Catégorie
-                      <select id="m5-track-category-input">
+                      <select id="m4-track-category-input">
                         <option value="opening">Opening</option>
                         <option value="ending">Ending</option>
                         <option value="ost">OST</option>
                       </select>
                     </label>
                     <label>Lien vidéo révélation (optionnel)
-                      <input id="m5-track-reveal-url-input" placeholder="Deuxième lien YouTube pour la réponse" />
+                      <input id="m4-track-reveal-url-input" placeholder="Deuxième lien YouTube pour la réponse" />
                     </label>
                     <label>Aliases (séparés par virgule)
-                      <input id="m5-track-aliases-input" placeholder="alias 1, alias 2" />
+                      <input id="m4-track-aliases-input" placeholder="alias 1, alias 2" />
                     </label>
                     <label class="row">
-                      <input id="m5-track-active-input" type="checkbox" checked />
+                      <input id="m4-track-active-input" type="checkbox" checked />
                       <span>Activer cette piste</span>
                     </label>
                     <div class="row">
-                      <button id="m5-track-submit" type="submit" class="btn btn-primary">Ajouter la piste</button>
-                      <button id="m5-track-cancel-edit" type="button" class="btn btn-secondary hidden">Annuler l’édition</button>
+                      <button id="m4-track-submit" type="submit" class="btn btn-primary">Ajouter la piste</button>
+                      <button id="m4-track-cancel-edit" type="button" class="btn btn-secondary hidden">Annuler l’édition</button>
                     </div>
                   </form>
-                  <ul id="m5-track-list" class="leaderboard"></ul>
+                  <ul id="m4-track-list" class="leaderboard"></ul>
                 </article>
                 <article class="subpanel compact-panel stack viewer-panel">
                   <h3>Créer une question viewers (Manche 4)</h3>
-                  <p id="m5-viewer-live-label" class="message">Aucune question viewers active.</p>
-                  <form id="m5-viewer-question-form" class="stack">
-                    <label>Prompt viewers<input id="m5-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce titre ?" /></label>
-                    <label>Réponses acceptées<textarea id="m5-viewer-aliases" rows="5" required placeholder="Guren no Yumiya
+                  <p id="m4-viewer-live-label" class="message">Aucune question viewers active.</p>
+                  <form id="m4-viewer-question-form" class="stack">
+                    <label>Prompt viewers<input id="m4-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce titre ?" /></label>
+                    <label>Réponses acceptées<textarea id="m4-viewer-aliases" rows="5" required placeholder="Guren no Yumiya
 SNK OP1"></textarea></label>
-                    <div class="row compact"><label>Points<input id="m5-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m5-viewer-timer" type="number" min="0" value="25" /></label></div>
-                    <label class="row"><input id="m5-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
-                    <label class="row"><input id="m5-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
+                    <div class="row compact"><label>Points<input id="m4-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m4-viewer-timer" type="number" min="0" value="25" /></label></div>
+                    <label class="row"><input id="m4-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
+                    <label class="row"><input id="m4-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
                     <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
                   </form>
-                  <ul id="m5-viewer-questions-list" class="list"></ul>
+                  <ul id="m4-viewer-questions-list" class="list"></ul>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:participants">
                 <article class="subpanel compact-panel stack">
                   <h3>Réponses participants (blindtest)</h3>
-                  <label class="row"><input id="m5-stop-on-answer" type="checkbox" /><span>Couper la musique dès qu’un participant répond</span></label>
+                  <label class="row"><input id="m4-stop-on-answer" type="checkbox" /><span>Couper la musique dès qu’un participant répond</span></label>
                   <p class="muted">Option désactivée par défaut.</p>
                   <p class="muted">Les réponses sont aussi visibles dans l’onglet “En direct”.</p>
-                  <ul id="m5-participants-answers" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
+                  <ul id="m4-participants-answers" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:live">
                 <div class="two-col">
                   <article class="subpanel compact-panel stack">
                     <h3>Régie live · Audio</h3>
-                    <p class="muted">Piste actuelle : <strong id="m5-current-track">Aucune piste active</strong></p>
-                    <p class="muted">Titre : <strong id="m5-current-track-title">—</strong></p>
-                    <p class="muted">URL YouTube : <strong id="m5-current-track-youtube">—</strong></p>
-                    <p class="muted">Réponse : <strong id="m5-current-track-answer">—</strong></p>
-                    <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
-                    <p id="m5-live-error" class="message error hidden"></p>
-                    <p id="m5-admin-message" class="message">En attente.</p>
-                    <div id="m5-admin-youtube-host" class="m5-youtube-host" aria-hidden="true"></div>
+                    <p class="muted">Piste actuelle : <strong id="m4-current-track">Aucune piste active</strong></p>
+                    <p class="muted">Titre : <strong id="m4-current-track-title">—</strong></p>
+                    <p class="muted">URL YouTube : <strong id="m4-current-track-youtube">—</strong></p>
+                    <p class="muted">Réponse : <strong id="m4-current-track-answer">—</strong></p>
+                    <p class="muted">État : <strong id="m4-playback-status">Arrêt</strong></p>
+                    <p id="m4-live-error" class="message error hidden"></p>
+                    <p id="m4-admin-message" class="message">En attente.</p>
+                    <div id="m4-admin-youtube-host" class="m4-youtube-host" aria-hidden="true"></div>
                     <div class="row">
-                      <button id="m5-start-round" class="btn btn-primary">Démarrer la manche 4</button>
+                      <button id="m4-start-round" class="btn btn-primary">Démarrer la manche 4</button>
                     </div>
                     <div class="row">
-                      <button id="m5-play" class="btn btn-primary">Lancer la musique</button>
-                      <button id="m5-pause" class="btn btn-secondary">Pause</button>
-                      <button id="m5-resume" class="btn btn-secondary">Reprendre</button>
-                      <button id="m5-replay" class="btn btn-secondary">Rejouer</button>
-                      <button id="m5-show-answer" class="btn btn-secondary">Afficher la réponse</button>
-                      <button id="m5-prev" class="btn btn-secondary">Musique précédente</button>
-                      <button id="m5-next" class="btn btn-secondary">Musique suivante</button>
+                      <button id="m4-play" class="btn btn-primary">Lancer la musique</button>
+                      <button id="m4-pause" class="btn btn-secondary">Pause</button>
+                      <button id="m4-resume" class="btn btn-secondary">Reprendre</button>
+                      <button id="m4-replay" class="btn btn-secondary">Rejouer</button>
+                      <button id="m4-show-answer" class="btn btn-secondary">Afficher la réponse</button>
+                      <button id="m4-prev" class="btn btn-secondary">Musique précédente</button>
+                      <button id="m4-next" class="btn btn-secondary">Musique suivante</button>
                     </div>
                   </article>
                   <article class="subpanel compact-panel">
                     <h3>Scores live</h3>
-                    <ul id="m5-live-scores" class="leaderboard"></ul>
+                    <ul id="m4-live-scores" class="leaderboard"></ul>
                     <h3>Réponses en direct</h3>
-                    <ul id="m5-participants-answers-live" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
+                    <ul id="m4-participants-answers-live" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                   </article>
                 </div>
               </section>

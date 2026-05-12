@@ -178,7 +178,7 @@ const overlayRound5CornerRadiusInput = $("overlay-round4-corner-radius");
 const overlayRound5MaxWidthInput = $("overlay-round4-max-width");
 const overlayRound5DecorationOpacityInput = $("overlay-round4-decoration-opacity");
 const overlayRound5ProgressMaxInput = $("overlay-round4-progress-max");
-const m5LiveScores = $("m5-live-scores");
+const m4LiveScores = $("m4-live-scores");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item[data-workspace]"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -1171,7 +1171,6 @@ function renderRound2Participants() {
   renderLeaderboardList(m2LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
   renderLeaderboardList(m3LiveScores, entries, "Aucun participant.", true, [1, 2, -1]);
   renderLeaderboardList(m4LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
-  renderLeaderboardList(m5LiveScores, entries, "Aucun participant.", true, [1, 2, 3, -1]);
 }
 
 function renderRound1QuestionList(type, data, container) {
