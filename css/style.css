@@ -171,7 +171,7 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(56, 217, 255
 .guest-image { max-width: 100%; max-height: 72vh; border-radius: 16px; border: 1px solid var(--line); }
 .buzz { font-size: clamp(1.1rem, 3vw, 1.65rem); min-height: 66px; }
 .m4-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-.m5-youtube-host { width: 1px; height: 1px; overflow: hidden; }
+.m4-youtube-host { width: 1px; height: 1px; overflow: hidden; }
 .hero { padding: 18px; }
 
 @media (max-width: 1200px) {

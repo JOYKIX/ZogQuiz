@@ -6,23 +6,23 @@
   padding-bottom: 6vh;
 }
 
-.m5-state,
-.m5-playback,
-.m5-track,
-.m5-time,
-.m5-answer,
-.m5-error {
+.m4-state,
+.m4-playback,
+.m4-track,
+.m4-time,
+.m4-answer,
+.m4-error {
   margin: 0;
   font-weight: 700;
   text-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
 }
 
-.m5-track {
+.m4-track {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.m5-progress-shell {
+.m4-progress-shell {
   width: min(92vw, 1000px);
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -30,14 +30,14 @@
   background: rgba(11, 17, 34, 0.48);
 }
 
-.m5-progress-bar {
+.m4-progress-bar {
   height: 12px;
   width: 0%;
   background: linear-gradient(90deg, #7e6cff 0%, #ff7ed8 45%, #52dfff 100%);
   transition: width 150ms linear;
 }
 
-.m5-overlay-youtube-host {
+.m4-overlay-youtube-host {
   position: fixed;
   width: 1px;
   height: 1px;

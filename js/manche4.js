@@ -158,45 +158,45 @@ export function initManche5Admin(options) {
   const { getCurrentAdminId, setMessage, showToast } = options;
 
   const els = {
-    statusMessage: document.getElementById("m5-admin-message"),
-    currentTrackLabel: document.getElementById("m5-current-track"),
-    currentTrackTitle: document.getElementById("m5-current-track-title"),
-    currentTrackYoutube: document.getElementById("m5-current-track-youtube"),
-    currentTrackAnswer: document.getElementById("m5-current-track-answer"),
-    playbackStatus: document.getElementById("m5-playback-status"),
-    liveError: document.getElementById("m5-live-error"),
+    statusMessage: document.getElementById("m4-admin-message"),
+    currentTrackLabel: document.getElementById("m4-current-track"),
+    currentTrackTitle: document.getElementById("m4-current-track-title"),
+    currentTrackYoutube: document.getElementById("m4-current-track-youtube"),
+    currentTrackAnswer: document.getElementById("m4-current-track-answer"),
+    playbackStatus: document.getElementById("m4-playback-status"),
+    liveError: document.getElementById("m4-live-error"),
 
-    startBtn: document.getElementById("m5-start-round"),
-    playBtn: document.getElementById("m5-play"),
-    pauseBtn: document.getElementById("m5-pause"),
-    resumeBtn: document.getElementById("m5-resume"),
-    replayBtn: document.getElementById("m5-replay"),
-    showAnswerBtn: document.getElementById("m5-show-answer"),
-    nextBtn: document.getElementById("m5-next"),
-    prevBtn: document.getElementById("m5-prev"),
+    startBtn: document.getElementById("m4-start-round"),
+    playBtn: document.getElementById("m4-play"),
+    pauseBtn: document.getElementById("m4-pause"),
+    resumeBtn: document.getElementById("m4-resume"),
+    replayBtn: document.getElementById("m4-replay"),
+    showAnswerBtn: document.getElementById("m4-show-answer"),
+    nextBtn: document.getElementById("m4-next"),
+    prevBtn: document.getElementById("m4-prev"),
 
-    trackList: document.getElementById("m5-track-list"),
-    trackForm: document.getElementById("m5-track-form"),
-    submitBtn: document.getElementById("m5-track-submit"),
-    cancelEditBtn: document.getElementById("m5-track-cancel-edit"),
-    formTitle: document.getElementById("m5-track-form-title"),
+    trackList: document.getElementById("m4-track-list"),
+    trackForm: document.getElementById("m4-track-form"),
+    submitBtn: document.getElementById("m4-track-submit"),
+    cancelEditBtn: document.getElementById("m4-track-cancel-edit"),
+    formTitle: document.getElementById("m4-track-form-title"),
 
-    titleInput: document.getElementById("m5-track-title-input"),
-    urlInput: document.getElementById("m5-track-url-input"),
-    answerInput: document.getElementById("m5-track-answer-input"),
-    revealUrlInput: document.getElementById("m5-track-reveal-url-input"),
-    categoryInput: document.getElementById("m5-track-category-input"),
-    aliasesInput: document.getElementById("m5-track-aliases-input"),
-    activeInput: document.getElementById("m5-track-active-input"),
-    stopOnAnswerInput: document.getElementById("m5-stop-on-answer"),
-    answersList: document.getElementById("m5-participants-answers"),
-    answersLiveList: document.getElementById("m5-participants-answers-live"),
+    titleInput: document.getElementById("m4-track-title-input"),
+    urlInput: document.getElementById("m4-track-url-input"),
+    answerInput: document.getElementById("m4-track-answer-input"),
+    revealUrlInput: document.getElementById("m4-track-reveal-url-input"),
+    categoryInput: document.getElementById("m4-track-category-input"),
+    aliasesInput: document.getElementById("m4-track-aliases-input"),
+    activeInput: document.getElementById("m4-track-active-input"),
+    stopOnAnswerInput: document.getElementById("m4-stop-on-answer"),
+    answersList: document.getElementById("m4-participants-answers"),
+    answersLiveList: document.getElementById("m4-participants-answers-live"),
   };
 
   if (!els.startBtn || !els.trackForm) return;
 
   const player = new YoutubeAudioPlayer({
-    hostId: "m5-admin-youtube-host",
+    hostId: "m4-admin-youtube-host",
     onError: async (event) => {
       const message = parseYoutubeError(event?.data);
       setMessage?.(els.statusMessage, message, "error");
@@ -275,7 +275,7 @@ export function initManche5Admin(options) {
 
     tracks.forEach((track, index) => {
       const li = document.createElement("li");
-      li.className = "leader-item m5-track-item";
+      li.className = "leader-item m4-track-item";
 
       const trackTitle = document.createElement("span");
       trackTitle.className = "leader-name";
@@ -288,7 +288,7 @@ export function initManche5Admin(options) {
       trackMeta.textContent = `${activeBadge} · ${formatValidationError(track)}${currentBadge}`;
 
       const actions = document.createElement("div");
-      actions.className = "m5-track-actions";
+      actions.className = "m4-track-actions";
 
       const selectBtn = document.createElement("button");
       selectBtn.type = "button";
@@ -616,20 +616,20 @@ export function initManche5Admin(options) {
 }
 
 export function initManche5Guest(options = {}) {
-  const statusLabelNode = document.getElementById("m5-guest-status");
-  const trackLabelNode = document.getElementById("m5-guest-track");
-  const playbackLabelNode = document.getElementById("m5-guest-playback");
-  const answerRevealNode = document.getElementById("m5-guest-answer-reveal");
-  const audioUnlockBtn = document.getElementById("m5-audio-unlock");
-  const audioHint = document.getElementById("m5-audio-hint");
-  const answerForm = document.getElementById("m5-guest-answer-form");
-  const answerInput = document.getElementById("m5-guest-answer-input");
-  const answerStatus = document.getElementById("m5-guest-answer-status");
+  const statusLabelNode = document.getElementById("m4-guest-status");
+  const trackLabelNode = document.getElementById("m4-guest-track");
+  const playbackLabelNode = document.getElementById("m4-guest-playback");
+  const answerRevealNode = document.getElementById("m4-guest-answer-reveal");
+  const audioUnlockBtn = document.getElementById("m4-audio-unlock");
+  const audioHint = document.getElementById("m4-audio-hint");
+  const answerForm = document.getElementById("m4-guest-answer-form");
+  const answerInput = document.getElementById("m4-guest-answer-input");
+  const answerStatus = document.getElementById("m4-guest-answer-status");
   const getSessionId = typeof options.getSessionId === "function" ? options.getSessionId : () => "";
   const getNickname = typeof options.getNickname === "function" ? options.getNickname : () => "";
 
   const player = new YoutubeAudioPlayer({
-    hostId: "m5-guest-youtube-host",
+    hostId: "m4-guest-youtube-host",
     onError: (event) => {
       const message = parseYoutubeError(event?.data);
       statusLabelNode.textContent = `Erreur lecteur : ${message}`;
