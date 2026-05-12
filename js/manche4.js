@@ -79,6 +79,8 @@ function createTrackFormPayload(els) {
   const title = String(els.titleInput?.value || "").trim();
   const youtubeUrl = String(els.urlInput?.value || "").trim();
   const answer = String(els.answerInput?.value || "").trim();
+  const revealYoutubeUrl = String(els.revealUrlInput?.value || "").trim();
+  const category = String(els.categoryInput?.value || "opening").toLowerCase();
   const aliases = parseAliasesInput(els.aliasesInput?.value || "");
   const active = Boolean(els.activeInput?.checked);
 
@@ -90,6 +92,8 @@ function createTrackFormPayload(els) {
     title,
     youtubeUrl,
     answer,
+    revealYoutubeUrl,
+    category,
     aliases,
     active,
   };
@@ -158,6 +162,7 @@ export function initManche5Admin(options) {
     currentTrackLabel: document.getElementById("m5-current-track"),
     currentTrackTitle: document.getElementById("m5-current-track-title"),
     currentTrackYoutube: document.getElementById("m5-current-track-youtube"),
+    currentTrackAnswer: document.getElementById("m5-current-track-answer"),
     playbackStatus: document.getElementById("m5-playback-status"),
     liveError: document.getElementById("m5-live-error"),
 
@@ -166,6 +171,7 @@ export function initManche5Admin(options) {
     pauseBtn: document.getElementById("m5-pause"),
     resumeBtn: document.getElementById("m5-resume"),
     replayBtn: document.getElementById("m5-replay"),
+    showAnswerBtn: document.getElementById("m5-show-answer"),
     nextBtn: document.getElementById("m5-next"),
     prevBtn: document.getElementById("m5-prev"),
 
@@ -178,10 +184,13 @@ export function initManche5Admin(options) {
     titleInput: document.getElementById("m5-track-title-input"),
     urlInput: document.getElementById("m5-track-url-input"),
     answerInput: document.getElementById("m5-track-answer-input"),
+    revealUrlInput: document.getElementById("m5-track-reveal-url-input"),
+    categoryInput: document.getElementById("m5-track-category-input"),
     aliasesInput: document.getElementById("m5-track-aliases-input"),
     activeInput: document.getElementById("m5-track-active-input"),
     stopOnAnswerInput: document.getElementById("m5-stop-on-answer"),
     answersList: document.getElementById("m5-participants-answers"),
+    answersLiveList: document.getElementById("m5-participants-answers-live"),
   };
 
   if (!els.startBtn || !els.trackForm) return;
@@ -212,6 +221,14 @@ export function initManche5Admin(options) {
   let liveState = defaultBlindtestLiveState();
   let editingTrackId = null;
   let lastAppliedSyncVersion = -1;
+  function resolveGuestPlaybackTrack(track, state) {
+    if (!track) return null;
+    if (state.showAnswer && track.revealYoutubeUrl) {
+      const revealValidation = validateYoutubeUrl(track.revealYoutubeUrl);
+      if (revealValidation.valid) return { ...track, videoId: revealValidation.videoId };
+    }
+    return track;
+  }
 
   function resetTrackForm() {
     editingTrackId = null;
@@ -227,6 +244,8 @@ export function initManche5Admin(options) {
     if (els.titleInput) els.titleInput.value = track.title || "";
     if (els.urlInput) els.urlInput.value = track.youtubeUrl || "";
     if (els.answerInput) els.answerInput.value = track.answer || "";
+    if (els.revealUrlInput) els.revealUrlInput.value = track.revealYoutubeUrl || "";
+    if (els.categoryInput) els.categoryInput.value = track.category || "opening";
     if (els.aliasesInput) els.aliasesInput.value = (track.aliases || []).join(", ");
     if (els.activeInput) els.activeInput.checked = track.active !== false;
     if (els.formTitle) els.formTitle.textContent = "Modifier la piste";
@@ -260,7 +279,7 @@ export function initManche5Admin(options) {
 
       const trackTitle = document.createElement("span");
       trackTitle.className = "leader-name";
-      trackTitle.textContent = `#${index + 1} · ${track.title || "Sans titre"}`;
+      trackTitle.textContent = `#${index + 1} · ${track.title || "Sans titre"} · ${(track.category || "opening").toUpperCase()}`;
 
       const trackMeta = document.createElement("span");
       trackMeta.className = "leader-score";
@@ -358,12 +377,14 @@ export function initManche5Admin(options) {
 
 
   function renderParticipantAnswers() {
-    if (!els.answersList) return;
+    if (!els.answersList && !els.answersLiveList) return;
     const answers = Object.values(liveState.participantAnswers || {})
       .sort((a, b) => Number(b?.answeredAt || 0) - Number(a?.answeredAt || 0));
-    els.answersList.innerHTML = "";
+    if (els.answersList) els.answersList.innerHTML = "";
+    if (els.answersLiveList) els.answersLiveList.innerHTML = "";
     if (!answers.length) {
-      els.answersList.innerHTML = "<li class='empty-state'>Aucune réponse reçue.</li>";
+      if (els.answersList) els.answersList.innerHTML = "<li class='empty-state'>Aucune réponse reçue.</li>";
+      if (els.answersLiveList) els.answersLiveList.innerHTML = "<li class='empty-state'>Aucune réponse reçue.</li>";
       return;
     }
     answers.slice(0, 20).forEach((item) => {
@@ -371,7 +392,8 @@ export function initManche5Admin(options) {
       li.className = "leader-item";
       const when = item.answeredAt ? new Date(item.answeredAt).toLocaleTimeString("fr-FR") : "—";
       li.innerHTML = `<span class="leader-name">${item.nickname || "Invité"} · ${item.answer || "—"}</span><span class="leader-score">${when}</span>`;
-      els.answersList.appendChild(li);
+      els.answersList?.appendChild(li.cloneNode(true));
+      els.answersLiveList?.appendChild(li);
     });
   }
   function renderAdminState() {
@@ -386,6 +408,7 @@ export function initManche5Admin(options) {
     }
     if (els.currentTrackTitle) els.currentTrackTitle.textContent = currentTrack?.title || "—";
     if (els.currentTrackYoutube) els.currentTrackYoutube.textContent = currentTrack?.youtubeUrl || "—";
+    if (els.currentTrackAnswer) els.currentTrackAnswer.textContent = currentTrack?.answer || "—";
     if (els.playbackStatus) els.playbackStatus.textContent = statusLabel(liveState.playbackState);
     if (els.stopOnAnswerInput) els.stopOnAnswerInput.checked = Boolean(liveState.stopOnAnswer);
     renderParticipantAnswers();
@@ -409,6 +432,10 @@ export function initManche5Admin(options) {
     els.replayBtn.disabled = !hasTracks || !hasCurrentTrack;
     els.nextBtn.disabled = !hasTracks || currentIndex < 0 || currentIndex >= enabledTracks.length - 1;
     els.prevBtn.disabled = !hasTracks || currentIndex <= 0;
+    if (els.showAnswerBtn) {
+      els.showAnswerBtn.disabled = !hasCurrentTrack;
+      els.showAnswerBtn.textContent = liveState.showAnswer ? "Masquer la réponse" : "Afficher la réponse";
+    }
   }
 
   async function moveTrack(step) {
@@ -536,6 +563,9 @@ export function initManche5Admin(options) {
   });
 
   els.nextBtn.addEventListener("click", async () => moveTrack(1));
+  els.showAnswerBtn?.addEventListener("click", async () => {
+    await writeBlindtestLive(() => ({ showAnswer: !liveState.showAnswer }), liveState, getCurrentAdminId?.() || "admin");
+  });
   els.stopOnAnswerInput?.addEventListener("change", async () => {
     await writeBlindtestLive(() => ({ stopOnAnswer: Boolean(els.stopOnAnswerInput?.checked) }), liveState, getCurrentAdminId?.() || "admin");
   });
@@ -589,6 +619,7 @@ export function initManche5Guest(options = {}) {
   const statusLabelNode = document.getElementById("m5-guest-status");
   const trackLabelNode = document.getElementById("m5-guest-track");
   const playbackLabelNode = document.getElementById("m5-guest-playback");
+  const answerRevealNode = document.getElementById("m5-guest-answer-reveal");
   const audioUnlockBtn = document.getElementById("m5-audio-unlock");
   const audioHint = document.getElementById("m5-audio-hint");
   const answerForm = document.getElementById("m5-guest-answer-form");
@@ -633,6 +664,7 @@ export function initManche5Guest(options = {}) {
 
     trackLabelNode.textContent = currentTrack ? `Piste : ${index + 1} / ${enabledTracks.length}` : "Piste : —";
     playbackLabelNode.textContent = `État : ${statusLabel(liveState.playbackState)}`;
+    if (answerRevealNode) answerRevealNode.textContent = liveState.showAnswer ? `Réponse : ${currentTrack?.answer || "—"}` : "";
 
     if (!liveState.active) {
       statusLabelNode.textContent = "En attente du lancement admin.";
@@ -662,7 +694,7 @@ export function initManche5Guest(options = {}) {
       renderGuestState();
 
       if (liveState.active) {
-        const track = findTrackByIdOrIndex(activeTracks(tracks), liveState);
+        const track = resolveGuestPlaybackTrack(findTrackByIdOrIndex(activeTracks(tracks), liveState), liveState);
         await syncYoutubePlayerToLiveState(player, track, liveState, {
           allowPlay: true,
           onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),
@@ -720,7 +752,7 @@ export function initManche5Guest(options = {}) {
       return;
     }
 
-    const track = findTrackByIdOrIndex(activeTracks(tracks), nextLiveState);
+    const track = resolveGuestPlaybackTrack(findTrackByIdOrIndex(activeTracks(tracks), nextLiveState), nextLiveState);
     await syncYoutubePlayerToLiveState(player, track, nextLiveState, {
       allowPlay: true,
       onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),

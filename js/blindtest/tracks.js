@@ -33,6 +33,10 @@ export function normalizeTrack(id, raw = {}) {
     youtubeUrl,
     videoId: validation.videoId,
     answer: String(raw.answer || "").trim(),
+    revealYoutubeUrl: String(raw.revealYoutubeUrl || "").trim(),
+    category: ["opening", "ending", "ost"].includes(String(raw.category || "").toLowerCase())
+      ? String(raw.category || "").toLowerCase()
+      : "opening",
     aliases: normalizeAliases(raw.aliases),
     active: raw.active !== false,
     order: normalizeOrder(id, raw.order),
@@ -72,6 +76,8 @@ function buildTrackUpdatePayload(trackId, payload, adminId) {
     title: normalized.title,
     youtubeUrl: normalized.youtubeUrl,
     answer: normalized.answer,
+    revealYoutubeUrl: normalized.revealYoutubeUrl,
+    category: normalized.category,
     aliases: normalized.aliases,
     active: normalized.active,
     order: normalized.order,

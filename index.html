@@ -603,6 +603,16 @@ La Tour Eiffel"></textarea></label>
                     <label>Réponse attendue
                       <input id="m5-track-answer-input" placeholder="Réponse (optionnelle)" />
                     </label>
+                    <label>Catégorie
+                      <select id="m5-track-category-input">
+                        <option value="opening">Opening</option>
+                        <option value="ending">Ending</option>
+                        <option value="ost">OST</option>
+                      </select>
+                    </label>
+                    <label>Lien vidéo révélation (optionnel)
+                      <input id="m5-track-reveal-url-input" placeholder="Deuxième lien YouTube pour la réponse" />
+                    </label>
                     <label>Aliases (séparés par virgule)
                       <input id="m5-track-aliases-input" placeholder="alias 1, alias 2" />
                     </label>
@@ -637,6 +647,7 @@ SNK OP1"></textarea></label>
                   <h3>Réponses participants (blindtest)</h3>
                   <label class="row"><input id="m5-stop-on-answer" type="checkbox" /><span>Couper la musique dès qu’un participant répond</span></label>
                   <p class="muted">Option désactivée par défaut.</p>
+                  <p class="muted">Les réponses sont aussi visibles dans l’onglet “En direct”.</p>
                   <ul id="m5-participants-answers" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                 </article>
               </section>
@@ -647,6 +658,7 @@ SNK OP1"></textarea></label>
                     <p class="muted">Piste actuelle : <strong id="m5-current-track">Aucune piste active</strong></p>
                     <p class="muted">Titre : <strong id="m5-current-track-title">—</strong></p>
                     <p class="muted">URL YouTube : <strong id="m5-current-track-youtube">—</strong></p>
+                    <p class="muted">Réponse : <strong id="m5-current-track-answer">—</strong></p>
                     <p class="muted">État : <strong id="m5-playback-status">Arrêt</strong></p>
                     <p id="m5-live-error" class="message error hidden"></p>
                     <p id="m5-admin-message" class="message">En attente.</p>
@@ -659,6 +671,7 @@ SNK OP1"></textarea></label>
                       <button id="m5-pause" class="btn btn-secondary">Pause</button>
                       <button id="m5-resume" class="btn btn-secondary">Reprendre</button>
                       <button id="m5-replay" class="btn btn-secondary">Rejouer</button>
+                      <button id="m5-show-answer" class="btn btn-secondary">Afficher la réponse</button>
                       <button id="m5-prev" class="btn btn-secondary">Musique précédente</button>
                       <button id="m5-next" class="btn btn-secondary">Musique suivante</button>
                     </div>
@@ -666,6 +679,8 @@ SNK OP1"></textarea></label>
                   <article class="subpanel compact-panel">
                     <h3>Scores live</h3>
                     <ul id="m5-live-scores" class="leaderboard"></ul>
+                    <h3>Réponses en direct</h3>
+                    <ul id="m5-participants-answers-live" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                   </article>
                 </div>
               </section>
