@@ -154,6 +154,15 @@ function patchForTrackSelection(track, trackIndex, keepPlayback) {
   };
 }
 
+function resolveGuestPlaybackTrack(track, state) {
+  if (!track) return null;
+  if (state.showAnswer && track.revealYoutubeUrl) {
+    const revealValidation = validateYoutubeUrl(track.revealYoutubeUrl);
+    if (revealValidation.valid) return { ...track, videoId: revealValidation.videoId };
+  }
+  return track;
+}
+
 export function initManche5Admin(options) {
   const { getCurrentAdminId, setMessage, showToast } = options;
 
@@ -221,15 +230,6 @@ export function initManche5Admin(options) {
   let liveState = defaultBlindtestLiveState();
   let editingTrackId = null;
   let lastAppliedSyncVersion = -1;
-  function resolveGuestPlaybackTrack(track, state) {
-    if (!track) return null;
-    if (state.showAnswer && track.revealYoutubeUrl) {
-      const revealValidation = validateYoutubeUrl(track.revealYoutubeUrl);
-      if (revealValidation.valid) return { ...track, videoId: revealValidation.videoId };
-    }
-    return track;
-  }
-
   function resetTrackForm() {
     editingTrackId = null;
     els.trackForm.reset();
