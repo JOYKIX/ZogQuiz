@@ -17,14 +17,37 @@ const defaultState = {
 
 function alive(state, id) { return Number(state?.hpByPlayer?.[id] || 0) > 0 && !state?.eliminated?.[id]; }
 function toState(value) { return { ...defaultState, ...(value || {}) }; }
+function buildAutoStateFromSessions(sessionsById = {}, prevState = defaultState) {
+  const order = Object.entries(sessionsById)
+    .filter(([, session]) => session && session.active !== false)
+    .sort((a, b) => Number(b[1]?.score || 0) - Number(a[1]?.score || 0))
+    .map(([id]) => id);
+  const hpByPlayer = {};
+  const eliminated = {};
+  for (const id of order) {
+    const hp = Math.max(0, Number(sessionsById[id]?.score || 0));
+    hpByPlayer[id] = hp;
+    if (hp <= 0) eliminated[id] = true;
+  }
+  const aliveOrder = order.filter((id) => hpByPlayer[id] > 0);
+  const keepTurn = prevState?.currentTurnPlayerId && aliveOrder.includes(prevState.currentTurnPlayerId);
+  return {
+    ...toState(prevState),
+    turnOrder: order,
+    hpByPlayer,
+    eliminated,
+    currentTurnPlayerId: keepTurn ? prevState.currentTurnPlayerId : (aliveOrder[0] || null),
+    targetPlayerId: null,
+    duel: { attackerId: null, targetId: null, question: "", buzzerOpen: false, buzzedBy: null, phase: "target" },
+    active: aliveOrder.length > 1,
+  };
+}
 
 export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
   const root = document.getElementById("m5-admin");
   if (!root) return;
   const damageInput = document.getElementById("m5-damage");
-  const turnOrderInput = document.getElementById("m5-turn-order");
   const status = document.getElementById("m5-status");
-  const hpEditor = document.getElementById("m5-hp-editor");
   const targetSelect = document.getElementById("m5-target");
   const questionInput = document.getElementById("m5-question");
   const live = document.getElementById("m5-live");
@@ -45,7 +68,6 @@ export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
   function render() {
     status.textContent = `Tour: ${sessionsById[state.currentTurnPlayerId]?.nickname || "—"} | Phase: ${state.duel?.phase || "target"}`;
     damageInput.value = state.damage || 10;
-    turnOrderInput.value = (state.turnOrder || []).join(",");
     const alivePlayers = (state.turnOrder || []).filter((id) => alive(state, id));
     targetSelect.innerHTML = "";
     for (const id of alivePlayers) {
@@ -56,42 +78,13 @@ export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
       if (id === state.targetPlayerId) o.selected = true;
       targetSelect.appendChild(o);
     }
-    hpEditor.innerHTML = "";
-    for (const id of state.turnOrder || []) {
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML = `<label>${sessionsById[id]?.nickname || id} PV <input data-id="${id}" type="number" value="${Number(state.hpByPlayer?.[id] || 0)}"/></label>`;
-      hpEditor.appendChild(row);
-    }
     live.textContent = JSON.stringify({ duel: state.duel || {}, outsiderAnswers }, null, 2);
   }
 
-  document.getElementById("m5-init-hp").onclick = async () => {
-    const order = Object.entries(sessionsById)
-      .sort((a, b) => Number(b[1]?.score || 0) - Number(a[1]?.score || 0))
-      .map(([id]) => id);
-    const hpByPlayer = {};
-    order.forEach((id) => { hpByPlayer[id] = Number(sessionsById[id]?.score || 0); });
-    await save({ hpByPlayer, turnOrder: order, currentTurnPlayerId: order[0] || null, eliminated: {}, active: true, duel: { attackerId: null, targetId: null, question: "", buzzerOpen: false, buzzedBy: null, phase: "target" } });
-  };
+  document.getElementById("m5-init-hp").onclick = async () => save(buildAutoStateFromSessions(sessionsById, state));
 
   document.getElementById("m5-save-config").onclick = async () => {
-    const turnOrder = turnOrderInput.value.split(",").map((v) => v.trim()).filter(Boolean);
-    const currentTurnPlayerId = turnOrder.includes(state.currentTurnPlayerId) ? state.currentTurnPlayerId : (turnOrder[0] || null);
-    await save({ damage: Number(damageInput.value || 10), turnOrder, currentTurnPlayerId });
-  };
-
-  document.getElementById("m5-save-hp").onclick = async () => {
-    const hpByPlayer = { ...(state.hpByPlayer || {}) };
-    const eliminated = { ...(state.eliminated || {}) };
-    hpEditor.querySelectorAll("input[data-id]").forEach((el) => {
-      const playerId = el.dataset.id;
-      const hp = Number(el.value || 0);
-      hpByPlayer[playerId] = hp;
-      if (hp <= 0) eliminated[playerId] = true;
-      else delete eliminated[playerId];
-    });
-    await save({ hpByPlayer, eliminated });
+    await save({ damage: Number(damageInput.value || 10) });
   };
 
   document.getElementById("m5-set-target").onclick = async () => {
