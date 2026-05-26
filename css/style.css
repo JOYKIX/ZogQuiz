@@ -158,6 +158,16 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(56, 217, 255
 .round-tab.active, .subnav-tab.active { background: linear-gradient(130deg, #4c6fff, #6653ff); }
 
 .leaderboard, .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.m2-thumb {
+  display: block;
+  width: min(100%, 340px);
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(8, 13, 32, 0.86);
+  margin: 8px 0;
+}
 .leaderboard li, .list li {
   background: rgba(8, 14, 34, .9);
   border: 1px solid rgba(160, 186, 255, .2);
