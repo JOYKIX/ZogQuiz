@@ -61,6 +61,8 @@ const toggleAnswerBtn = $("toggle-answer");
 const unlockBuzzerBtn = $("unlock-buzzer");
 const markCorrectBtn = $("mark-correct");
 const markWrongBtn = $("mark-wrong");
+const round1PrevQuestionBtn = $("round1-prev-question");
+const round1NextQuestionBtn = $("round1-next-question");
 const buzzPlusBtn = $("buzz-plus");
 const buzzMinusBtn = $("buzz-minus");
 const buzzPriorityName = $("buzz-priority-name");
@@ -518,6 +520,8 @@ m3PassBtn.addEventListener("click", async () => round3Advance(false));
 m3CorrectBtn.addEventListener("click", async () => round3Advance(true));
 m2LivePrevBtn?.addEventListener("click", async () => moveRound2Image(-1));
 m2LiveNextBtn?.addEventListener("click", async () => moveRound2Image(1));
+round1PrevQuestionBtn?.addEventListener("click", async () => moveRound1Question(-1));
+round1NextQuestionBtn?.addEventListener("click", async () => moveRound1Question(1));
 
 async function loginSuccess(adminId) {
   setSession(adminId);
@@ -1257,6 +1261,36 @@ function renderRound1QuestionList(type, data, container) {
   }
 }
 
+function getRound1OrderedQuestions() {
+  return [
+    ...Object.entries(participantQuestions || {}).map(([id, question]) => ({ id, type: "participants", question })),
+    ...Object.entries(viewerQuestions || {}).map(([id, question]) => ({ id, type: "viewers", question })),
+  ].sort((a, b) => (a.question?.order || 0) - (b.question?.order || 0));
+}
+
+async function moveRound1Question(direction) {
+  const entries = getRound1OrderedQuestions();
+  if (!entries.length) return;
+  const currentIndex = entries.findIndex((item) => item.id === liveState?.currentQuestionId);
+  const fallbackIndex = direction > 0 ? -1 : entries.length;
+  const nextIndex = Math.min(entries.length - 1, Math.max(0, (currentIndex === -1 ? fallbackIndex : currentIndex) + direction));
+  const target = entries[nextIndex];
+  if (!target || target.id === liveState?.currentQuestionId) return;
+
+  const now = Date.now();
+  await clearBuzzData();
+  await update(ref(db, "rooms/manche1/state"), {
+    currentType: target.type,
+    currentQuestionId: target.id,
+    showAnswer: false,
+    buzzerLocked: false,
+    lockedBySessionId: null,
+    lockedByNickname: "",
+    lockedAt: 0,
+    updatedAt: now,
+  });
+}
+
 async function editRound1Question(type, questionId, currentQuestion) {
   const text = await showPrompt("Modifier le texte de la question", {
     title: "Éditer la question",
@@ -1473,6 +1507,10 @@ function updateRound1Status() {
   markWrongBtn.disabled = !liveState.lockedBySessionId || !hasQuestion;
   buzzPlusBtn.disabled = !liveState.lockedBySessionId;
   buzzMinusBtn.disabled = !liveState.lockedBySessionId;
+  const orderedQuestions = getRound1OrderedQuestions();
+  const currentIndex = orderedQuestions.findIndex((item) => item.id === liveState.currentQuestionId);
+  if (round1PrevQuestionBtn) round1PrevQuestionBtn.disabled = !orderedQuestions.length || currentIndex <= 0;
+  if (round1NextQuestionBtn) round1NextQuestionBtn.disabled = !orderedQuestions.length || currentIndex === -1 || currentIndex >= orderedQuestions.length - 1;
 
   const lockedByName = liveState.lockedByNickname || sessionsById[liveState.lockedBySessionId]?.nickname || "Quelqu’un";
   if (liveState.buzzerLocked) {

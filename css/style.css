@@ -42,7 +42,7 @@ body::before {
 }
 .hidden { display: none !important; }
 
-.app-shell { width: min(1720px, 96vw); margin: 0 auto; padding: 22px 20px 36px; position: relative; z-index: 1; }
+.app-shell { width: min(1720px, 96vw); margin: 0 auto; padding: 24px 24px 40px; position: relative; z-index: 1; }
 .card, .panel, .subpanel, .auth-card, .auth-intro, .app-topbar, .hero, .sidebar {
   background: linear-gradient(155deg, var(--surface), rgba(18, 24, 52, 0.62));
   border: 1px solid var(--line);
@@ -140,12 +140,19 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(56, 217, 255
 }
 .nav-item.active, .nav-item:hover { background: rgba(110,125,255,.18); border-color: rgba(150,175,255,.4); }
 
-.content-stack, .workspace-panel { display: grid; gap: 14px; }
+.content-stack, .workspace-panel { display: grid; gap: 18px; }
 .context-bar { display: flex; align-items: center; justify-content: space-between; }
 .panel-head.split { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.subpanel, .panel { padding: 14px; background: linear-gradient(155deg, var(--surface-strong), rgba(23, 31, 64, .86)); }
+.subpanel, .panel { padding: 18px; background: linear-gradient(155deg, var(--surface-strong), rgba(23, 31, 64, .86)); }
 .stats-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-.two-col, .scoreboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.two-col, .scoreboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.subpanel h3 { margin-top: 0; margin-bottom: 12px; }
+.subpanel p { margin: 0 0 10px; }
+.subpanel p:last-child { margin-bottom: 0; }
+.stack { gap: 14px; }
+.sticky-actions { margin-top: 6px; }
+.round1-question-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.round1-question-nav .btn { flex: 1 1 200px; justify-content: center; }
 
 .round-nav, .subnav, .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .round-tab, .subnav-tab {
