@@ -403,7 +403,7 @@ function renderByRound() {
   const isRound2 = liveRound === "manche2";
   const isRound3 = liveRound === "manche3";
   const isRound4 = liveRound === "manche4";
-  const isRound5 = liveRound === "finale";
+  const isRound5 = liveRound === "manche5" || liveRound === "finale";
   round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4 || isRound5);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);

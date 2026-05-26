@@ -86,6 +86,7 @@
             <a class="nav-item" href="overlay-round2.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R2</span></a>
             <a class="nav-item" href="overlay-round3.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R3</span></a>
             <a class="nav-item" href="overlay-round4.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R4</span></a>
+            <a class="nav-item" href="overlay-round5.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R5</span></a>
           </div>
         </div>
         </aside>
@@ -216,7 +217,7 @@
               <button class="round-tab" data-round="manche3" aria-selected="false">Manche 3</button>
               <button class="round-tab" data-round="manche4" aria-selected="false">Manche 4</button>
               
-              <button class="round-tab" data-round="finale" aria-selected="false">Finale</button>
+              <button class="round-tab" data-round="manche5" aria-selected="false">Manche 5</button>
             </nav>
 
             <section class="round-shell" data-round-panel="manche1">
@@ -715,20 +716,20 @@ SNK OP1"></textarea></label>
               </section>
             </section>
 
-            <section class="round-shell hidden" data-round-panel="finale">
-              <nav class="subnav" aria-label="Sous navigation finale">
-                <button class="subnav-tab active" data-round="finale" data-round-section="overview">Vue d’ensemble</button>
-                <button class="subnav-tab" data-round="finale" data-round-section="questions">Questions</button>
-                <button class="subnav-tab" data-round="finale" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="finale" data-round-section="live">En direct</button>
-                <button class="subnav-tab" data-round="finale" data-round-section="overlay">Overlay</button>
+            <section class="round-shell hidden" data-round-panel="manche5">
+              <nav class="subnav" aria-label="Sous navigation manche 5">
+                <button class="subnav-tab active" data-round="manche5" data-round-section="overview">Vue d’ensemble</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="questions">Questions</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="participants">Participants</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
               </nav>
 
-                            <section class="round-section" data-round-section-panel="finale:overview"><article class="subpanel compact-panel"><h3>Mort Subite · Configuration</h3><div id="m5-admin" class="stack"><label>Dégâts par bonne réponse <input id="m5-damage" type="number" min="1" value="10" /></label><label>Ordre de passage (IDs séparés par virgule)<input id="m5-turn-order" /></label><div class="row"><button id="m5-save-config" class="btn btn-secondary" type="button">Enregistrer config</button><button id="m5-init-hp" class="btn btn-primary" type="button">Initialiser PV depuis scores</button></div><div id="m5-hp-editor" class="stack"></div><button id="m5-save-hp" class="btn btn-secondary" type="button">Enregistrer PV</button><p id="m5-status" class="message"></p></div></article></section>
-              <section class="round-section hidden" data-round-section-panel="finale:questions"><article class="subpanel compact-panel"><h3>Duel actif</h3><label>Question<input id="m5-question" /></label><label>Cible<select id="m5-target"></select></label><div class="row"><button id="m5-set-target" class="btn btn-primary" type="button">Lancer duel</button><button id="m5-mark-correct" class="btn btn-secondary" type="button">Bonne réponse buzzé</button><button id="m5-mark-fail" class="btn btn-secondary" type="button">Les 2 échouent</button></div><div class="row"><button id="m5-outsider-correct" class="btn btn-secondary" type="button">Valider réponse autres joueurs</button><button id="m5-next-turn" class="btn btn-primary" type="button">Tour suivant</button></div><pre id="m5-live" class="muted"></pre></article></section>
-              <section class="round-section hidden" data-round-section-panel="finale:participants"><article class="subpanel compact-panel"><p class="empty-state">Gestion incluse dans configuration Mort Subite.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="finale:live"><article class="subpanel compact-panel"><p class="empty-state">Pilotage live inclus dans onglet Questions.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="finale:overlay"><article class="subpanel compact-panel"><a class="btn btn-secondary" href="overlay-round5.html" target="_blank" rel="noopener">Ouvrir overlay Mort Subite</a></article></section></section>
+                            <section class="round-section" data-round-section-panel="manche5:overview"><article class="subpanel compact-panel"><h3>Mort Subite · Configuration</h3><div id="m5-admin" class="stack"><label>Dégâts par bonne réponse <input id="m5-damage" type="number" min="1" value="10" /></label><label>Ordre de passage (IDs séparés par virgule)<input id="m5-turn-order" /></label><div class="row"><button id="m5-save-config" class="btn btn-secondary" type="button">Enregistrer config</button><button id="m5-init-hp" class="btn btn-primary" type="button">Initialiser PV depuis scores</button></div><div id="m5-hp-editor" class="stack"></div><button id="m5-save-hp" class="btn btn-secondary" type="button">Enregistrer PV</button><p id="m5-status" class="message"></p></div></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:questions"><article class="subpanel compact-panel"><h3>Duel actif</h3><label>Question<input id="m5-question" /></label><label>Cible<select id="m5-target"></select></label><div class="row"><button id="m5-set-target" class="btn btn-primary" type="button">Lancer duel</button><button id="m5-mark-correct" class="btn btn-secondary" type="button">Bonne réponse buzzé</button><button id="m5-mark-fail" class="btn btn-secondary" type="button">Les 2 échouent</button></div><div class="row"><button id="m5-outsider-correct" class="btn btn-secondary" type="button">Valider réponse autres joueurs</button><button id="m5-next-turn" class="btn btn-primary" type="button">Tour suivant</button></div><pre id="m5-live" class="muted"></pre></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:participants"><article class="subpanel compact-panel"><p class="empty-state">Gestion incluse dans configuration Mort Subite.</p></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:live"><article class="subpanel compact-panel"><p class="empty-state">Pilotage live inclus dans onglet Questions.</p></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:overlay"><article class="subpanel compact-panel"><a class="btn btn-secondary" href="overlay-round5.html" target="_blank" rel="noopener">Ouvrir overlay Mort Subite</a></article></section></section>
             </section>
           </section>
 
