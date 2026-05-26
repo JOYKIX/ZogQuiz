@@ -238,22 +238,40 @@ export async function ensureRoundsSeed(uid) {
     });
   }
 
-  const blindtestLiveRef = ref(db, "blindtestLive");
+
+
+  const legacyBlindtestLiveRef = ref(db, "blindtestLive");
+  const legacyBlindtestTracksRef = ref(db, "blindtest/tracks");
+  const manche5BlindtestTracksRef = ref(db, "rooms/manche5/blindtest/tracks");
+
+  if (!(await get(manche5BlindtestTracksRef)).exists()) {
+    const legacyTracksSnap = await get(legacyBlindtestTracksRef);
+    if (legacyTracksSnap.exists()) {
+      await set(manche5BlindtestTracksRef, legacyTracksSnap.val());
+    }
+  }
+
+  const blindtestLiveRef = ref(db, "rooms/manche5/blindtest/live");
   if (!(await get(blindtestLiveRef)).exists()) {
-    await set(blindtestLiveRef, {
-      active: false,
-      trackId: null,
-      trackIndex: 0,
-      playbackState: "stopped",
-      startedAt: null,
-      pausedAtSeconds: 0,
-      syncVersion: 0,
-      lastError: "",
-      stopOnAnswer: false,
-      participantAnswers: {},
-      updatedBy: uid,
-      updatedAt: Date.now(),
-    });
+    const legacyLiveSnap = await get(legacyBlindtestLiveRef);
+    if (legacyLiveSnap.exists()) {
+      await set(blindtestLiveRef, legacyLiveSnap.val());
+    } else {
+      await set(blindtestLiveRef, {
+        active: false,
+        trackId: null,
+        trackIndex: 0,
+        playbackState: "stopped",
+        startedAt: null,
+        pausedAtSeconds: 0,
+        syncVersion: 0,
+        lastError: "",
+        stopOnAnswer: false,
+        participantAnswers: {},
+        updatedBy: uid,
+        updatedAt: Date.now(),
+      });
+    }
   }
 }
 

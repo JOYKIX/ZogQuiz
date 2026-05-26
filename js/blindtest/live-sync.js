@@ -1,6 +1,6 @@
 import { db, ref, get, set, update, onValue } from "../firebase.js";
 
-export const BLINDTEST_LIVE_PATH = "blindtestLive";
+export const BLINDTEST_LIVE_PATH = "rooms/manche5/blindtest/live";
 
 export function defaultBlindtestLiveState(updatedBy = "system") {
   return {
