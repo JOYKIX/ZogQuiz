@@ -358,7 +358,7 @@ initManche5Admin({
 
 initMortSubiteAdmin({
   getCurrentAdminId: () => currentAdminId,
-  sessionsById,
+  getSessionsById: () => sessionsById,
 });
 
 initViewerAdmin({
