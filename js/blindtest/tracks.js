@@ -34,7 +34,7 @@ export function normalizeTrack(id, raw = {}) {
     videoId: validation.videoId,
     answer: String(raw.answer || "").trim(),
     revealYoutubeUrl: String(raw.revealYoutubeUrl || "").trim(),
-    category: ["opening", "ending", "ost"].includes(String(raw.category || "").toLowerCase())
+    category: ["opening", "ending", "ost", "personnage"].includes(String(raw.category || "").toLowerCase())
       ? String(raw.category || "").toLowerCase()
       : "opening",
     aliases: normalizeAliases(raw.aliases),

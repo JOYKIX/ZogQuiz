@@ -82,6 +82,7 @@ function render() {
     opening: "D'où provient cet opening ?",
     ending: "D'où provient cet ending ?",
     ost: "D'où provient cet OST ?",
+    personnage: "Quel est ce personnage ?",
   };
   stateNode.textContent = prompts[currentTrack?.category || "opening"] || prompts.opening;
   trackNode.textContent = `Piste ${index >= 0 ? index + 1 : 0} / ${enabled.length}`;
