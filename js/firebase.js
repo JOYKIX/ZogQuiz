@@ -24,7 +24,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "finale"];
+export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "manche5", "finale"];
 
 export async function ensureRoundsSeed(uid) {
   for (const round of ROUNDS) {
@@ -126,6 +126,23 @@ export async function ensureRoundsSeed(uid) {
       allowedPlayers: [],
       playerProgress: {},
       finished: false,
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
+
+  const manche5StateRef = ref(db, "rooms/manche5/state");
+  if (!(await get(manche5StateRef)).exists()) {
+    await set(manche5StateRef, {
+      active: false,
+      damage: 10,
+      turnOrder: [],
+      hpByPlayer: {},
+      eliminated: {},
+      currentTurnPlayerId: null,
+      targetPlayerId: null,
+      duel: { attackerId: null, targetId: null, question: "", buzzerOpen: false, buzzedBy: null, phase: "target" },
       updatedBy: uid,
       updatedAt: Date.now(),
     });

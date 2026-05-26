@@ -12,6 +12,7 @@ import {
 import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche5Admin } from "./manche4.js";
+import { initMortSubiteAdmin } from "./mort-subite.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
 import { showConfirm, showPrompt } from "./modal.js";
@@ -354,6 +355,12 @@ initManche5Admin({
   setMessage,
   showToast,
 });
+
+initMortSubiteAdmin({
+  getCurrentAdminId: () => currentAdminId,
+  sessionsById,
+});
+
 initViewerAdmin({
   getCurrentAdminId: () => currentAdminId,
   setMessage,
