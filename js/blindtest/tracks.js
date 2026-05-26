@@ -1,7 +1,7 @@
 import { db, ref, get, update, remove, onValue } from "../firebase.js";
 import { validateYoutubeUrl } from "./youtube.js";
 
-export const BLINDTEST_TRACKS_PATH = "blindtest/tracks";
+export const BLINDTEST_TRACKS_PATH = "rooms/manche5/blindtest/tracks";
 
 function normalizeAliases(value) {
   if (Array.isArray(value)) return value.map((v) => String(v || "").trim()).filter(Boolean);
