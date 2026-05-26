@@ -1,4 +1,4 @@
-import { db, ref, onValue, update, get, runTransaction } from "./firebase.js";
+import { db, ref, onValue, update, get, runTransaction, remove } from "./firebase.js";
 
 const PATH = "rooms/manche5/state";
 const ANSWERS_PATH = "rooms/manche5/outsiderAnswers";
@@ -16,6 +16,7 @@ const defaultState = {
 };
 
 function alive(state, id) { return Number(state?.hpByPlayer?.[id] || 0) > 0 && !state?.eliminated?.[id]; }
+function toState(value) { return { ...defaultState, ...(value || {}) }; }
 
 export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
   const root = document.getElementById("m5-admin");
@@ -28,9 +29,14 @@ export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
   const questionInput = document.getElementById("m5-question");
   const live = document.getElementById("m5-live");
   let state = { ...defaultState };
+  let outsiderAnswers = {};
 
   onValue(ref(db, PATH), (snap) => {
-    state = { ...defaultState, ...(snap.val() || {}) };
+    state = toState(snap.val());
+    render();
+  });
+  onValue(ref(db, ANSWERS_PATH), (snap) => {
+    outsiderAnswers = snap.val() || {};
     render();
   });
 
@@ -44,63 +50,107 @@ export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
     targetSelect.innerHTML = "";
     for (const id of alivePlayers) {
       if (id === state.currentTurnPlayerId) continue;
-      const o = document.createElement("option"); o.value = id; o.textContent = sessionsById[id]?.nickname || id; targetSelect.appendChild(o);
+      const o = document.createElement("option");
+      o.value = id;
+      o.textContent = sessionsById[id]?.nickname || id;
+      if (id === state.targetPlayerId) o.selected = true;
+      targetSelect.appendChild(o);
     }
     hpEditor.innerHTML = "";
     for (const id of state.turnOrder || []) {
-      const row = document.createElement("div"); row.className = "row";
+      const row = document.createElement("div");
+      row.className = "row";
       row.innerHTML = `<label>${sessionsById[id]?.nickname || id} PV <input data-id="${id}" type="number" value="${Number(state.hpByPlayer?.[id] || 0)}"/></label>`;
       hpEditor.appendChild(row);
     }
-    live.textContent = JSON.stringify(state.duel || {}, null, 2);
+    live.textContent = JSON.stringify({ duel: state.duel || {}, outsiderAnswers }, null, 2);
   }
 
   document.getElementById("m5-init-hp").onclick = async () => {
+    const order = Object.entries(sessionsById)
+      .sort((a, b) => Number(b[1]?.score || 0) - Number(a[1]?.score || 0))
+      .map(([id]) => id);
     const hpByPlayer = {};
-    const order = Object.keys(sessionsById);
     order.forEach((id) => { hpByPlayer[id] = Number(sessionsById[id]?.score || 0); });
     await save({ hpByPlayer, turnOrder: order, currentTurnPlayerId: order[0] || null, eliminated: {}, active: true, duel: { attackerId: null, targetId: null, question: "", buzzerOpen: false, buzzedBy: null, phase: "target" } });
   };
-  document.getElementById("m5-save-config").onclick = async () => save({ damage: Number(damageInput.value || 10), turnOrder: turnOrderInput.value.split(",").map((v) => v.trim()).filter(Boolean) });
+
+  document.getElementById("m5-save-config").onclick = async () => {
+    const turnOrder = turnOrderInput.value.split(",").map((v) => v.trim()).filter(Boolean);
+    const currentTurnPlayerId = turnOrder.includes(state.currentTurnPlayerId) ? state.currentTurnPlayerId : (turnOrder[0] || null);
+    await save({ damage: Number(damageInput.value || 10), turnOrder, currentTurnPlayerId });
+  };
+
   document.getElementById("m5-save-hp").onclick = async () => {
     const hpByPlayer = { ...(state.hpByPlayer || {}) };
-    hpEditor.querySelectorAll("input[data-id]").forEach((el) => { hpByPlayer[el.dataset.id] = Number(el.value || 0); });
-    await save({ hpByPlayer });
-  };
-  document.getElementById("m5-set-target").onclick = async () => {
-    const targetId = targetSelect.value;
-    await save({ targetPlayerId: targetId, duel: { attackerId: state.currentTurnPlayerId, targetId, question: questionInput.value.trim(), buzzerOpen: true, buzzedBy: null, phase: "duel" } });
-  };
-  document.getElementById("m5-mark-correct").onclick = async () => {
-    const winner = state.duel?.buzzedBy;
-    if (!winner) return;
-    const loser = winner === state.duel.attackerId ? state.duel.targetId : state.duel.attackerId;
-    const hpByPlayer = { ...(state.hpByPlayer || {}) };
-    hpByPlayer[loser] = Number(hpByPlayer[loser] || 0) - Number(state.damage || 0);
     const eliminated = { ...(state.eliminated || {}) };
-    if (hpByPlayer[loser] <= 0) eliminated[loser] = true;
-    await save({ hpByPlayer, eliminated, duel: { ...state.duel, phase: "result", buzzerOpen: false } });
+    hpEditor.querySelectorAll("input[data-id]").forEach((el) => {
+      const playerId = el.dataset.id;
+      const hp = Number(el.value || 0);
+      hpByPlayer[playerId] = hp;
+      if (hp <= 0) eliminated[playerId] = true;
+      else delete eliminated[playerId];
+    });
+    await save({ hpByPlayer, eliminated });
   };
+
+  document.getElementById("m5-set-target").onclick = async () => {
+    const attackerId = state.currentTurnPlayerId;
+    const targetId = targetSelect.value;
+    if (!attackerId || !targetId || attackerId === targetId) return;
+    await save({ targetPlayerId: targetId, duel: { attackerId, targetId, question: questionInput.value.trim(), buzzerOpen: true, buzzedBy: null, phase: "duel" } });
+  };
+
+  document.getElementById("m5-mark-correct").onclick = async () => {
+    await runTransaction(ref(db, PATH), (curr) => {
+      const s = toState(curr);
+      const winner = s.duel?.buzzedBy;
+      if (!winner || !s.duel?.attackerId || !s.duel?.targetId) return s;
+      const loser = winner === s.duel.attackerId ? s.duel.targetId : s.duel.attackerId;
+      const hpByPlayer = { ...(s.hpByPlayer || {}) };
+      hpByPlayer[loser] = Number(hpByPlayer[loser] || 0) - Number(s.damage || 0);
+      const eliminated = { ...(s.eliminated || {}) };
+      if (hpByPlayer[loser] <= 0) eliminated[loser] = true;
+      s.hpByPlayer = hpByPlayer;
+      s.eliminated = eliminated;
+      s.duel = { ...s.duel, phase: "result", buzzerOpen: false };
+      s.updatedAt = Date.now();
+      return s;
+    });
+  };
+
   document.getElementById("m5-mark-fail").onclick = async () => save({ duel: { ...state.duel, phase: "outsiders", buzzerOpen: false, buzzedBy: null } });
+
   document.getElementById("m5-next-turn").onclick = async () => {
     const aliveList = (state.turnOrder || []).filter((id) => alive(state, id));
     if (aliveList.length <= 1) return save({ duel: { ...state.duel, phase: "finished" }, active: false });
-    const idx = aliveList.indexOf(state.currentTurnPlayerId);
+    const idx = Math.max(0, aliveList.indexOf(state.currentTurnPlayerId));
     const nextId = aliveList[(idx + 1) % aliveList.length];
     await save({ currentTurnPlayerId: nextId, targetPlayerId: null, duel: { attackerId: null, targetId: null, question: "", buzzerOpen: false, buzzedBy: null, phase: "target" } });
+    await remove(ref(db, ANSWERS_PATH));
   };
 
   document.getElementById("m5-outsider-correct").onclick = async () => {
     const answersSnap = await get(ref(db, ANSWERS_PATH));
     const answers = answersSnap.val() || {};
-    const first = Object.values(answers).sort((a,b)=>a.at-b.at)[0];
+    const first = Object.values(answers).sort((a, b) => a.at - b.at)[0];
     if (!first) return;
-    const hpByPlayer = { ...(state.hpByPlayer || {}) };
-    for (const id of [state.duel.attackerId, state.duel.targetId]) hpByPlayer[id] = Number(hpByPlayer[id] || 0) - Number(state.damage || 0);
-    const eliminated = { ...(state.eliminated || {}) };
-    for (const id of [state.duel.attackerId, state.duel.targetId]) if (hpByPlayer[id] <= 0) eliminated[id] = true;
-    await save({ hpByPlayer, eliminated, duel: { ...state.duel, phase: "result", buzzedBy: first.playerId } });
-    await update(ref(db, ANSWERS_PATH), {});
+    await runTransaction(ref(db, PATH), (curr) => {
+      const s = toState(curr);
+      if (!s.duel?.attackerId || !s.duel?.targetId) return s;
+      const hpByPlayer = { ...(s.hpByPlayer || {}) };
+      const eliminated = { ...(s.eliminated || {}) };
+      for (const id of [s.duel.attackerId, s.duel.targetId]) {
+        hpByPlayer[id] = Number(hpByPlayer[id] || 0) - Number(s.damage || 0);
+        if (hpByPlayer[id] <= 0) eliminated[id] = true;
+      }
+      s.hpByPlayer = hpByPlayer;
+      s.eliminated = eliminated;
+      s.duel = { ...s.duel, phase: "result", buzzedBy: first.playerId, buzzerOpen: false };
+      s.updatedAt = Date.now();
+      return s;
+    });
+    await remove(ref(db, ANSWERS_PATH));
   };
 }
 
@@ -118,8 +168,8 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
   let state = defaultState;
   let sessions = {};
 
-  onValue(ref(db, "rooms/manche1/guestSessions"), s => { sessions = s.val() || {}; render(); });
-  onValue(ref(db, PATH), s => { state = { ...defaultState, ...(s.val() || {}) }; render(); });
+  onValue(ref(db, "rooms/manche1/guestSessions"), (s) => { sessions = s.val() || {}; render(); });
+  onValue(ref(db, PATH), (s) => { state = toState(s.val()); render(); });
 
   function canBuzz(me) { return state.duel?.phase === "duel" && state.duel?.buzzerOpen && [state.duel.attackerId, state.duel.targetId].includes(me); }
   function render() {
@@ -136,19 +186,41 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
   }
 
   targetBtn.onclick = async () => {
-    const me = getCurrentSessionId?.(); if (!me) return;
-    await update(ref(db, PATH), { targetPlayerId: targetSelect.value, duel: { ...state.duel, attackerId: me, targetId: targetSelect.value, phase: "duel", buzzerOpen: true, buzzedBy: null }, updatedAt: Date.now() });
-  };
-  buzzBtn.onclick = async () => {
-    const me = getCurrentSessionId?.(); if (!canBuzz(me)) return;
+    const me = getCurrentSessionId?.();
+    const targetId = targetSelect.value;
+    if (!me || !targetId) return;
     await runTransaction(ref(db, PATH), (curr) => {
-      const s = { ...defaultState, ...(curr || {}) };
-      if (!s.duel?.buzzerOpen || s.duel?.buzzedBy) return s;
-      s.duel.buzzerOpen = false; s.duel.buzzedBy = me; s.updatedAt = Date.now();
+      const s = toState(curr);
+      if (s.currentTurnPlayerId !== me || s.duel?.phase !== "target") return s;
+      s.targetPlayerId = targetId;
+      s.duel = { ...s.duel, attackerId: me, targetId, phase: "duel", buzzerOpen: true, buzzedBy: null };
+      s.updatedAt = Date.now();
       return s;
     });
   };
-  outsiderForm.onsubmit = async (e) => { e.preventDefault(); const me = getCurrentSessionId?.(); if (!me) return; await update(ref(db, `${ANSWERS_PATH}/${me}`), { playerId: me, answer: outsiderInput.value.trim(), at: Date.now() }); outsiderInput.value = ""; };
+
+  buzzBtn.onclick = async () => {
+    const me = getCurrentSessionId?.();
+    if (!canBuzz(me)) return;
+    await runTransaction(ref(db, PATH), (curr) => {
+      const s = toState(curr);
+      if (!s.duel?.buzzerOpen || s.duel?.buzzedBy) return s;
+      s.duel.buzzerOpen = false;
+      s.duel.buzzedBy = me;
+      s.updatedAt = Date.now();
+      return s;
+    });
+  };
+
+  outsiderForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const me = getCurrentSessionId?.();
+    if (!me) return;
+    const answer = outsiderInput.value.trim();
+    if (!answer) return;
+    await update(ref(db, `${ANSWERS_PATH}/${me}`), { playerId: me, answer, at: Date.now() });
+    outsiderInput.value = "";
+  };
 }
 
 export function initMortSubiteOverlay() {
@@ -161,10 +233,10 @@ export function initMortSubiteOverlay() {
   const question = document.getElementById("m5o-question");
   const phase = document.getElementById("m5o-phase");
   let sessions = {};
-  onValue(ref(db, "rooms/manche1/guestSessions"), s => { sessions = s.val() || {}; });
+  onValue(ref(db, "rooms/manche1/guestSessions"), (s) => { sessions = s.val() || {}; });
   onValue(ref(db, PATH), (s) => {
-    const st = { ...defaultState, ...(s.val() || {}) };
-    list.innerHTML = (st.turnOrder || []).map((id) => `<li class="${alive(st,id)?"":"dead"}">${sessions[id]?.nickname || id} <strong>${st.hpByPlayer?.[id] || 0} PV</strong></li>`).join("");
+    const st = toState(s.val());
+    list.innerHTML = (st.turnOrder || []).map((id) => `<li class="${alive(st, id) ? "" : "dead"}">${sessions[id]?.nickname || id} <strong>${st.hpByPlayer?.[id] || 0} PV</strong></li>`).join("");
     turn.textContent = sessions[st.currentTurnPlayerId]?.nickname || "—";
     duel.textContent = `${sessions[st.duel?.attackerId]?.nickname || "—"} VS ${sessions[st.duel?.targetId]?.nickname || "—"}`;
     buzz.textContent = sessions[st.duel?.buzzedBy]?.nickname || "—";
