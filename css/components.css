@@ -34,3 +34,8 @@
   letter-spacing:.02em;
 }
 .sidebar-helper strong{color:var(--text)}
+
+
+.leader-item{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.leader-name{display:flex;align-items:center;gap:8px;min-width:0}
+.leader-score{white-space:nowrap}
