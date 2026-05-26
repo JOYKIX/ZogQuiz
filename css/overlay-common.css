@@ -1,52 +1,14 @@
 :root {
-  --overlay-text: #f8f9ff;
-  --overlay-soft: #dbe1ff;
-  --overlay-violet: #9a83ff;
-  --overlay-cyan: #52dfff;
-  --overlay-magenta: #ff7ed8;
+  --overlay-text: #f7fbff;
+  --overlay-muted: #d6e4ff;
+  --overlay-line: rgba(179, 220, 255, 0.55);
+  --overlay-c1: rgba(78, 203, 255, 0.35);
+  --overlay-c2: rgba(157, 104, 255, 0.34);
 }
-
-* { box-sizing: border-box; }
-
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: transparent !important;
-}
-
-.overlay-page {
-  color: var(--overlay-text);
-  font-family: "Space Grotesk", Inter, system-ui, -apple-system, sans-serif;
-  overflow: hidden;
-}
-
-.overlay-root {
-  width: 100vw;
-  min-height: 100vh;
-  padding: 3vh 2vw;
-}
-
-.overlay-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  border: 1px solid rgba(220, 227, 255, 0.55);
-  background: linear-gradient(135deg, rgba(154, 131, 255, 0.34), rgba(82, 223, 255, 0.16));
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38);
-  padding: 0.28rem 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.76rem;
-}
-
-.overlay-panel {
-  border: 1px solid rgba(230, 235, 255, 0.45);
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(154, 131, 255, 0.24), rgba(82, 223, 255, 0.08) 52%, rgba(9, 14, 31, 0.55));
-  box-shadow: 0 14px 38px rgba(2, 5, 17, 0.46);
-  backdrop-filter: blur(2px);
-}
-
-.hidden { display: none !important; }
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:transparent!important}
+.overlay-page{color:var(--overlay-text);font-family:Inter,"Segoe UI",system-ui,sans-serif;overflow:hidden;text-shadow:0 3px 10px rgba(0,0,0,.7)}
+.overlay-root{width:100vw;min-height:100vh;padding:2.2vh 1.8vw;display:grid;gap:1.2vh;align-content:start}
+.overlay-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.32rem .85rem;border-radius:999px;border:1px solid var(--overlay-line);background:linear-gradient(120deg,var(--overlay-c1),var(--overlay-c2));backdrop-filter:blur(2px);letter-spacing:.08em;text-transform:uppercase;font-weight:700;font-size:.75rem}
+.overlay-panel{border:1px solid var(--overlay-line);border-radius:20px;background:linear-gradient(145deg,rgba(12,22,48,.55),rgba(30,47,91,.42));box-shadow:0 16px 42px rgba(0,0,0,.45);backdrop-filter:blur(3px)}
+.hidden{display:none!important}
