@@ -43,12 +43,13 @@ function buildAutoStateFromSessions(sessionsById = {}, prevState = defaultState)
   };
 }
 
-export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
+export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   const root = document.getElementById("m5-admin");
   if (!root) return;
   const damageInput = document.getElementById("m5-damage");
   const status = document.getElementById("m5-status");
-  const targetSelect = document.getElementById("m5-target");
+  const player1Select = document.getElementById("m5-player1");
+  const player2Select = document.getElementById("m5-player2");
   const questionInput = document.getElementById("m5-question");
   const live = document.getElementById("m5-live");
   let state = { ...defaultState };
@@ -66,32 +67,41 @@ export function initMortSubiteAdmin({ getCurrentAdminId, sessionsById }) {
   function save(patch) { return update(ref(db, PATH), { ...patch, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" }); }
 
   function render() {
+    const sessionsById = getSessionsById?.() || {};
     status.textContent = `Tour: ${sessionsById[state.currentTurnPlayerId]?.nickname || "—"} | Phase: ${state.duel?.phase || "target"}`;
     damageInput.value = state.damage || 10;
     const alivePlayers = (state.turnOrder || []).filter((id) => alive(state, id));
-    targetSelect.innerHTML = "";
+    player1Select.innerHTML = "";
+    player2Select.innerHTML = "";
     for (const id of alivePlayers) {
-      if (id === state.currentTurnPlayerId) continue;
       const o = document.createElement("option");
       o.value = id;
       o.textContent = sessionsById[id]?.nickname || id;
-      if (id === state.targetPlayerId) o.selected = true;
-      targetSelect.appendChild(o);
+      const p1 = o.cloneNode(true);
+      const p2 = o.cloneNode(true);
+      if (id === (state.duel?.attackerId || state.currentTurnPlayerId)) p1.selected = true;
+      if (id === (state.duel?.targetId || state.targetPlayerId)) p2.selected = true;
+      player1Select.appendChild(p1);
+      player2Select.appendChild(p2);
     }
     live.textContent = JSON.stringify({ duel: state.duel || {}, outsiderAnswers }, null, 2);
   }
 
-  document.getElementById("m5-init-hp").onclick = async () => save(buildAutoStateFromSessions(sessionsById, state));
+  document.getElementById("m5-init-hp").onclick = async () => save(buildAutoStateFromSessions(getSessionsById?.() || {}, state));
 
   document.getElementById("m5-save-config").onclick = async () => {
     await save({ damage: Number(damageInput.value || 10) });
   };
 
-  document.getElementById("m5-set-target").onclick = async () => {
-    const attackerId = state.currentTurnPlayerId;
-    const targetId = targetSelect.value;
+  document.getElementById("m5-start-duel").onclick = async () => {
+    const attackerId = player1Select.value;
+    const targetId = player2Select.value;
     if (!attackerId || !targetId || attackerId === targetId) return;
-    await save({ targetPlayerId: targetId, duel: { attackerId, targetId, question: questionInput.value.trim(), buzzerOpen: true, buzzedBy: null, phase: "duel" } });
+    await save({
+      currentTurnPlayerId: attackerId,
+      targetPlayerId: targetId,
+      duel: { attackerId, targetId, question: questionInput.value.trim(), buzzerOpen: true, buzzedBy: null, phase: "duel" },
+    });
   };
 
   document.getElementById("m5-mark-correct").onclick = async () => {
