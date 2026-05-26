@@ -169,18 +169,18 @@ const overlayRound4GridMaxWidthInput = $("overlay-round4-grid-max-width");
 const overlayRound4GridGapInput = $("overlay-round4-grid-gap");
 const m4LiveScores = $("m4-live-scores");
 
-const overlayRound5PrimarySizeInput = $("overlay-round4-primary-size");
-const overlayRound5SecondarySizeInput = $("overlay-round4-secondary-size");
-const overlayRound5PrimaryColorInput = $("overlay-round4-primary-color");
-const overlayRound5SecondaryColorInput = $("overlay-round4-secondary-color");
-const overlayRound5PlayingColorInput = $("overlay-round4-playing-color");
-const overlayRound5PausedColorInput = $("overlay-round4-paused-color");
-const overlayRound5StoppedColorInput = $("overlay-round4-stopped-color");
-const overlayRound5ProgressHeightInput = $("overlay-round4-progress-height");
-const overlayRound5CornerRadiusInput = $("overlay-round4-corner-radius");
-const overlayRound5MaxWidthInput = $("overlay-round4-max-width");
-const overlayRound5DecorationOpacityInput = $("overlay-round4-decoration-opacity");
-const overlayRound5ProgressMaxInput = $("overlay-round4-progress-max");
+const overlayRound5PrimarySizeInput = $("overlay-round5-primary-size");
+const overlayRound5SecondarySizeInput = $("overlay-round5-secondary-size");
+const overlayRound5PrimaryColorInput = $("overlay-round5-primary-color");
+const overlayRound5SecondaryColorInput = $("overlay-round5-secondary-color");
+const overlayRound5PlayingColorInput = $("overlay-round5-playing-color");
+const overlayRound5PausedColorInput = $("overlay-round5-paused-color");
+const overlayRound5StoppedColorInput = $("overlay-round5-stopped-color");
+const overlayRound5ProgressHeightInput = $("overlay-round5-progress-height");
+const overlayRound5CornerRadiusInput = $("overlay-round5-corner-radius");
+const overlayRound5MaxWidthInput = $("overlay-round5-max-width");
+const overlayRound5DecorationOpacityInput = $("overlay-round5-decoration-opacity");
+const overlayRound5ProgressMaxInput = $("overlay-round5-progress-max");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item[data-workspace]"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -506,7 +506,7 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound5SecondaryColorInput, overlayRound5PlayingColorInput, overlayRound5PausedColorInput,
   overlayRound5StoppedColorInput, overlayRound5ProgressHeightInput, overlayRound5CornerRadiusInput,
   overlayRound5MaxWidthInput, overlayRound5DecorationOpacityInput, overlayRound5ProgressMaxInput,
-].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round4")));
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round5")));
 
 m3ThemeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -679,8 +679,8 @@ function initListeners() {
     overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
     syncOverlayInputs();
   });
-  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round4`), (snap) => {
-    overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round5`), (snap) => {
+    overlayConfigs.round5 = normalizeOverlayConfig("round5", snap.val() || OVERLAY_DEFAULTS.round5);
     syncOverlayInputs();
   });
 
@@ -1833,7 +1833,7 @@ function syncOverlayInputs() {
   if (overlayRound4GridMaxWidthInput) overlayRound4GridMaxWidthInput.value = String(r4.gridMaxWidthPx);
   if (overlayRound4GridGapInput) overlayRound4GridGapInput.value = String(r4.gridGapPx);
 
-  const r5 = overlayConfigs.round4;
+  const r5 = overlayConfigs.round5;
   if (overlayRound5PrimarySizeInput) overlayRound5PrimarySizeInput.value = String(r5.primaryFontSizePx);
   if (overlayRound5SecondarySizeInput) overlayRound5SecondarySizeInput.value = String(r5.secondaryFontSizePx);
   if (overlayRound5PrimaryColorInput) overlayRound5PrimaryColorInput.value = r5.primaryColor;
@@ -1895,7 +1895,7 @@ function readOverlayConfigInputs(roundKey) {
       gridGapPx: overlayRound4GridGapInput?.value,
     };
   }
-  if (roundKey === "round4") {
+  if (roundKey === "round5") {
     return {
       primaryFontSizePx: overlayRound5PrimarySizeInput?.value,
       secondaryFontSizePx: overlayRound5SecondarySizeInput?.value,

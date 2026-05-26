@@ -207,7 +207,7 @@ export async function ensureRoundsSeed(uid) {
         updatedBy: uid,
         updatedAt: Date.now(),
       },
-      round4: {
+      round5: {
         primaryFontSizePx: 52,
         secondaryFontSizePx: 30,
         primaryColor: "#ffffff",
@@ -242,16 +242,16 @@ export async function ensureRoundsSeed(uid) {
 
   const legacyBlindtestLiveRef = ref(db, "blindtestLive");
   const legacyBlindtestTracksRef = ref(db, "blindtest/tracks");
-  const manche5BlindtestTracksRef = ref(db, "rooms/manche5/blindtest/tracks");
+  const manche4BlindtestTracksRef = ref(db, "rooms/manche4/blindtest/tracks");
 
-  if (!(await get(manche5BlindtestTracksRef)).exists()) {
+  if (!(await get(manche4BlindtestTracksRef)).exists()) {
     const legacyTracksSnap = await get(legacyBlindtestTracksRef);
     if (legacyTracksSnap.exists()) {
-      await set(manche5BlindtestTracksRef, legacyTracksSnap.val());
+      await set(manche4BlindtestTracksRef, legacyTracksSnap.val());
     }
   }
 
-  const blindtestLiveRef = ref(db, "rooms/manche5/blindtest/live");
+  const blindtestLiveRef = ref(db, "rooms/manche4/blindtest/live");
   if (!(await get(blindtestLiveRef)).exists()) {
     const legacyLiveSnap = await get(legacyBlindtestLiveRef);
     if (legacyLiveSnap.exists()) {
