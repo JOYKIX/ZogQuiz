@@ -198,7 +198,7 @@ let currentAdminId = null;
 let editingRound = "manche1";
 let broadcastRound = "manche1";
 let activeWorkspace = "dashboard";
-const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", finale: "overview" };
+const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", manche5: "overview", finale: "overview" };
 
 let liveState = null;
 let overlayConfigs = {
