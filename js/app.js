@@ -11,7 +11,7 @@ import {
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
-import { initManche5Admin } from "./manche4.js";
+import { initManche4Admin } from "./manche4.js";
 import { initMortSubiteAdmin } from "./mort-subite.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
@@ -350,7 +350,7 @@ activateWorkspace("dashboard");
 activateRoundSection("manche1", "live");
 
 // Blindtest (ancienne manche 4) administré via le module manche4.
-initManche5Admin({
+initManche4Admin({
   getCurrentAdminId: () => currentAdminId,
   setMessage,
   showToast,
@@ -878,7 +878,7 @@ async function resetParticipantsAndLeaderboard() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
-    update(ref(db, "blindtestLive"), {
+    update(ref(db, "rooms/manche4/blindtest/live"), {
       active: false,
       playbackState: "stopped",
       trackIndex: 0,
@@ -947,7 +947,7 @@ async function resetCompleteQuiz() {
       updatedAt: Date.now(),
       updatedBy: currentAdminId,
     }),
-    set(ref(db, "blindtestLive"), {
+    set(ref(db, "rooms/manche4/blindtest/live"), {
       active: false,
       trackIndex: 0,
       trackId: null,

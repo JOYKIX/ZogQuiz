@@ -1,6 +1,6 @@
 import { db, ref, get, set, push, onValue, runTransaction, update } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
-import { initManche5Guest } from "./manche4.js";
+import { initManche4Guest } from "./manche4.js";
 import { initMortSubiteGuest } from "./mort-subite.js";
 import {
   GUEST_ACCOUNTS_PATH,
@@ -728,7 +728,7 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   refreshButtonState();
 });
 
-manche4Controller = initManche5Guest({
+manche4Controller = initManche4Guest({
   getSessionId: getCurrentSessionId,
   getNickname: getCurrentNickname,
 });

@@ -165,7 +165,7 @@ function resolveGuestPlaybackTrack(track, state) {
   return track;
 }
 
-export function initManche5Admin(options) {
+export function initManche4Admin(options) {
   const { getCurrentAdminId, setMessage, showToast } = options;
 
   const els = {
@@ -501,7 +501,7 @@ export function initManche5Admin(options) {
         updatedAt: Date.now(),
         updatedBy: adminId,
       }),
-      update(ref(db, "blindtestLive"), {
+      update(ref(db, "rooms/manche4/blindtest/live"), {
         active: Boolean(firstTrack),
         trackId: firstTrack?.id || null,
         trackIndex: 0,
@@ -645,7 +645,7 @@ export function initManche5Admin(options) {
   resetTrackForm();
 }
 
-export function initManche5Guest(options = {}) {
+export function initManche4Guest(options = {}) {
   const statusLabelNode = document.getElementById("m4-guest-status");
   const trackLabelNode = document.getElementById("m4-guest-track");
   const playbackLabelNode = document.getElementById("m4-guest-playback");
@@ -757,7 +757,7 @@ export function initManche5Guest(options = {}) {
       return;
     }
     setAnswerStatus("Envoi…", "loading");
-    await update(ref(db, `blindtestLive/participantAnswers/${sessionId}`), {
+    await update(ref(db, `rooms/manche4/blindtest/live/participantAnswers/${sessionId}`), {
       sessionId,
       nickname,
       answer,
