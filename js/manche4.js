@@ -150,6 +150,8 @@ function patchForTrackSelection(track, trackIndex, keepPlayback) {
     playbackState: shouldKeepPlaying ? "playing" : "paused",
     startedAt: shouldKeepPlaying ? Date.now() : null,
     pausedAtSeconds: 0,
+    showAnswer: false,
+    participantAnswers: {},
     lastError: "",
   };
 }
@@ -180,6 +182,8 @@ export function initManche5Admin(options) {
     pauseBtn: document.getElementById("m4-pause"),
     resumeBtn: document.getElementById("m4-resume"),
     replayBtn: document.getElementById("m4-replay"),
+    stopBtn: document.getElementById("m4-stop"),
+    resetAnswersBtn: document.getElementById("m4-reset-answers"),
     showAnswerBtn: document.getElementById("m4-show-answer"),
     nextBtn: document.getElementById("m4-next"),
     prevBtn: document.getElementById("m4-prev"),
@@ -430,6 +434,8 @@ export function initManche5Admin(options) {
     els.pauseBtn.disabled = !hasTracks || liveState.playbackState !== "playing";
     els.resumeBtn.disabled = !hasTracks || liveState.playbackState !== "paused";
     els.replayBtn.disabled = !hasTracks || !hasCurrentTrack;
+    els.stopBtn.disabled = !hasTracks || liveState.playbackState === "stopped";
+    els.resetAnswersBtn.disabled = !hasTracks;
     els.nextBtn.disabled = !hasTracks || currentIndex < 0 || currentIndex >= enabledTracks.length - 1;
     els.prevBtn.disabled = !hasTracks || currentIndex <= 0;
     if (els.showAnswerBtn) {
@@ -548,6 +554,19 @@ export function initManche5Admin(options) {
     );
   });
 
+  els.stopBtn.addEventListener("click", async () => {
+    await writeBlindtestLive(
+      () => ({
+        active: true,
+        playbackState: "stopped",
+        pausedAtSeconds: 0,
+        startedAt: null,
+      }),
+      liveState,
+      getCurrentAdminId?.() || "admin"
+    );
+  });
+
   els.replayBtn.addEventListener("click", async () => {
     await writeBlindtestLive(
       () => ({
@@ -563,6 +582,17 @@ export function initManche5Admin(options) {
   });
 
   els.nextBtn.addEventListener("click", async () => moveTrack(1));
+  els.resetAnswersBtn?.addEventListener("click", async () => {
+    await writeBlindtestLive(
+      () => ({
+        participantAnswers: {},
+        showAnswer: false,
+      }),
+      liveState,
+      getCurrentAdminId?.() || "admin"
+    );
+    showToast?.("Réponses en direct réinitialisées.");
+  });
   els.showAnswerBtn?.addEventListener("click", async () => {
     await writeBlindtestLive(() => ({ showAnswer: !liveState.showAnswer }), liveState, getCurrentAdminId?.() || "admin");
   });
