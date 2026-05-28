@@ -1,23 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/styles.css" />
-    <title>ZogQuiz Classement Live</title>
+    <title>ZogQuiz Classement</title>
   </head>
   <body>
-    <main class="app-shell guest-shell">
-      <header class="hero">
-        <p class="eyebrow">Ranking Center</p>
-        <h1>Classement en direct</h1>
-        <p class="muted">Affichage temps réel des scores participants et viewers.</p>
-      </header>
-      <section class="scoreboard-grid">
-        <article class="panel scoreboard-card"><h2>Participants</h2><ul id="participants-leaderboard" class="leaderboard"></ul></article>
-        <article class="panel scoreboard-card"><h2>Viewers</h2><ul id="viewers-leaderboard" class="leaderboard"></ul></article>
-      </section>
-    </main>
-    <script type="module" src="js/classement.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,104 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/styles.css" />
-    <title>ZogQuiz Guest Console</title>
+    <title>ZogQuiz Guest</title>
   </head>
   <body>
-    <main class="app-shell guest-shell">
-      <section id="guest-auth-screen" class="guest-auth-screen">
-        <section class="panel">
-          <p class="eyebrow">ZogQuiz Live</p>
-          <h1>Espace invité</h1>
-          <p class="muted">Connectez-vous pour rejoindre la partie et interagir selon la manche en cours.</p>
-          <form id="guest-login-form" class="stack">
-            <label>ID de connexion<input id="guest-login-id" required maxlength="40" autocomplete="username" /></label>
-            <label>Mot de passe<input id="guest-password" type="password" required minlength="6" autocomplete="current-password" /></label>
-            <button type="submit" class="btn btn-primary">Connexion</button>
-          </form>
-          <form id="guest-display-name-form" class="stack hidden">
-            <p class="muted">Première connexion : choisissez votre pseudo.</p>
-            <label>Pseudo d’affichage<input id="guest-display-name" required maxlength="24" autocomplete="nickname" /></label>
-            <button type="submit" class="btn btn-primary">Valider</button>
-          </form>
-          <div id="guest-session-meta" class="row hidden"><p id="guest-title" class="status-chip"></p><button id="guest-logout" class="btn btn-danger">Déconnexion</button></div>
-          <p id="guest-message" class="message"></p>
-        </section>
-      </section>
-      <section id="guest-app" class="guest-app hidden">
-        <section id="guest-round1" class="guest-round stack"><section class="panel"><h2>Manche 1</h2><p class="muted">Buzzer actif uniquement sur cette manche.</p></section><section id="buzzer-panel" class="panel hidden"><h2>Buzzer</h2><p id="buzz-keybind-label" class="muted">Touche actuelle : Espace</p><button id="buzz-keybind-change" class="btn btn-secondary" type="button">Changer la touche</button><p id="buzz-keybind-hint" class="muted hidden">Appuyez sur une touche…</p><button id="buzz-btn" class="buzz btn btn-primary">BUZZER</button><p id="buzz-feedback" class="message"></p></section></section>
-        <section id="guest-round2" class="guest-round hidden"><section class="panel guest-image-card"><p class="eyebrow">Manche 2</p><img id="m2-live-image" class="guest-image hidden" alt="Question manche 2" /><p id="m2-empty" class="guest-empty">Aucune image active</p></section></section>
-        <section id="guest-round3" class="guest-round hidden stack"><section class="panel"><h2>Manche 3</h2><p id="m3-guest-status" class="message">En attente.</p><p id="m3-guest-player" class="muted">Joueur actif : —</p><p id="m3-guest-theme" class="muted">Thème actif : —</p></section><section class="panel"><h3>Choix du thème</h3><p id="m3-guest-help" class="muted">Seul le joueur actif peut choisir.</p><div id="m3-theme-buttons" class="row"></div></section></section>
-        <section id="guest-round4" class="guest-round hidden stack"><section class="panel"><h2>Manche 4 · Blindtest</h2><p id="m4-guest-status" class="message">En attente du lancement admin.</p><p id="m4-guest-track" class="muted">Piste : —</p><p id="m4-guest-playback" class="muted">État : Attente</p><p id="m4-guest-answer-reveal" class="highlight"></p><form id="m4-guest-answer-form" class="stack"><label>Votre réponse<input id="m4-guest-answer-input" maxlength="120" placeholder="Tapez votre réponse" /></label><button id="m4-guest-answer-submit" type="submit" class="btn btn-primary">Envoyer</button></form><p id="m4-guest-answer-status" class="message"></p><button id="m4-audio-unlock" class="btn btn-primary">Activer l’audio</button><p id="m4-audio-hint" class="muted">Cliquez une fois pour autoriser la lecture audio YouTube.</p><div id="m4-guest-youtube-host" class="m4-youtube-host" aria-hidden="true"></div></section></section>
-        <section id="guest-round5" class="guest-round hidden stack m5-guest-screen">
-          <section class="panel m5-guest-hero">
-            <p class="eyebrow">Manche 5</p>
-            <h2>Mort Subite</h2>
-            <p id="m5-guest-action" class="highlight">Attente.</p>
-            <div class="m5-guest-status-grid">
-              <article class="m5-guest-status-card"><span>Vous</span><strong id="m5-guest-player-state">—</strong></article>
-              <article class="m5-guest-status-card"><span>Phase</span><strong id="m5-guest-phase">—</strong></article>
-              <article class="m5-guest-status-card"><span>Duel</span><strong id="m5-guest-duel">—</strong></article>
-            </div>
-          </section>
-          <section class="m5-guest-grid">
-            <article id="m5-duel-card" class="panel m5-action-card hidden">
-              <p class="eyebrow">Duel</p>
-              <h3 id="m5-guest-duel-title">À vous de jouer</h3>
-              <p id="m5-guest-question" class="m5-question-text"></p>
-              <button id="m5-guest-buzz" class="btn btn-danger m5-buzz hidden" type="button">BUZZER</button>
-              <p id="m5-guest-buzz-status" class="message">En attente de l’ouverture du buzzer.</p>
-            </article>
-            <article id="m5-outsider-card" class="panel m5-action-card hidden">
-              <p class="eyebrow">Réponse des autres joueurs</p>
-              <h3>Voler la question</h3>
-              <p id="m5-outsider-help" class="muted">Écrivez votre réponse dès que l’admin ouvre la main aux non-duellistes.</p>
-              <form id="m5-outsider-form" class="stack hidden">
-                <label>Réponse écrite<input id="m5-outsider-input" maxlength="140" placeholder="Tapez votre réponse" /></label>
-                <button class="btn btn-primary" type="submit">Envoyer</button>
-              </form>
-              <p id="m5-outsider-status" class="message"></p>
-            </article>
-            <article class="panel">
-              <h3>PV des joueurs</h3>
-              <ul id="m5-guest-hp" class="leaderboard m5-hp-list"></ul>
-            </article>
-            <article class="panel">
-              <h3>Dernier résultat</h3>
-              <p id="m5-guest-result" class="highlight">Aucun résultat pour le moment.</p>
-            </article>
-          </section>
-        </section>
-        <section id="guest-round6" class="guest-round hidden stack m6-guest-screen">
-          <section class="panel m6-guest-hero">
-            <p class="eyebrow">Manche 6</p>
-            <h2>Duel final</h2>
-            <p id="m6-guest-winner" class="highlight">Premier chrono à zéro perd la finale.</p>
-            <div class="m6-live-meta">
-              <p>Phase : <strong id="m6-guest-phase">Préparation</strong></p>
-              <p>État : <strong id="m6-guest-status">En attente</strong></p>
-            </div>
-            <p id="m6-guest-question" class="m6-question-text">Question en attente côté admin.</p>
-          </section>
-          <section class="m6-duel-grid">
-            <article id="m6-guest-card-participant" class="panel m6-player-card">
-              <p class="eyebrow">Joueur 1</p>
-              <h3 id="m6-guest-player-participant">Participant<small>survivant M5</small></h3>
-              <strong id="m6-guest-timer-participant" class="m6-timer">1:00</strong>
-              <p>Réponse : <span id="m6-guest-answer-participant">—</span></p>
-            </article>
-            <article id="m6-guest-card-viewer" class="panel m6-player-card">
-              <p class="eyebrow">Joueur 2</p>
-              <h3 id="m6-guest-player-viewer">Viewer<small>top viewer</small></h3>
-              <strong id="m6-guest-timer-viewer" class="m6-timer">1:00</strong>
-              <p>Réponse : <span id="m6-guest-answer-viewer">—</span></p>
-            </article>
-          </section>
-        </section>
-      </section>
-    </main>
-    <script type="module" src="js/guest.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,60 +1,41 @@
-# ZogQuiz SPA (refonte manche 1)
+# ZogQuiz
 
-Application web admin + buzzer + overlay OBS pour un format type *Questions pour un champion*.
+ZogQuiz est maintenant une application web moderne basée sur **Vite**, **React** et **TypeScript**.
 
-## Fonctionnalités principales
+## Architecture
 
-- Auth admin locale (ID + mot de passe hashé SHA-256 en base).
-- Génération de codes temporaires pour connecter les participants au buzzer.
-- Nettoyage automatique des codes expirés en base pour éviter la surcharge.
-- Reconnexion participant sur le même pseudo sans doublon de profil (même entrée de session conservée).
-- Création de questions/réponses pour :
-  - **questions participants** (buzzer actif)
-  - **questions viewers** (sans buzzer)
-- Pilotage live de la manche 1 :
-  - choix de la question active,
-  - bouton afficher/masquer réponse,
-  - premier buzz verrouille les autres,
-  - unlock manuel du buzzer,
-  - marquer juste (+1) / faux (bloqué sur la question en cours).
-- Nettoyage des données de buzz (historique + blocs) à chaque changement de question.
-- Leaderboard participants sur page classement dédiée.
-- Leaderboard viewers Twitch (alimenté par bot Python) sur page classement dédiée.
-- Overlays OBS dédiés par manche (`overlay-round1` à `overlay-round4`).
-- Navbar des manches (1 à 5 + finale) et sous-menu manche 1 (création/modification/suppression).
+```txt
+src/
+  assets/        Images et ressources importées par Vite
+  components/    Design system React réutilisable
+  hooks/         Hooks Firebase, timers et notifications
+  overlays/      Overlays OBS transparents et responsives
+  pages/         Pages admin, guest et classement
+  rounds/        Logique UI dédiée aux manches
+  services/      Firebase, auth locale, actions métier
+  styles/        Design system global responsive
+  types/         Types TypeScript partagés
+  utils/         Helpers purs
+```
+
+## Scripts
+
+```bash
+npm install
+npm run dev
+npm run build
+npm run preview
+```
 
 ## Pages
 
-- `index.html` : interface admin complète.
-- `buzzer.html` : connexion invité (code + pseudo) et buzzer live.
-- `overlay-round1.html` : overlay OBS manche 1 (question/réponse).
-- `overlay-round2.html` : overlay OBS manche 2 (image active).
-- `overlay-round3.html` : overlay OBS manche 3 (thème/question/timer).
-- `overlay-round4.html` : overlay OBS manche 4 (grille active, indice, progression joueurs).
-- `overlay-round4.html` : overlay OBS manche 4 (blindtest : statut, piste en cours, timer).
-- `classement.html` : leaderboard participants + viewers Twitch (page séparée des manches).
-- `bot/bot.py` : bot Twitch qui lit le chat et attribue le point viewers au premier bon répondant sur la question active.
+- `/` ou `/index.html` : cockpit admin.
+- `/guest.html` et `/buzzer.html` : console invité / buzzer.
+- `/classement.html` : classements live.
+- `/overlay-round1.html` à `/overlay-round6.html` : overlays OBS transparents.
 
-## Lancer
+## Firebase
 
-Servir le dossier avec un serveur statique, puis ouvrir :
+La configuration Firebase historique est conservée dans `src/services/firebase.ts`. Les accès Realtime Database sont centralisés via des helpers typés (`listen`, `read`, `write`, `patch`, `create`, `destroy`, `transact`) pour éviter les listeners dupliqués et nettoyer automatiquement les abonnements React.
 
-- `index.html` pour l'admin,
-- `buzzer.html` côté participant,
-- `overlay-roundX.html` (selon la manche) dans OBS comme source navigateur.
-
-
-## Bot viewers Twitch
-
-Configurer `bot/.env` puis lancer:
-
-```bash
-python3 bot/bot.py
-```
-
-Variables demandées:
-
-```dotenv
-TWITCH_TOKEN=oauth:
-TWITCH_CHANNEL=
-```
+Les variables `VITE_FIREBASE_*` peuvent surcharger la configuration par défaut en production.

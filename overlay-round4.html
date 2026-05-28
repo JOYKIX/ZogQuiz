@@ -1,22 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/styles.css" />
-    <title>ZogQuiz Overlay - Manche 4</title>
+    <title>ZogQuiz Overlay Manche 4</title>
   </head>
-  <body class="overlay-page">
-    <main class="overlay-root overlay-round4" aria-live="polite">
-      <p id="m4-overlay-state" class="m4-state">Blindtest prêt</p>
-      <p id="m4-overlay-playback" class="m4-playback">Arrêt</p>
-      <p id="m4-overlay-track" class="m4-track">Piste 0 / 0</p>
-      <p id="m4-overlay-time" class="m4-time">00:00</p>
-      <p id="m4-overlay-answer" class="m4-answer"></p>
-      <div class="m4-progress-shell" aria-hidden="true"><div id="m4-overlay-progress" class="m4-progress-bar"></div></div>
-      <p id="m4-overlay-error" class="m4-error hidden"></p>
-      <div id="m4-overlay-youtube-host" class="m4-overlay-youtube-host" aria-hidden="true"></div>
-    </main>
-    <script type="module" src="js/overlay-round4.js"></script>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
