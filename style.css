@@ -331,3 +331,19 @@ body.modal-open { overflow: hidden; }
   .row, .toolbar, .sticky-actions, .session-actions { align-items: stretch; }
   .round-tab, .subnav-tab { flex: 1 1 130px; }
 }
+
+.guest-camera-panel { overflow: hidden; }
+.compact-head { align-items: center; gap: var(--space-3); }
+.guest-camera-preview { width: min(360px, 100%); aspect-ratio: 16 / 9; border-radius: 18px; object-fit: cover; background: rgba(5, 10, 24, .75); box-shadow: var(--shadow-soft); }
+.camera-status.active { color: #8cf5dc; }
+.camera-status.error { color: #ff9aa2; }
+.camera-status.starting { color: #ffd166; }
+
+.camera-config-panel { grid-column: 1 / -1; }
+.camera-config-root { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4); }
+.camera-config-card { min-width: 0; }
+.camera-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.camera-config-grid label { min-width: 0; }
+.toggle-line { display: inline-flex; align-items: center; gap: .55rem; }
+.toggle-line input { width: auto; }
+@media (max-width: 680px) { .camera-config-grid { grid-template-columns: 1fr; } }
