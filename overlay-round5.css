@@ -1,0 +1,16 @@
+:root { color-scheme: dark; --font-live: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --cyan: #4de7ff; --pink: #ff4ecd; --gold: #ffda6b; --green: #6fffd2; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent !important; }
+body { font-family: var(--font-live); color: #fff; }
+.hidden { display: none !important; }
+.m5o { width: 100vw; height: 100vh; display: grid; grid-template-rows: auto 1fr auto; gap: clamp(16px, 2vw, 30px); padding: clamp(28px, 4vw, 78px); background: transparent; text-shadow: 0 4px 24px rgba(0,0,0,.78), 0 1px 2px #000; }
+#m5o-title { margin: 0; text-align: center; color: var(--pink); font: 950 clamp(2.4rem, 7vw, 8rem)/.95 var(--font-live); text-transform: uppercase; letter-spacing: -.055em; text-shadow: 0 5px 32px rgba(0,0,0,.82), 0 0 28px rgba(255,78,205,.4); }
+.grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(16px, 2.5vw, 38px); align-items: stretch; }
+section { min-width: 0; padding: clamp(14px, 2vw, 28px); border: 1px solid rgba(255,255,255,.18); border-radius: clamp(18px, 2vw, 34px); background: linear-gradient(135deg, rgba(6,10,20,.18), rgba(6,10,20,.06)); backdrop-filter: blur(2px); }
+h2 { margin: 0 0 .55em; color: var(--cyan); font: 950 clamp(1.1rem, 2.3vw, 2.8rem)/1 var(--font-live); text-transform: uppercase; letter-spacing: .1em; }
+p, ul { margin: 0; }
+ul { list-style: none; padding: 0; display: grid; gap: .55em; font: 900 clamp(1.05rem, 2vw, 2.5rem)/1.05 var(--font-live); }
+li { display: flex; justify-content: space-between; gap: 1em; padding: .35em .55em; border-radius: 999px; background: rgba(0,0,0,.22); }
+#m5o-turn, #m5o-duel, #m5o-buzz, #m5o-phase { margin: 0 0 .8em; color: #fff; font: 900 clamp(1.25rem, 2.6vw, 3.3rem)/1.05 var(--font-live); }
+#m5o-question { color: var(--green); font: 950 clamp(1.7rem, 4.2vw, 5.3rem)/1.05 var(--font-live); text-align: center; text-wrap: balance; }
+@media (max-aspect-ratio: 4/3) { .grid { grid-template-columns: 1fr; } .m5o { overflow: auto; } }

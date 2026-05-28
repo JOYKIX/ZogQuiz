@@ -1,0 +1,8 @@
+:root { color-scheme: dark; --font-live: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent !important; }
+body { font-family: var(--font-live); color: #fff; }
+.hidden { display: none !important; }
+.overlay-root { width: 100vw; height: 100vh; display: grid; place-items: center; padding: clamp(28px, 5vw, 96px); background: transparent; }
+.m1-text { width: min(100%, 1500px); margin: 0; color: #fff; text-align: center; font-weight: 900; line-height: 1.08; letter-spacing: -0.045em; text-wrap: balance; text-shadow: 0 4px 28px rgba(0,0,0,.72), 0 1px 2px rgba(0,0,0,.9); }
+.m1-text[data-mode="answer"] { color: #6fffd2; text-shadow: 0 4px 28px rgba(0,0,0,.72), 0 0 26px rgba(46,229,157,.45); }
