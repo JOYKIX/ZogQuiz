@@ -13,6 +13,7 @@ import { createBuzzSoundTrigger } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche4Admin } from "./manche4.js";
 import { initMortSubiteAdmin } from "./mort-subite.js";
+import { initManche6Admin } from "./manche6.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
 import { showConfirm, showPrompt } from "./modal.js";
@@ -198,7 +199,7 @@ let currentAdminId = null;
 let editingRound = "manche1";
 let broadcastRound = "manche1";
 let activeWorkspace = "dashboard";
-const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", manche5: "overview", finale: "overview" };
+const activeRoundSectionByRound = { manche1: "live", manche2: "live", manche3: "live", manche4: "live", manche5: "overview", manche6: "overview", finale: "overview" };
 
 let liveState = null;
 let overlayConfigs = {
@@ -280,6 +281,7 @@ function workspaceLabel(workspace) {
 }
 function formatRound(round) {
   if (round === "finale") return "Finale";
+  if (round === "manche6") return "Manche 6";
   if (round === "manche4") return "Manche 4";
   return round.replace("manche", "Manche ");
 }
@@ -359,6 +361,11 @@ initManche4Admin({
 initMortSubiteAdmin({
   getCurrentAdminId: () => currentAdminId,
   getSessionsById: () => sessionsById,
+});
+
+initManche6Admin({
+  getCurrentAdminId: () => currentAdminId,
+  showToast,
 });
 
 initViewerAdmin({
@@ -960,6 +967,24 @@ async function resetCompleteQuiz() {
       updatedBy: currentAdminId,
     }),
     set(ref(db, "rooms/viewers/liveState"), { active: false, status: "idle", updatedAt: Date.now(), updatedBy: currentAdminId }),
+    set(ref(db, "rooms/manche6/state"), {
+      name: "Manche 6",
+      phase: "setup",
+      status: "idle",
+      durationMs: 60000,
+      activePlayer: "participant",
+      players: {
+        participant: { id: null, type: "participant", name: "Participant", score: 0, source: "manual" },
+        viewer: { id: null, type: "viewer", name: "Viewer", score: 0, source: "manual" },
+      },
+      timers: { participant: { remainingMs: 60000 }, viewer: { remainingMs: 60000 } },
+      timerStartedAt: null,
+      currentQuestion: "",
+      answers: { participant: "", viewer: "" },
+      winner: null,
+      updatedAt: Date.now(),
+      updatedBy: currentAdminId,
+    }),
     update(ref(db, "quiz/state"), {
       activeRound: targetRound,
       liveRound: targetRound,

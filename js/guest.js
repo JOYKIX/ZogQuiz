@@ -2,6 +2,7 @@ import { db, ref, get, set, push, onValue, runTransaction, update } from "./fire
 import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Guest } from "./manche4.js";
 import { initMortSubiteGuest } from "./mort-subite.js";
+import { initManche6Display } from "./manche6.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -19,6 +20,7 @@ const round2Root = document.getElementById("guest-round2");
 const round3Root = document.getElementById("guest-round3");
 const round4Root = document.getElementById("guest-round4");
 const round5Root = document.getElementById("guest-round5");
+const round6Root = document.getElementById("guest-round6");
 
 const guestLoginForm = document.getElementById("guest-login-form");
 const guestDisplayNameForm = document.getElementById("guest-display-name-form");
@@ -404,11 +406,13 @@ function renderByRound() {
   const isRound3 = liveRound === "manche3";
   const isRound4 = liveRound === "manche4";
   const isRound5 = liveRound === "manche5" || liveRound === "finale";
-  round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4 || isRound5);
+  const isRound6 = liveRound === "manche6";
+  round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4 || isRound5 || isRound6);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
   round4Root.classList.toggle("hidden", !isRound4);
   round5Root?.classList.toggle("hidden", !isRound5);
+  round6Root?.classList.toggle("hidden", !isRound6);
   if (!isRound4) manche4Controller?.pauseLocalAudio?.();
   if (isRound2) renderRound2();
   if (isRound3) renderRound3();
@@ -743,3 +747,4 @@ renderBuzzKeybind();
 tryAutoReconnect();
 
 initMortSubiteGuest({ getCurrentSessionId });
+initManche6Display({ prefix: "m6-guest" });
