@@ -505,10 +505,11 @@ function getBuzzAvailability() {
   if (!liveState.currentQuestionId) return { canBuzz: false, message: "Manche inactive : aucune question ouverte." };
   if (liveState.currentType === "viewers") return { canBuzz: false, message: "Buzzer non autorisé en mode viewers." };
   if (currentQuestionBlocked) return { canBuzz: false, message: "Vous avez déjà tenté sur cette question." };
-  if (liveState.buzzerLocked && liveState.lockedBySessionId === guestAuth.accountId) {
-    return { canBuzz: false, message: "Buzz pris : en attente de validation admin." };
+  if (liveState.buzzerLocked) {
+    const buzzedBy = liveState.lockedByNickname || "un autre joueur";
+    const suffix = liveState.lockedBySessionId === guestAuth.accountId ? " (vous)" : "";
+    return { canBuzz: false, message: `Buzz pris par ${buzzedBy}${suffix}.` };
   }
-  if (liveState.buzzerLocked) return { canBuzz: false, message: `Buzz déjà pris par ${liveState.lockedByNickname || "un autre joueur"}.` };
   return { canBuzz: true, message: "Buzzer ouvert." };
 }
 
