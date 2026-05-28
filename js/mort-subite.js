@@ -133,7 +133,10 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   function render() {
     const r = round5;
     const alive = getAliveOrder(r);
+    const buzzedName = getParticipantName(r, r.duel?.buzzedBy, "");
+    const buzzLabel = r.duel?.buzzedBy ? `🔔 ${buzzedName}` : (r.duel?.buzzerOpen ? "Buzzer ouvert · aucun buzz" : "Aucun buzz");
     $("m5-status").textContent = `Phase: ${r.phase} | Joueur actif: ${r.participants?.[r.turn?.currentPlayerId]?.name || "—"}`;
+    $("m5-buzz-live").textContent = buzzLabel;
     const options = alive.map((id) => `<option value="${id}">${r.participants?.[id]?.name || id}</option>`).join("");
     $("m5-duel-attacker").innerHTML = options;
     $("m5-duel-target").innerHTML = options;
