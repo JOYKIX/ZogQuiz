@@ -1,7 +1,10 @@
 import { db, ref, onValue, update, runTransaction } from "./firebase.js";
+import { playBuzzerSound } from "./audio.js";
 
 const ROUND5_PATH = "rounds/round5";
 const DEFAULT_PHASE = "setup";
+const DEFAULT_DAMAGE = 10;
+const DAMAGE_STORAGE_KEY = "zogquiz.round5.damage.v1";
 const PHASES = {
   SETUP: "setup",
   TARGET_SELECTION: "target_selection",
@@ -35,7 +38,6 @@ const formatPhase = (phase) => PHASE_LABELS[phase] || phase || "—";
 const defaultRound5 = {
   name: "Mort Subite",
   phase: DEFAULT_PHASE,
-  damage: 10,
   participants: {},
   turn: { order: [], currentIndex: 0, currentPlayerId: null },
   duel: {
@@ -54,16 +56,20 @@ const defaultRound5 = {
   updatedBy: "",
 };
 
-const toRound5 = (value) => ({
-  ...defaultRound5,
-  ...(value || {}),
-  turn: { ...defaultRound5.turn, ...(value?.turn || {}) },
-  duel: { ...defaultRound5.duel, ...(value?.duel || {}) },
-  outsiders: { ...defaultRound5.outsiders, ...(value?.outsiders || {}) },
-  lastResult: { ...defaultRound5.lastResult, ...(value?.lastResult || {}) },
-  actionLog: value?.actionLog || {},
-  participants: value?.participants || {},
-});
+const toRound5 = (value) => {
+  const normalized = {
+    ...defaultRound5,
+    ...(value || {}),
+    turn: { ...defaultRound5.turn, ...(value?.turn || {}) },
+    duel: { ...defaultRound5.duel, ...(value?.duel || {}) },
+    outsiders: { ...defaultRound5.outsiders, ...(value?.outsiders || {}) },
+    lastResult: { ...defaultRound5.lastResult, ...(value?.lastResult || {}) },
+    actionLog: value?.actionLog || {},
+    participants: value?.participants || {},
+  };
+  delete normalized.damage;
+  return normalized;
+};
 
 const isAlive = (s, id) => {
   const p = s?.participants?.[id];
@@ -99,15 +105,35 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   if (!document.getElementById("m5-admin")) return;
   const $ = (id) => document.getElementById(id);
   let round5 = { ...defaultRound5 };
-  const save = (patch) => update(ref(db, ROUND5_PATH), { ...patch, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
+  const save = (patch) => update(ref(db, ROUND5_PATH), { ...patch, damage: null, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
 
   onValue(ref(db, ROUND5_PATH), (snap) => { round5 = toRound5(snap.val()); render(); });
+
+
+  function readStoredDamage() {
+    const raw = Number(localStorage.getItem(DAMAGE_STORAGE_KEY));
+    return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_DAMAGE;
+  }
+
+  function getConfiguredDamage() {
+    const input = $("m5-damage");
+    const value = Number(input?.value || 0);
+    return Number.isFinite(value) && value > 0 ? value : DEFAULT_DAMAGE;
+  }
+
+  function initDamageControl() {
+    const input = $("m5-damage");
+    if (!input) return;
+    input.value = String(readStoredDamage());
+    input.addEventListener("input", () => {
+      localStorage.setItem(DAMAGE_STORAGE_KEY, String(getConfiguredDamage()));
+    });
+  }
 
   function render() {
     const r = round5;
     const alive = getAliveOrder(r);
     $("m5-status").textContent = `Phase: ${r.phase} | Joueur actif: ${r.participants?.[r.turn?.currentPlayerId]?.name || "—"}`;
-    $("m5-damage").value = Number(r.damage || 10);
     const options = alive.map((id) => `<option value="${id}">${r.participants?.[id]?.name || id}</option>`).join("");
     $("m5-duel-attacker").innerHTML = options;
     $("m5-duel-target").innerHTML = options;
@@ -122,11 +148,11 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
       return `<li>${p.name || id} · score:${p.score || 0} · PV:${p.hp || 0} · ${isAlive(r, id) ? "vivant" : "éliminé"}</li>`;
     }).join("");
     $("m5-outsider-live").innerHTML = Object.entries(r.outsiders?.answers || {}).map(([id, a]) => `<li>${r.participants?.[id]?.name || id}: ${a?.answer || ""}</li>`).join("") || "<li>Aucune réponse</li>";
-    $("m5-live").textContent = JSON.stringify(r, null, 2);
   }
 
+  initDamageControl();
+
   $("m5-init-hp").onclick = async () => save(buildRound5FromSessions(getSessionsById?.() || {}, round5));
-  $("m5-save-config").onclick = async () => save({ damage: Number($("m5-damage").value || 10) });
   $("m5-set-active-player").onclick = async () => save({ turn: { ...round5.turn, currentPlayerId: $("m5-current-player").value, currentIndex: Math.max(0, (round5.turn?.order || []).indexOf($("m5-current-player").value)) } });
   $("m5-start-duel").onclick = async () => save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId: $("m5-duel-attacker").value, targetId: $("m5-duel-target").value, question: $("m5-question").value.trim(), buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
   $("m5-open-buzzer").onclick = async () => save({ duel: { ...round5.duel, buzzerOpen: true, buzzedBy: null, buzzedAt: 0 } });
@@ -146,14 +172,14 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   $("m5-mark-correct").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
     const s = toRound5(curr); const winner = s.duel?.buzzedBy; if (!winner) return s;
     const loser = winner === s.duel.attackerId ? s.duel.targetId : s.duel.attackerId;
-    const damage = Number(s.damage || 0); const hp = Math.max(0, Number(s.participants?.[loser]?.hp || 0) - damage);
+    const damage = getConfiguredDamage(); const hp = Math.max(0, Number(s.participants?.[loser]?.hp || 0) - damage);
     s.participants[loser] = { ...s.participants[loser], hp, alive: hp > 0, eliminated: hp <= 0 };
     return { ...s, participants: s.participants, phase: getAliveOrder({ ...s, participants: s.participants }).length <= 1 ? PHASES.FINISHED : PHASES.RESULT, duel: { ...s.duel, buzzerOpen: false, answerStatus: "correct" }, lastResult: { type: "duel_correct", message: `${s.participants?.[winner]?.name || winner} touche ${s.participants?.[loser]?.name || loser}`, damagedPlayers: { [loser]: damage } }, actionLog: addLog(s, `Bonne réponse duel: ${winner}`), updatedAt: Date.now() };
   });
 
   $("m5-outsider-correct").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
     const s = toRound5(curr); const win = $("m5-outsider-winner").value || Object.keys(s.outsiders?.answers || {})[0]; if (!win) return s;
-    const damage = Number(s.damage || 0); const damagedPlayers = {};
+    const damage = getConfiguredDamage(); const damagedPlayers = {};
     for (const id of [s.duel.attackerId, s.duel.targetId]) {
       if (!id || !s.participants[id]) continue;
       const hp = Math.max(0, Number(s.participants[id].hp || 0) - damage);
@@ -194,11 +220,27 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
   };
 
   let round5 = defaultRound5;
+  let lastBuzzToken = null;
   const meAlive = (me) => Boolean(me && isAlive(round5, me));
   const getMe = () => getCurrentSessionId?.() || null;
 
+  function triggerDuelBuzzSound(state) {
+    const buzzedBy = state?.duel?.buzzedBy;
+    if (!buzzedBy) {
+      lastBuzzToken = null;
+      return;
+    }
+
+    const token = `${Number(state.duel?.buzzedAt || 0)}::${buzzedBy}`;
+    if (token === lastBuzzToken) return;
+
+    lastBuzzToken = token;
+    playBuzzerSound();
+  }
+
   onValue(ref(db, ROUND5_PATH), (snap) => {
     round5 = toRound5(snap.val());
+    triggerDuelBuzzSound(round5);
     render();
   });
 

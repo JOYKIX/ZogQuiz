@@ -136,7 +136,6 @@ export async function ensureRoundsSeed(uid) {
   if (!(await get(manche5StateRef)).exists()) {
     await set(manche5StateRef, {
       active: false,
-      damage: 10,
       turnOrder: [],
       hpByPlayer: {},
       eliminated: {},
