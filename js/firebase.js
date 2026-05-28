@@ -24,7 +24,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "manche5", "finale"];
+export const ROUNDS = ["manche1", "manche2", "manche3", "manche4", "manche5", "manche6", "finale"];
 
 export async function ensureRoundsSeed(uid) {
   for (const round of ROUNDS) {
@@ -142,6 +142,30 @@ export async function ensureRoundsSeed(uid) {
       currentTurnPlayerId: null,
       targetPlayerId: null,
       duel: { attackerId: null, targetId: null, question: "", buzzerOpen: false, buzzedBy: null, phase: "target" },
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    });
+  }
+
+
+
+  const manche6StateRef = ref(db, "rooms/manche6/state");
+  if (!(await get(manche6StateRef)).exists()) {
+    await set(manche6StateRef, {
+      name: "Manche 6",
+      phase: "setup",
+      status: "idle",
+      durationMs: 60000,
+      activePlayer: "participant",
+      players: {
+        participant: { id: null, type: "participant", name: "Participant", score: 0, source: "manual" },
+        viewer: { id: null, type: "viewer", name: "Viewer", score: 0, source: "manual" },
+      },
+      timers: { participant: { remainingMs: 60000 }, viewer: { remainingMs: 60000 } },
+      timerStartedAt: null,
+      currentQuestion: "",
+      answers: { participant: "", viewer: "" },
+      winner: null,
       updatedBy: uid,
       updatedAt: Date.now(),
     });
