@@ -11,6 +11,27 @@ const PHASES = {
   FINISHED: "finished",
 };
 
+
+const PHASE_LABELS = {
+  [PHASES.SETUP]: "Préparation",
+  [PHASES.TARGET_SELECTION]: "Choix de la cible",
+  [PHASES.DUEL]: "Duel au buzzer",
+  [PHASES.OUTSIDERS_ANSWER]: "Réponse des autres",
+  [PHASES.RESULT]: "Résultat",
+  [PHASES.FINISHED]: "Terminé",
+};
+
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  "'": "&#39;",
+  '"': "&quot;",
+}[char]));
+
+const getParticipantName = (s, id, fallback = "—") => (id && s?.participants?.[id]?.name) || (id || fallback);
+const formatPhase = (phase) => PHASE_LABELS[phase] || phase || "—";
+
 const defaultRound5 = {
   name: "Mort Subite",
   phase: DEFAULT_PHASE,
@@ -150,45 +171,161 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
 }
 
 export function initMortSubiteGuest({ getCurrentSessionId }) {
-  const root = document.getElementById("guest-round5"); if (!root) return;
-  const $ = (id) => document.getElementById(id); let round5 = defaultRound5;
-  const meAlive = (me) => me && isAlive(round5, me);
-  onValue(ref(db, ROUND5_PATH), (s) => { round5 = toRound5(s.val()); render(); });
+  const root = document.getElementById("guest-round5");
+  if (!root) return;
 
-  function render() {
-    const me = getCurrentSessionId?.(); const isDuelist = [round5.duel?.attackerId, round5.duel?.targetId].includes(me);
-    const outsiderAllowed = round5.phase === PHASES.OUTSIDERS_ANSWER && meAlive(me) && !isDuelist;
-    const canBuzz = round5.phase === PHASES.DUEL && round5.duel?.buzzerOpen && meAlive(me) && isDuelist;
-    $("m5-guest-hp").innerHTML = (round5.turn?.order || []).map((id) => `<li>${round5.participants?.[id]?.name || id}: ${round5.participants?.[id]?.hp || 0} PV (${isAlive(round5, id) ? "vivant" : "éliminé"})</li>`).join("");
-    $("m5-guest-player-state").textContent = `Vous: ${round5.participants?.[me]?.name || "—"} · ${meAlive(me) ? "vivant" : "éliminé"}`;
-    $("m5-guest-duel").textContent = `Duel: ${round5.participants?.[round5.duel?.attackerId]?.name || "—"} VS ${round5.participants?.[round5.duel?.targetId]?.name || "—"}`;
-    $("m5-guest-phase").textContent = `Phase: ${round5.phase}`;
-    $("m5-guest-action").textContent = !meAlive(me) ? "Aucune action (éliminé)." : canBuzz ? "Vous pouvez buzzer." : outsiderAllowed ? "Vous pouvez répondre à l'écrit." : "Attendez les instructions admin.";
-    $("m5-guest-buzz").classList.toggle("hidden", !isDuelist || round5.phase !== PHASES.DUEL);
-    $("m5-guest-buzz").disabled = !canBuzz;
-    $("m5-outsider-form").classList.toggle("hidden", !outsiderAllowed);
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    hp: $("m5-guest-hp"),
+    playerState: $("m5-guest-player-state"),
+    duel: $("m5-guest-duel"),
+    phase: $("m5-guest-phase"),
+    action: $("m5-guest-action"),
+    duelCard: $("m5-duel-card"),
+    duelTitle: $("m5-guest-duel-title"),
+    question: $("m5-guest-question"),
+    buzz: $("m5-guest-buzz"),
+    buzzStatus: $("m5-guest-buzz-status"),
+    outsiderCard: $("m5-outsider-card"),
+    outsiderForm: $("m5-outsider-form"),
+    outsiderInput: $("m5-outsider-input"),
+    outsiderStatus: $("m5-outsider-status"),
+    result: $("m5-guest-result"),
+  };
+
+  let round5 = defaultRound5;
+  const meAlive = (me) => Boolean(me && isAlive(round5, me));
+  const getMe = () => getCurrentSessionId?.() || null;
+
+  onValue(ref(db, ROUND5_PATH), (snap) => {
+    round5 = toRound5(snap.val());
+    render();
+  });
+
+  function getRoleState(me) {
+    const duelists = [round5.duel?.attackerId, round5.duel?.targetId].filter(Boolean);
+    const isDuelist = duelists.includes(me);
+    const alive = meAlive(me);
+    const canBuzz = round5.phase === PHASES.DUEL && round5.duel?.buzzerOpen && alive && isDuelist && !round5.duel?.buzzedBy;
+    const outsiderAllowed = round5.phase === PHASES.OUTSIDERS_ANSWER && round5.outsiders?.enabled && alive && !isDuelist;
+    return { duelists, isDuelist, alive, canBuzz, outsiderAllowed };
   }
 
-  $("m5-guest-buzz").onclick = async () => {
-    const me = getCurrentSessionId?.();
+  function renderHpList() {
+    const orderedIds = round5.turn?.order || [];
+    if (!orderedIds.length) {
+      els.hp.innerHTML = "<li>Aucun joueur initialisé pour la mort subite.</li>";
+      return;
+    }
+
+    els.hp.innerHTML = orderedIds.map((id) => {
+      const participant = round5.participants?.[id] || {};
+      const alive = isAlive(round5, id);
+      const isCurrent = id === round5.turn?.currentPlayerId;
+      const isDuelist = [round5.duel?.attackerId, round5.duel?.targetId].includes(id);
+      const badges = [isCurrent ? "Tour" : "", isDuelist ? "Duel" : "", alive ? "Vivant" : "Éliminé"].filter(Boolean);
+      return `<li class="m5-hp-item ${alive ? "" : "is-dead"}"><span><strong>${escapeHtml(participant.name || id)}</strong><small>${escapeHtml(badges.join(" · "))}</small></span><strong>${Number(participant.hp || 0)} PV</strong></li>`;
+    }).join("");
+  }
+
+  function render() {
+    const me = getMe();
+    const role = getRoleState(me);
+    const meName = getParticipantName(round5, me, "—");
+    const attackerName = getParticipantName(round5, round5.duel?.attackerId, "—");
+    const targetName = getParticipantName(round5, round5.duel?.targetId, "—");
+    const buzzedName = getParticipantName(round5, round5.duel?.buzzedBy, "");
+    const alreadyAnswered = Boolean(me && round5.outsiders?.answers?.[me]);
+
+    renderHpList();
+
+    els.playerState.textContent = me ? `${meName} · ${role.alive ? "vivant" : "éliminé"}` : "Non connecté";
+    els.duel.textContent = `${attackerName} VS ${targetName}`;
+    els.phase.textContent = formatPhase(round5.phase);
+    els.question.textContent = round5.duel?.question || "Question en attente côté admin.";
+    els.result.textContent = round5.lastResult?.message || (round5.phase === PHASES.FINISHED ? "Mort subite terminée." : "Aucun résultat pour le moment.");
+
+    els.duelCard.classList.toggle("hidden", !role.isDuelist && round5.phase !== PHASES.DUEL);
+    els.outsiderCard.classList.toggle("hidden", role.isDuelist || ![PHASES.DUEL, PHASES.OUTSIDERS_ANSWER].includes(round5.phase));
+    els.outsiderForm.classList.toggle("hidden", !role.outsiderAllowed || alreadyAnswered);
+    els.buzz.classList.toggle("hidden", !role.isDuelist || round5.phase !== PHASES.DUEL);
+    els.buzz.disabled = !role.canBuzz;
+
+    if (!me) {
+      els.action.textContent = "Connectez-vous pour participer à la mort subite.";
+    } else if (!role.alive) {
+      els.action.textContent = "Vous êtes éliminé : suivez la fin de la manche.";
+    } else if (role.canBuzz) {
+      els.action.textContent = "Duel ouvert : buzzez le plus vite possible !";
+    } else if (role.isDuelist && round5.duel?.buzzedBy === me) {
+      els.action.textContent = "Vous avez buzzé : donnez votre réponse à l’oral.";
+    } else if (role.isDuelist && round5.phase === PHASES.DUEL) {
+      els.action.textContent = round5.duel?.buzzedBy ? `${buzzedName} a buzzé.` : "Vous êtes en duel : attendez l’ouverture du buzzer.";
+    } else if (role.outsiderAllowed) {
+      els.action.textContent = alreadyAnswered ? "Réponse envoyée, attendez la validation admin." : "Les duellistes ont raté : envoyez votre réponse écrite.";
+    } else if (round5.phase === PHASES.TARGET_SELECTION) {
+      els.action.textContent = me === round5.turn?.currentPlayerId ? "C’est votre tour : annoncez votre cible à l’admin." : "Choix de la cible en cours.";
+    } else {
+      els.action.textContent = "Attendez les instructions admin.";
+    }
+
+    els.duelTitle.textContent = role.isDuelist ? "Vous êtes en duel" : "Duel en cours";
+    if (role.canBuzz) {
+      els.buzzStatus.textContent = "Buzzer ouvert.";
+    } else if (round5.duel?.buzzedBy) {
+      els.buzzStatus.textContent = `Buzz pris par ${buzzedName}.`;
+    } else {
+      els.buzzStatus.textContent = role.isDuelist ? "Buzzer fermé pour l’instant." : "Réservé aux deux joueurs du duel.";
+    }
+
+    if (alreadyAnswered) {
+      els.outsiderStatus.textContent = `Réponse envoyée : ${round5.outsiders.answers[me]?.answer || "—"}`;
+    } else if (role.outsiderAllowed) {
+      els.outsiderStatus.textContent = "Champ actif : envoyez une seule réponse claire.";
+    } else if (role.isDuelist) {
+      els.outsiderStatus.textContent = "Les joueurs en duel n’ont pas accès au champ texte.";
+    } else {
+      els.outsiderStatus.textContent = "Le champ texte s’ouvrira si l’admin passe la main aux autres joueurs.";
+    }
+  }
+
+  async function buzzDuel() {
+    const me = getMe();
     await runTransaction(ref(db, ROUND5_PATH), (curr) => {
-      const s = toRound5(curr); const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
+      const s = toRound5(curr);
+      const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
       if (!(s.phase === PHASES.DUEL && s.duel?.buzzerOpen && duelist && isAlive(s, me) && !s.duel?.buzzedBy)) return s;
       return { ...s, duel: { ...s.duel, buzzerOpen: false, buzzedBy: me, buzzedAt: Date.now() }, updatedAt: Date.now() };
     });
-  };
+  }
 
-  $("m5-outsider-form").onsubmit = async (e) => {
-    e.preventDefault();
-    const me = getCurrentSessionId?.(); const answer = $("m5-outsider-input").value.trim();
+  els.buzz.onclick = buzzDuel;
+
+  document.addEventListener("keydown", async (event) => {
+    if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+    if ((event.code || event.key) !== "Space") return;
+    const target = event.target;
+    const tag = target instanceof HTMLElement ? target.tagName.toLowerCase() : "";
+    if (target?.isContentEditable || ["input", "textarea", "select"].includes(tag)) return;
+    const role = getRoleState(getMe());
+    if (!role.canBuzz) return;
+    event.preventDefault();
+    await buzzDuel();
+  });
+
+  els.outsiderForm.onsubmit = async (event) => {
+    event.preventDefault();
+    const me = getMe();
+    const answer = els.outsiderInput.value.trim();
     if (!answer) return;
     await runTransaction(ref(db, ROUND5_PATH), (curr) => {
-      const s = toRound5(curr); const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
+      const s = toRound5(curr);
+      const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
       if (!(s.phase === PHASES.OUTSIDERS_ANSWER && s.outsiders?.enabled && isAlive(s, me) && !duelist)) return s;
       const answers = { ...(s.outsiders?.answers || {}), [me]: { answer, timestamp: Date.now() } };
       return { ...s, outsiders: { ...s.outsiders, answers }, updatedAt: Date.now() };
     });
-    $("m5-outsider-input").value = "";
+    els.outsiderInput.value = "";
   };
 }
 
