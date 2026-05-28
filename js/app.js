@@ -1045,10 +1045,9 @@ function renderLeaderboardList(target, entries, emptyText, includeActions = fals
   if (!entries.length) return (target.innerHTML = `<li class="empty-state">${emptyText}</li>`);
 
   entries.forEach((p) => {
-    const color = normalizeParticipantColor(p.color, getDefaultParticipantColor(p.id));
     const li = document.createElement("li");
     li.className = "leader-item";
-    li.innerHTML = `<span class="leader-name"><span class="leader-color-dot" style="background-color:${color}"></span>${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
+    li.innerHTML = `<span class="leader-name"><span class="leader-color-dot"></span>${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
     if (includeActions && p.id) {
       const actionWrap = document.createElement("div");
       actionWrap.className = "score-actions";
@@ -1079,7 +1078,7 @@ function renderParticipantsAdminList(target, entries, emptyText) {
     li.className = "leader-item has-buzzer";
     const color = normalizeParticipantColor(p.color, getDefaultParticipantColor(p.id));
     const textColor = computeReadableTextColor(color);
-    li.innerHTML = `<span class="leader-name"><span class="leader-color-dot" style="background-color:${color}"></span>${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
+    li.innerHTML = `<span class="leader-name"><span class="leader-color-dot"></span>${p.nickname || "Anonyme"}</span><span class="leader-score">${p.score} pt</span>`;
 
     if (p.id) {
       const actionWrap = document.createElement("div");
