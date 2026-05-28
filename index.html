@@ -87,6 +87,7 @@
             <a class="nav-item" href="overlay-round4.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R4</span></a>
             <a class="nav-item" href="overlay-round5.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R5</span></a>
             <a class="nav-item" href="overlay-round6.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R6</span></a>
+            <a class="nav-item" href="cam-overlay-round1.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">videocam</span><span>Cams R1</span></a>
           </div>
         </div>
         </aside>
@@ -819,7 +820,24 @@ SNK OP1"></textarea></label>
                   <a class="btn btn-secondary" href="overlay-round4.html" target="_blank" rel="noopener">Overlay manche 4</a>
                   <a class="btn btn-secondary" href="overlay-round5.html" target="_blank" rel="noopener">Overlay manche 5</a>
                   <a class="btn btn-secondary" href="overlay-round6.html" target="_blank" rel="noopener">Overlay manche 6</a>
+                  <a class="btn btn-secondary" href="cam-overlay-round1.html" target="_blank" rel="noopener">Cam R1</a>
+                  <a class="btn btn-secondary" href="cam-overlay-round2.html" target="_blank" rel="noopener">Cam R2</a>
+                  <a class="btn btn-secondary" href="cam-overlay-round3.html" target="_blank" rel="noopener">Cam R3</a>
+                  <a class="btn btn-secondary" href="cam-overlay-round4.html" target="_blank" rel="noopener">Cam R4</a>
+                  <a class="btn btn-secondary" href="cam-overlay-round5.html" target="_blank" rel="noopener">Cam R5</a>
+                  <a class="btn btn-secondary" href="cam-overlay-round6.html" target="_blank" rel="noopener">Cam R6</a>
                 </div>
+              </article>
+              <article class="subpanel compact-panel stack camera-config-panel">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">OBS · WebRTC</p>
+                    <h3>Configuration des caméras invités</h3>
+                  </div>
+                </div>
+                <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants.</p>
+                <p id="camera-config-status" class="message"></p>
+                <div id="camera-config-root" class="camera-config-root"></div>
               </article>
               <article class="subpanel compact-panel">
                 <h3>Scoreboard</h3>
@@ -839,5 +857,6 @@ SNK OP1"></textarea></label>
     </main>
 
     <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/camera-admin.js"></script>
   </body>
 </html>

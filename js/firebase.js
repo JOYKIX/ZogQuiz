@@ -5,6 +5,10 @@ import {
   set,
   get,
   onValue,
+  onChildAdded,
+  onChildChanged,
+  onChildRemoved,
+  onDisconnect,
   push,
   update,
   runTransaction,
@@ -249,6 +253,32 @@ export async function ensureRoundsSeed(uid) {
     });
   }
 
+  const cameraOverlayConfigsRef = ref(db, "cameraOverlayConfigs");
+  if (!(await get(cameraOverlayConfigsRef)).exists()) {
+    const baseCameraConfig = {
+      enabled: false,
+      x: 40,
+      y: 40,
+      width: 260,
+      height: 146,
+      gap: 14,
+      perRow: 3,
+      borderRadius: 18,
+      showNames: true,
+      updatedBy: uid,
+      updatedAt: Date.now(),
+    };
+    await set(cameraOverlayConfigsRef, {
+      round1: { ...baseCameraConfig },
+      round2: { ...baseCameraConfig },
+      round3: { ...baseCameraConfig },
+      round4: { ...baseCameraConfig },
+      round5: { ...baseCameraConfig },
+      round6: { ...baseCameraConfig },
+    });
+  }
+
+
 
 
   const viewersLiveStateRef = ref(db, "rooms/viewers/liveState");
@@ -300,4 +330,4 @@ export async function ensureRoundsSeed(uid) {
 
 
 
-export { db, ref, set, get, onValue, push, update, runTransaction, remove };
+export { db, ref, set, get, onValue, onChildAdded, onChildChanged, onChildRemoved, onDisconnect, push, update, runTransaction, remove };

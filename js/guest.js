@@ -3,6 +3,7 @@ import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Guest } from "./manche4.js";
 import { initMortSubiteGuest } from "./mort-subite.js";
 import { initManche6Display } from "./manche6.js";
+import { createGuestCameraController } from "./guest-camera-webrtc.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -34,6 +35,10 @@ const buzzFeedback = document.getElementById("buzz-feedback");
 const buzzKeybindLabel = document.getElementById("buzz-keybind-label");
 const buzzKeybindChangeBtn = document.getElementById("buzz-keybind-change");
 const buzzKeybindHint = document.getElementById("buzz-keybind-hint");
+const guestCameraPanel = document.getElementById("guest-camera-panel");
+const guestCameraToggle = document.getElementById("guest-camera-toggle");
+const guestCameraStatus = document.getElementById("guest-camera-status");
+const guestCameraPreview = document.getElementById("guest-camera-preview");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -81,6 +86,7 @@ let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
 let manche4Controller = null;
+let guestCameraController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 
@@ -205,10 +211,13 @@ function renderGuestView() {
     guestSessionMeta.classList.remove("hidden");
     guestTitle.textContent = `Connecté : ${getCurrentNickname()}`;
     buzzerPanel.classList.remove("hidden");
+    guestCameraPanel?.classList.remove("hidden");
+    guestCameraController?.refreshIdentity?.();
   } else {
     guestSessionMeta.classList.add("hidden");
     guestTitle.textContent = "";
     buzzerPanel.classList.add("hidden");
+    guestCameraPanel?.classList.add("hidden");
   }
 }
 
@@ -232,6 +241,7 @@ function clearCurrentGuest({ reason = "Déconnecté.", type = "default" } = {}) 
     status: "logged_out",
   };
   currentQuestionBlocked = false;
+  guestCameraController?.stop?.({ keepMessage: true });
   clearStoredGuestSession();
   showLoginForm();
   setGuestMessage(reason, type);
@@ -731,6 +741,16 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   };
   renderGuestView();
   refreshButtonState();
+});
+
+guestCameraController = createGuestCameraController({
+  getSessionId: getCurrentSessionId,
+  getNickname: getCurrentNickname,
+  elements: {
+    button: guestCameraToggle,
+    status: guestCameraStatus,
+    preview: guestCameraPreview,
+  },
 });
 
 manche4Controller = initManche4Guest({

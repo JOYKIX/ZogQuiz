@@ -1,0 +1,85 @@
+:root {
+  --cam-x: 40px;
+  --cam-y: 40px;
+  --cam-w: 260px;
+  --cam-h: 146px;
+  --cam-gap: 14px;
+  --cam-radius: 18px;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body { background-color: transparent; }
+
+.camera-grid {
+  position: fixed;
+  left: var(--cam-x);
+  top: var(--cam-y);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .18s ease;
+}
+
+.camera-grid.disabled { opacity: 0; }
+
+.camera-card {
+  position: absolute;
+  width: var(--cam-w);
+  height: var(--cam-h);
+  overflow: hidden;
+  border-radius: var(--cam-radius);
+  background: transparent;
+  transform: translateZ(0);
+}
+
+.camera-card video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.camera-card.connecting video { opacity: .25; }
+
+.camera-name {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  padding: 5px 9px;
+  width: max-content;
+  max-width: calc(100% - 20px);
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  text-shadow: 0 2px 10px rgba(0,0,0,.85);
+  background: linear-gradient(90deg, rgba(6, 14, 35, .68), rgba(6, 14, 35, .18));
+}
+
+.camera-grid.names-hidden .camera-name { display: none; }
+
+.camera-overlay-status {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
