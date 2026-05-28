@@ -102,3 +102,22 @@ input:focus,textarea:focus,select:focus{outline:2px solid rgba(120,197,255,.45);
 
 @media (max-width:1280px){.app-topbar,.dashboard-shell,.auth-layout,.two-col,.scoreboard-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app-sidebar{position:static;max-height:none}}
 @media (max-width:760px){.app-shell{width:95vw;padding:10px}.header-status-grid,.stats-grid{grid-template-columns:1fr}.session-actions{justify-content:flex-start}.m4-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.m5-guest-screen{gap:18px}
+.m5-guest-hero{overflow:hidden;position:relative}
+.m5-guest-hero::after{content:'';position:absolute;inset:auto -10% -55% 30%;height:220px;background:radial-gradient(circle,rgba(255,79,95,.28),transparent 68%);pointer-events:none}
+.m5-guest-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px;position:relative;z-index:1}
+.m5-guest-status-card{display:grid;gap:6px;padding:14px;border:1px solid rgba(133,164,220,.3);border-radius:14px;background:rgba(10,18,40,.68)}
+.m5-guest-status-card span{font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.m5-guest-status-card strong{font-size:clamp(1rem,2vw,1.35rem);color:#fff}
+.m5-guest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
+.m5-action-card{align-content:start;min-height:260px}
+.m5-question-text{padding:14px;border:1px solid rgba(133,164,220,.32);border-radius:14px;background:rgba(6,13,30,.72);font-size:clamp(1rem,2vw,1.25rem);line-height:1.4;color:#fff;min-height:72px}
+.m5-buzz{width:100%;justify-content:center;min-height:86px;margin:10px 0;font-size:clamp(1.4rem,6vw,3rem);letter-spacing:.08em;box-shadow:0 0 36px rgba(255,79,95,.28)}
+.m5-buzz:not(:disabled){animation:m5Pulse 1s ease-in-out infinite}
+.m5-hp-list li.m5-hp-item{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.m5-hp-item span{display:grid;gap:3px}
+.m5-hp-item small{color:var(--muted)}
+.m5-hp-item.is-dead{opacity:.55;filter:grayscale(.55)}
+@keyframes m5Pulse{0%,100%{transform:scale(1);box-shadow:0 0 32px rgba(255,79,95,.3)}50%{transform:scale(1.015);box-shadow:0 0 54px rgba(255,79,95,.55)}}
+@media (max-width:760px){.m5-guest-status-grid,.m5-guest-grid{grid-template-columns:1fr}.m5-buzz{min-height:76px}}
