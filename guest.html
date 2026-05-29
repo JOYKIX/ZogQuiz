@@ -69,18 +69,86 @@
             </div>
           </header>
 
-          <section
-            class="guest-round-stage"
-            aria-label="Contenu de la manche en cours"
-          >
-            <section id="guest-round1" class="guest-round guest-round-content">
+          <section class="guest-live-layout" aria-label="Espace live invité">
+            <aside
+              class="guest-camera-sidebar guest-camera-sidebar-left"
+              aria-label="Mes caméras"
+            >
+              <section
+                id="guest-camera-panel"
+                class="panel guest-camera-panel hidden"
+              >
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">Ma cam</p>
+                    <h2>Ma cam</h2>
+                  </div>
+                  <button
+                    id="guest-camera-toggle"
+                    class="btn btn-secondary"
+                    type="button"
+                  >
+                    Activer cam
+                  </button>
+                </div>
+                <label class="toggle-line camera-render-toggle">
+                  <input
+                    id="guest-self-camera-render"
+                    type="checkbox"
+                    checked
+                  />
+                  Afficher ma cam
+                </label>
+                <p id="guest-camera-status" class="message camera-status off">
+                  Caméra désactivée.
+                </p>
+                <video
+                  id="guest-camera-preview"
+                  class="guest-camera-preview hidden"
+                  autoplay
+                  muted
+                  playsinline
+                ></video>
+              </section>
+
+              <section
+                id="guest-admin-camera-panel"
+                class="panel guest-camera-wall-panel hidden"
+              >
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">Admin</p>
+                    <h2>Cam admin</h2>
+                  </div>
+                </div>
+                <label class="toggle-line camera-render-toggle">
+                  <input
+                    id="guest-admin-camera-render"
+                    type="checkbox"
+                    checked
+                  />
+                  Afficher la cam admin
+                </label>
+                <p
+                  id="guest-admin-camera-status"
+                  class="message camera-status off"
+                >
+                  Aucune caméra admin active.
+                </p>
+                <div
+                  id="guest-admin-camera-wall"
+                  class="guest-camera-wall guest-camera-wall-stack"
+                ></div>
+              </section>
+            </aside>
+
+            <section
+              class="guest-round-stage"
+              aria-label="Contenu de la manche en cours"
+            >
+              <section id="guest-round1" class="guest-round guest-round-content">
               <div class="round-intro">
                 <p class="eyebrow">Manche 1</p>
-                <h2>Contenu de la manche en cours</h2>
-                <p class="muted">
-                  Soyez prêt : le buzzer est actif uniquement quand l’admin
-                  ouvre la main.
-                </p>
               </div>
               <section
                 id="buzzer-panel"
@@ -117,7 +185,6 @@
             >
               <div class="round-intro">
                 <p class="eyebrow">Manche 2</p>
-                <h2>Question image</h2>
               </div>
               <div class="guest-image-card">
                 <img
@@ -135,7 +202,6 @@
             >
               <div class="round-intro">
                 <p class="eyebrow">Manche 3</p>
-                <h2>Choix du thème</h2>
                 <p id="m3-guest-status" class="message">En attente.</p>
               </div>
               <div class="guest-round-info-grid">
@@ -157,7 +223,6 @@
             >
               <div class="round-intro">
                 <p class="eyebrow">Manche 4</p>
-                <h2>Blindtest</h2>
                 <p id="m4-guest-status" class="message">
                   En attente du lancement admin.
                 </p>
@@ -323,53 +388,40 @@
             </section>
           </section>
 
-          <section class="guest-camera-row" aria-label="Caméras invité">
-            <section
-              id="guest-camera-panel"
-              class="panel guest-camera-panel hidden"
+            <aside
+              class="guest-camera-sidebar guest-camera-sidebar-right"
+              aria-label="Caméras participants"
             >
-              <div class="panel-head compact-head">
-                <div>
-                  <p class="eyebrow">Ma cam</p>
-                  <h2>Ma cam</h2>
-                </div>
-                <button
-                  id="guest-camera-toggle"
-                  class="btn btn-secondary"
-                  type="button"
-                >
-                  Activer cam
-                </button>
-              </div>
-              <p id="guest-camera-status" class="message camera-status off">
-                Caméra désactivée.
-              </p>
-              <video
-                id="guest-camera-preview"
-                class="guest-camera-preview hidden"
-                autoplay
-                muted
-                playsinline
-              ></video>
-            </section>
-            <section
-              id="guest-camera-wall-panel"
-              class="panel guest-camera-wall-panel hidden"
-            >
-              <div class="panel-head compact-head">
-                <div>
-                  <p class="eyebrow">Live</p>
-                  <h2>Caméras des autres</h2>
-                </div>
-              </div>
-              <p
-                id="guest-camera-wall-status"
-                class="message camera-status off"
+              <section
+                id="guest-camera-wall-panel"
+                class="panel guest-camera-wall-panel hidden"
               >
-                Aucune caméra active pour le moment.
-              </p>
-              <div id="guest-camera-wall" class="guest-camera-wall"></div>
-            </section>
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">Participants</p>
+                    <h2>Caméras participants</h2>
+                  </div>
+                </div>
+                <label class="toggle-line camera-render-toggle">
+                  <input
+                    id="guest-participants-camera-render"
+                    type="checkbox"
+                    checked
+                  />
+                  Afficher les cams participants
+                </label>
+                <p
+                  id="guest-camera-wall-status"
+                  class="message camera-status off"
+                >
+                  Aucune caméra participant active pour le moment.
+                </p>
+                <div
+                  id="guest-camera-wall"
+                  class="guest-camera-wall guest-camera-wall-stack"
+                ></div>
+              </section>
+            </aside>
           </section>
         </div>
       </section>

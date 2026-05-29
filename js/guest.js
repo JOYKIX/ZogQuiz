@@ -39,9 +39,15 @@ const guestCameraPanel = document.getElementById("guest-camera-panel");
 const guestCameraToggle = document.getElementById("guest-camera-toggle");
 const guestCameraStatus = document.getElementById("guest-camera-status");
 const guestCameraPreview = document.getElementById("guest-camera-preview");
+const guestSelfCameraRender = document.getElementById("guest-self-camera-render");
+const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
+const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
+const guestAdminCameraStatus = document.getElementById("guest-admin-camera-status");
+const guestAdminCameraRender = document.getElementById("guest-admin-camera-render");
 const guestCameraWallPanel = document.getElementById("guest-camera-wall-panel");
 const guestCameraWall = document.getElementById("guest-camera-wall");
 const guestCameraWallStatus = document.getElementById("guest-camera-wall-status");
+const guestParticipantsCameraRender = document.getElementById("guest-participants-camera-render");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -216,6 +222,7 @@ function renderGuestView() {
     guestTitle.textContent = `Connecté : ${getCurrentNickname()}`;
     buzzerPanel.classList.remove("hidden");
     guestCameraPanel?.classList.remove("hidden");
+    guestAdminCameraPanel?.classList.remove("hidden");
     guestCameraWallPanel?.classList.remove("hidden");
     guestCameraController?.refreshIdentity?.();
     guestCameraWallController?.refresh?.();
@@ -224,7 +231,9 @@ function renderGuestView() {
     guestTitle.textContent = "";
     buzzerPanel.classList.add("hidden");
     guestCameraPanel?.classList.add("hidden");
+    guestAdminCameraPanel?.classList.add("hidden");
     guestCameraWallPanel?.classList.add("hidden");
+    guestCameraWallController?.refresh?.();
   }
 }
 
@@ -760,9 +769,17 @@ guestCameraController = createGuestCameraController({
   },
 });
 
+guestSelfCameraRender?.addEventListener("change", () => {
+  guestCameraPreview?.classList.toggle("render-disabled", !guestSelfCameraRender.checked);
+});
+
 guestCameraWallController = initGuestCameraWall({
-  root: guestCameraWall,
-  status: guestCameraWallStatus,
+  adminRoot: guestAdminCameraWall,
+  participantsRoot: guestCameraWall,
+  adminStatus: guestAdminCameraStatus,
+  participantsStatus: guestCameraWallStatus,
+  showAdminInput: guestAdminCameraRender,
+  showParticipantsInput: guestParticipantsCameraRender,
   getCurrentSessionId,
 });
 
