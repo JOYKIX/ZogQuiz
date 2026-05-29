@@ -1,4 +1,5 @@
 import { db, ref, onValue } from "./firebase.js";
+import { normalizeTimerFormat } from "./timer-format.js";
 
 export const OVERLAY_CONFIGS_PATH = "overlayConfigs";
 
@@ -31,6 +32,7 @@ export const OVERLAY_DEFAULTS = {
     questionColor: "#ffffff",
     themeColor: "#cfe6ff",
     timerColor: "#8cf5dc",
+    timerFormat: "minutes-seconds",
     fontWeight: 800,
     align: "center",
     blockGapPx: 14,
@@ -143,6 +145,7 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       questionColor: asColor(raw.questionColor, defaults.questionColor),
       themeColor: asColor(raw.themeColor, defaults.themeColor),
       timerColor: asColor(raw.timerColor, defaults.timerColor),
+      timerFormat: normalizeTimerFormat(raw.timerFormat, defaults.timerFormat),
       fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 900),
       align: asAlign(raw.align, defaults.align),
       blockGapPx: clampInt(raw.blockGapPx, defaults.blockGapPx, 0, 120),
