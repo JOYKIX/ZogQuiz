@@ -323,6 +323,10 @@ tr:hover td { background: rgba(255,255,255,.04); }
 .m5-guest-status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
 .m5-guest-status-card span { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
 .m5-guest-status-card strong { display: block; margin-top: .25rem; font-size: 1.15rem; }
+.m5-action-card { transition: border-color .2s var(--ease), box-shadow .2s var(--ease), transform .2s var(--ease); }
+#m5-duel-card:not(.hidden) { grid-column: 1 / -1; text-align: center; }
+#m5-duel-card.is-duelist { border-color: rgba(255, 84, 112, .58); box-shadow: var(--shadow-sm), 0 0 34px rgba(255, 84, 112, .16); }
+#m5-duel-card.is-buzzer-open { transform: translateY(-2px); border-color: rgba(255, 213, 79, .72); box-shadow: var(--shadow-md), 0 0 42px rgba(255, 213, 79, .22); }
 .m5-question-text, .m6-question-text { font-size: clamp(1.2rem, 2.4vw, 2.2rem); color: #fff; font-weight: 850; }
 .m6-player-card { position: relative; overflow: hidden; }
 .m6-player-card h3, .m6-player-card h2 { display: grid; gap: .3rem; }
