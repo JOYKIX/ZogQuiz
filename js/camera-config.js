@@ -29,7 +29,7 @@ export const CAMERA_ROLE_OPTIONS = [
 
 export const CAMERA_ROUND_STATE_PATHS = {
   round3: ["rooms/manche3/state"],
-  round5: ["rounds/round5"],
+  round5: ["rounds/round5", "rooms/manche5/state"],
   round6: ["rooms/manche6/state"],
 };
 
