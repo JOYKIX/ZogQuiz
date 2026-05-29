@@ -850,36 +850,129 @@ SNK OP1"></textarea></label>
             </article>
           </section>
 
-          <section class="workspace-panel hidden" data-workspace-panel="broadcast">
-            <div class="panel-head">
-              <h2>Centre diffusion</h2>
+          <section class="workspace-panel hidden broadcast-panel" data-workspace-panel="broadcast">
+            <div class="panel-head broadcast-head">
+              <div>
+                <p class="eyebrow">Régie live</p>
+                <h2>Centre diffusion</h2>
+                <p class="muted">Tous les liens utiles sont triés par usage : affichages principaux, manches, caméras, scoreboards et outils invités.</p>
+              </div>
+              <a class="btn btn-primary" href="classement.html" target="_blank" rel="noopener">Ouvrir le classement</a>
             </div>
-            <div class="two-col">
-              <article class="subpanel compact-panel">
-                <h3>Overlays</h3>
-                <div class="row">
-                  <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
-                  <a class="btn btn-secondary" href="overlay-round1.html" target="_blank" rel="noopener">Overlay manche 1</a>
-                  <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Overlay manche 2</a>
-                  <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Overlay manche 3</a>
-                  <a class="btn btn-secondary" href="timer-overlay-round3.html" target="_blank" rel="noopener">Timer manche 3</a>
-                  <a class="btn btn-secondary" href="overlay-round4.html" target="_blank" rel="noopener">Overlay manche 4</a>
-                  <a class="btn btn-secondary" href="overlay-round5.html" target="_blank" rel="noopener">Overlay manche 5</a>
-                  <a class="btn btn-secondary" href="overlay-round6.html" target="_blank" rel="noopener">Overlay manche 6</a>
-                  <a class="btn btn-secondary" href="cam-overlay-round1.html" target="_blank" rel="noopener">Cam R1</a>
-                  <a class="btn btn-secondary" href="cam-overlay-round2.html" target="_blank" rel="noopener">Cam R2</a>
-                  <a class="btn btn-secondary" href="cam-overlay-round3.html" target="_blank" rel="noopener">Cam R3</a>
-                  <a class="btn btn-secondary" href="cam-overlay-round4.html" target="_blank" rel="noopener">Cam R4</a>
-                  <a class="btn btn-secondary" href="cam-overlay-round5.html" target="_blank" rel="noopener">Cam R5</a>
-                  <a class="btn btn-secondary" href="cam-overlay-round6.html" target="_blank" rel="noopener">Cam R6</a>
+
+            <div class="broadcast-grid">
+              <article class="subpanel compact-panel broadcast-card broadcast-card-featured">
+                <div class="broadcast-card-head">
+                  <div>
+                    <p class="eyebrow">À lancer en premier</p>
+                    <h3>Écrans principaux</h3>
+                  </div>
+                  <span class="badge">4 liens</span>
+                </div>
+                <div class="broadcast-link-grid broadcast-link-grid-featured">
+                  <a class="broadcast-link" href="classement.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Classement régie</span>
+                    <span class="broadcast-link-desc">Scoreboard complet administrateur</span>
+                  </a>
+                  <a class="broadcast-link" href="overlay-leaderboard-participants.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Overlay classement participants</span>
+                    <span class="broadcast-link-desc">Classement joueurs pour OBS</span>
+                  </a>
+                  <a class="broadcast-link" href="overlay-leaderboard-viewers.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Overlay classement viewers</span>
+                    <span class="broadcast-link-desc">Classement spectateurs pour OBS</span>
+                  </a>
+                  <a class="broadcast-link" href="guest.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Vue invité</span>
+                    <span class="broadcast-link-desc">Interface joueur / guest</span>
+                  </a>
                 </div>
               </article>
-              <article class="subpanel compact-panel">
-                <h3>Scoreboard</h3>
-                <div class="row">
-                  <a class="btn btn-secondary" href="classement.html" target="_blank" rel="noopener">Ouvrir classement</a>
+
+              <article class="subpanel compact-panel broadcast-card scoreboard-card-live">
+                <div class="broadcast-card-head">
+                  <div>
+                    <p class="eyebrow">Aperçu live</p>
+                    <h3>Scoreboard</h3>
+                  </div>
+                  <a class="btn btn-secondary btn-small" href="classement.html" target="_blank" rel="noopener">Ouvrir</a>
                 </div>
-                <ul id="scoreboard-preview" class="leaderboard"></ul>
+                <ul id="scoreboard-preview" class="leaderboard broadcast-scoreboard"></ul>
+              </article>
+
+              <article class="subpanel compact-panel broadcast-card broadcast-card-wide">
+                <div class="broadcast-card-head">
+                  <div>
+                    <p class="eyebrow">Overlays OBS</p>
+                    <h3>Manches de jeu</h3>
+                  </div>
+                  <span class="badge">7 overlays</span>
+                </div>
+                <div class="broadcast-round-list">
+                  <a class="broadcast-round-link" href="overlay-round1.html" target="_blank" rel="noopener"><strong>Manche 1</strong><span>Overlay questions / réponses</span></a>
+                  <a class="broadcast-round-link" href="overlay-round2.html" target="_blank" rel="noopener"><strong>Manche 2</strong><span>Overlay image</span></a>
+                  <a class="broadcast-round-link" href="overlay-round3.html" target="_blank" rel="noopener"><strong>Manche 3</strong><span>Overlay thème + question</span></a>
+                  <a class="broadcast-round-link" href="timer-overlay-round3.html" target="_blank" rel="noopener"><strong>Timer M3</strong><span>Chronomètre manche 3</span></a>
+                  <a class="broadcast-round-link" href="overlay-round4.html" target="_blank" rel="noopener"><strong>Manche 4</strong><span>Overlay indices / grille</span></a>
+                  <a class="broadcast-round-link" href="overlay-round5.html" target="_blank" rel="noopener"><strong>Manche 5</strong><span>Overlay Mort Subite</span></a>
+                  <a class="broadcast-round-link" href="overlay-round6.html" target="_blank" rel="noopener"><strong>Manche 6</strong><span>Overlay duel final</span></a>
+                </div>
+              </article>
+
+              <article class="subpanel compact-panel broadcast-card broadcast-card-wide">
+                <div class="broadcast-card-head">
+                  <div>
+                    <p class="eyebrow">Caméras OBS</p>
+                    <h3>Overlays caméra par manche</h3>
+                  </div>
+                  <span class="badge">6 caméras</span>
+                </div>
+                <div class="broadcast-camera-grid">
+                  <a class="broadcast-camera-link" href="cam-overlay-round1.html" target="_blank" rel="noopener"><span>Cam</span><strong>R1</strong></a>
+                  <a class="broadcast-camera-link" href="cam-overlay-round2.html" target="_blank" rel="noopener"><span>Cam</span><strong>R2</strong></a>
+                  <a class="broadcast-camera-link" href="cam-overlay-round3.html" target="_blank" rel="noopener"><span>Cam</span><strong>R3</strong></a>
+                  <a class="broadcast-camera-link" href="cam-overlay-round4.html" target="_blank" rel="noopener"><span>Cam</span><strong>R4</strong></a>
+                  <a class="broadcast-camera-link" href="cam-overlay-round5.html" target="_blank" rel="noopener"><span>Cam</span><strong>R5</strong></a>
+                  <a class="broadcast-camera-link" href="cam-overlay-round6.html" target="_blank" rel="noopener"><span>Cam</span><strong>R6</strong></a>
+                </div>
+              </article>
+
+              <article class="subpanel compact-panel broadcast-card">
+                <div class="broadcast-card-head">
+                  <div>
+                    <p class="eyebrow">Invités</p>
+                    <h3>Accès joueurs</h3>
+                  </div>
+                </div>
+                <div class="broadcast-link-grid">
+                  <a class="broadcast-link" href="guest.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Vue invité</span>
+                    <span class="broadcast-link-desc">Connexion et contrôles participants</span>
+                  </a>
+                  <a class="broadcast-link" href="buzzer.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Buzzer</span>
+                    <span class="broadcast-link-desc">Page buzzer rapide</span>
+                  </a>
+                </div>
+              </article>
+
+              <article class="subpanel compact-panel broadcast-card">
+                <div class="broadcast-card-head">
+                  <div>
+                    <p class="eyebrow">Scoreboards OBS</p>
+                    <h3>Classements publics</h3>
+                  </div>
+                </div>
+                <div class="broadcast-link-grid">
+                  <a class="broadcast-link" href="overlay-leaderboard-participants.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Participants</span>
+                    <span class="broadcast-link-desc">Overlay dédié aux joueurs</span>
+                  </a>
+                  <a class="broadcast-link" href="overlay-leaderboard-viewers.html" target="_blank" rel="noopener">
+                    <span class="broadcast-link-title">Viewers</span>
+                    <span class="broadcast-link-desc">Overlay dédié aux spectateurs</span>
+                  </a>
+                </div>
               </article>
             </div>
           </section>
