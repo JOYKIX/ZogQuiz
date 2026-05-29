@@ -16,6 +16,7 @@ import { initMortSubiteAdmin } from "./mort-subite.js";
 import { initManche6Admin } from "./manche6.js";
 import { initViewerAdmin } from "./viewer-admin.js";
 import { parseAcceptedAnswers, normalizeViewerAnswer } from "./viewer-utils.js";
+import { formatTimer as formatTimerDisplay } from "./timer-format.js";
 import { showConfirm, showPrompt } from "./modal.js";
 import {
   GUEST_ACCOUNTS_PATH,
@@ -155,6 +156,7 @@ const overlayRound3TimerSizeInput = $("overlay-round3-timer-size");
 const overlayRound3QuestionColorInput = $("overlay-round3-question-color");
 const overlayRound3ThemeColorInput = $("overlay-round3-theme-color");
 const overlayRound3TimerColorInput = $("overlay-round3-timer-color");
+const overlayRound3TimerFormatInput = $("overlay-round3-timer-format");
 const overlayRound3FontWeightInput = $("overlay-round3-font-weight");
 const overlayRound3AlignInput = $("overlay-round3-align");
 const overlayRound3GapInput = $("overlay-round3-gap");
@@ -502,7 +504,7 @@ buzzMinusBtn.addEventListener("click", async () => {
 [
   overlayRound3QuestionSizeInput, overlayRound3ThemeSizeInput, overlayRound3TimerSizeInput,
   overlayRound3QuestionColorInput, overlayRound3ThemeColorInput, overlayRound3TimerColorInput,
-  overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput,
+  overlayRound3TimerFormatInput, overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3")));
 [
   overlayRound4ClueSizeInput, overlayRound4ClueColorInput, overlayRound4WordSizeInput,
@@ -682,6 +684,7 @@ function initListeners() {
   onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round3`), (snap) => {
     overlayConfigs.round3 = normalizeOverlayConfig("round3", snap.val() || OVERLAY_DEFAULTS.round3);
     syncOverlayInputs();
+    renderRound3State();
   });
   onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round4`), (snap) => {
     overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
@@ -1581,11 +1584,8 @@ function updateRound2Status() {
   if (m2LiveNextBtn) m2LiveNextBtn.disabled = currentIndex < 0 || currentIndex >= entries.length - 1;
 }
 
-function formatTimer(ms) {
-  const safe = Math.max(0, Math.floor(ms / 1000));
-  const m = String(Math.floor(safe / 60)).padStart(2, "0");
-  const s = String(safe % 60).padStart(2, "0");
-  return `${m}:${s}`;
+function formatRound3Timer(ms) {
+  return formatTimerDisplay(ms, overlayConfigs.round3?.timerFormat);
 }
 
 function round3RemainingMs() {
@@ -1758,11 +1758,11 @@ function renderRound3State() {
   m3ActivePlayer.textContent = getRound3ActivePlayerName();
   m3ActiveTheme.textContent = activeTheme?.name || "Aucun";
   m3CurrentQuestion.textContent = current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
-  m3Timer.textContent = formatTimer(remaining);
+  m3Timer.textContent = formatRound3Timer(remaining);
   if (m3LivePlayer) m3LivePlayer.textContent = getRound3ActivePlayerName();
   if (m3LiveTheme) m3LiveTheme.textContent = activeTheme?.name || "Aucun";
   if (m3LiveQuestion) m3LiveQuestion.textContent = current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
-  if (m3LiveTimer) m3LiveTimer.textContent = formatTimer(remaining);
+  if (m3LiveTimer) m3LiveTimer.textContent = formatRound3Timer(remaining);
 
   if (remaining <= 0 || status === "ended") {
     setMessage(m3TimerStatus, "Temps écoulé", "error");
@@ -1844,6 +1844,7 @@ function syncOverlayInputs() {
   if (overlayRound3QuestionColorInput) overlayRound3QuestionColorInput.value = r3.questionColor;
   if (overlayRound3ThemeColorInput) overlayRound3ThemeColorInput.value = r3.themeColor;
   if (overlayRound3TimerColorInput) overlayRound3TimerColorInput.value = r3.timerColor;
+  if (overlayRound3TimerFormatInput) overlayRound3TimerFormatInput.value = r3.timerFormat;
   if (overlayRound3FontWeightInput) overlayRound3FontWeightInput.value = String(r3.fontWeight);
   if (overlayRound3AlignInput) overlayRound3AlignInput.value = r3.align;
   if (overlayRound3GapInput) overlayRound3GapInput.value = String(r3.blockGapPx);
@@ -1903,6 +1904,7 @@ function readOverlayConfigInputs(roundKey) {
       questionColor: overlayRound3QuestionColorInput?.value,
       themeColor: overlayRound3ThemeColorInput?.value,
       timerColor: overlayRound3TimerColorInput?.value,
+      timerFormat: overlayRound3TimerFormatInput?.value,
       fontWeight: overlayRound3FontWeightInput?.value,
       align: overlayRound3AlignInput?.value,
       blockGapPx: overlayRound3GapInput?.value,
