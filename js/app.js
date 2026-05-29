@@ -968,6 +968,7 @@ async function resetCompleteQuiz() {
     remove(ref(db, "rooms/manche2/questions")),
     remove(ref(db, "rooms/manche2/answers")),
     remove(ref(db, "rooms/manche3/themes")),
+    remove(ref(db, "rooms/manche3/answers")),
     remove(ref(db, "rooms/manche4/grids")),
     remove(ref(db, "rooms/viewers/questions")),
     remove(ref(db, "rooms/viewers/attempts")),
