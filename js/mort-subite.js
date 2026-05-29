@@ -98,17 +98,38 @@ function sessionToParticipant(id, session, previous = {}) {
   const score = Math.max(0, Number(session?.score || 0));
   const initialHp = score > 0 ? score : DEFAULT_DAMAGE;
   const hp = previous.hp != null ? Math.max(0, Number(previous.hp || 0)) : initialHp;
+  const maxHp = Math.max(initialHp, Number(previous?.maxHp || 0), hp, 1);
   const alive = hp > 0;
-  return { name: String(session?.nickname || previous?.name || id), score, hp, alive, eliminated: !alive, color: session?.color || previous?.color || "#fff" };
+  return { name: String(session?.nickname || previous?.name || id), score, initialHp, maxHp, hp, alive, eliminated: !alive, color: session?.color || previous?.color || "#fff" };
 }
 
-function buildRound5FromSessions(sessionsById = {}, prev = defaultRound5) {
-  const entries = Object.entries(sessionsById || {}).filter(([, v]) => v && v.active !== false).sort((a, b) => Number(b[1]?.score || 0) - Number(a[1]?.score || 0));
-  const participants = {}; const order = [];
-  for (const [id, session] of entries) { order.push(id); participants[id] = sessionToParticipant(id, session, prev?.participants?.[id]); }
+function buildRound5FromSessions(sessionsById = {}, prev = defaultRound5, { resetHp = false } = {}) {
+  const previousRound = resetHp ? defaultRound5 : prev;
+  const entries = Object.entries(sessionsById || {})
+    .filter(([, v]) => v && v.active !== false && String(v.nickname || "").trim())
+    .sort((a, b) => Number(b[1]?.score || 0) - Number(a[1]?.score || 0));
+  const participants = {};
+  const order = [];
+  for (const [id, session] of entries) {
+    order.push(id);
+    participants[id] = sessionToParticipant(id, session, previousRound?.participants?.[id]);
+  }
   const alive = order.filter((id) => isAlive({ participants }, id));
   const currentPlayerId = alive.includes(prev?.turn?.currentPlayerId) ? prev.turn.currentPlayerId : (alive[0] || null);
   return { ...toRound5(prev), participants, turn: { order, currentIndex: Math.max(0, order.indexOf(currentPlayerId)), currentPlayerId }, phase: alive.length > 1 ? PHASES.TARGET_SELECTION : PHASES.FINISHED, duel: { ...defaultRound5.duel }, outsiders: { ...defaultRound5.outsiders } };
+}
+
+function getNextAliveTurn(state, fromPlayerId = state?.turn?.currentPlayerId) {
+  const order = state?.turn?.order || [];
+  const alive = getAliveOrder(state);
+  if (alive.length <= 1) return { next: alive[0] || null, alive };
+  const fromOrderIndex = order.indexOf(fromPlayerId);
+  const startIndex = fromOrderIndex >= 0 ? fromOrderIndex : -1;
+  for (let offset = 1; offset <= order.length; offset += 1) {
+    const candidate = order[(startIndex + offset + order.length) % order.length];
+    if (alive.includes(candidate)) return { next: candidate, alive };
+  }
+  return { next: alive[0] || null, alive };
 }
 
 export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
@@ -146,28 +167,39 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     });
   }
 
+  function setSelectOptions(id, optionIds, selectedId = null, { preserveUserSelection = true } = {}) {
+    const select = $(id);
+    if (!select) return;
+    const previous = preserveUserSelection ? select.value : "";
+    const values = optionIds.filter(Boolean);
+    select.innerHTML = values.map((optionId) => `<option value="${escapeHtml(optionId)}">${escapeHtml(round5.participants?.[optionId]?.name || optionId)}</option>`).join("");
+    const nextValue = values.includes(selectedId) ? selectedId : (values.includes(previous) ? previous : (values[0] || ""));
+    select.value = nextValue;
+  }
+
   function render() {
     const r = round5;
     syncDamageInput();
     const alive = getAliveOrder(r);
+    const order = r.turn?.order || [];
+    const attackerId = alive.includes(r.duel?.attackerId) ? r.duel.attackerId : (alive.includes(r.turn?.currentPlayerId) ? r.turn.currentPlayerId : alive[0] || null);
+    const targetId = alive.includes(r.duel?.targetId) && r.duel.targetId !== attackerId ? r.duel.targetId : (alive.find((id) => id !== attackerId) || null);
     const buzzedName = getParticipantName(r, r.duel?.buzzedBy, "");
     const buzzLabel = r.duel?.buzzedBy ? `🔔 ${buzzedName}` : (r.duel?.buzzerOpen ? "Buzzer ouvert · aucun buzz" : "Aucun buzz");
-    $("m5-status").textContent = `Phase: ${r.phase} | Joueur actif: ${r.participants?.[r.turn?.currentPlayerId]?.name || "—"}`;
+    $("m5-status").textContent = `${formatPhase(r.phase)} · Joueur actif : ${r.participants?.[r.turn?.currentPlayerId]?.name || "—"}`;
     $("m5-buzz-live").textContent = buzzLabel;
-    const options = alive.map((id) => `<option value="${id}">${r.participants?.[id]?.name || id}</option>`).join("");
-    $("m5-duel-attacker").innerHTML = options;
-    $("m5-duel-target").innerHTML = options;
-    $("m5-current-player").innerHTML = options;
-    $("m5-hp-player").innerHTML = (r.turn?.order || []).map((id) => `<option value="${id}">${r.participants?.[id]?.name || id}</option>`).join("");
-    $("m5-outsider-winner").innerHTML = Object.keys(r.outsiders?.answers || {}).map((id) => `<option value="${id}">${r.participants?.[id]?.name || id}</option>`).join("");
-    if (r.duel?.attackerId) $("m5-duel-attacker").value = r.duel.attackerId;
-    if (r.duel?.targetId) $("m5-duel-target").value = r.duel.targetId;
-    if (r.turn?.currentPlayerId) $("m5-current-player").value = r.turn.currentPlayerId;
-    $("m5-participants-live").innerHTML = (r.turn?.order || []).map((id) => {
+    setSelectOptions("m5-duel-attacker", alive, attackerId, { preserveUserSelection: !r.duel?.attackerId });
+    const selectedAttacker = $("m5-duel-attacker")?.value || attackerId;
+    setSelectOptions("m5-duel-target", alive.filter((id) => id !== selectedAttacker), targetId, { preserveUserSelection: !r.duel?.targetId });
+    setSelectOptions("m5-current-player", alive, r.turn?.currentPlayerId);
+    setSelectOptions("m5-hp-player", order, $("m5-hp-player")?.value || r.turn?.currentPlayerId);
+    setSelectOptions("m5-outsider-winner", Object.keys(r.outsiders?.answers || {}), r.outsiders?.winnerId, { preserveUserSelection: true });
+    $("m5-participants-live").innerHTML = order.map((id) => {
       const p = r.participants?.[id] || {};
-      return `<li>${p.name || id} · score:${p.score || 0} · PV:${p.hp || 0} · ${isAlive(r, id) ? "vivant" : "éliminé"}</li>`;
-    }).join("");
-    $("m5-outsider-live").innerHTML = Object.entries(r.outsiders?.answers || {}).map(([id, a]) => `<li>${r.participants?.[id]?.name || id}: ${a?.answer || ""}</li>`).join("") || "<li>Aucune réponse</li>";
+      const maxHp = Number(p.maxHp || p.initialHp || p.score || DEFAULT_DAMAGE);
+      return `<li>${escapeHtml(p.name || id)} · score:${Number(p.score || 0)} · PV:${Number(p.hp || 0)}/${maxHp} · ${isAlive(r, id) ? "vivant" : "éliminé"}</li>`;
+    }).join("") || "<li>Aucun joueur initialisé.</li>";
+    $("m5-outsider-live").innerHTML = Object.entries(r.outsiders?.answers || {}).map(([id, a]) => `<li>${escapeHtml(r.participants?.[id]?.name || id)}: ${escapeHtml(a?.answer || "")}</li>`).join("") || "<li>Aucune réponse</li>";
   }
 
   initDamageControl();
@@ -184,8 +216,18 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     return Boolean(attackerId && targetId && attackerId !== targetId && isAlive(round5, attackerId) && isAlive(round5, targetId));
   }
 
-  $("m5-init-hp").onclick = async () => save(buildRound5FromSessions(getSessionsById?.() || {}, round5));
-  $("m5-set-active-player").onclick = async () => save({ turn: { ...round5.turn, currentPlayerId: $("m5-current-player").value, currentIndex: Math.max(0, (round5.turn?.order || []).indexOf($("m5-current-player").value)) } });
+  $("m5-duel-attacker").addEventListener("change", render);
+  $("m5-init-hp").onclick = async () => save(buildRound5FromSessions(getSessionsById?.() || {}, round5, { resetHp: true }));
+  $("m5-set-active-player").onclick = async () => {
+    const currentPlayerId = $("m5-current-player").value;
+    if (!currentPlayerId || !isAlive(round5, currentPlayerId)) return;
+    await save({
+      phase: PHASES.TARGET_SELECTION,
+      turn: { ...round5.turn, currentPlayerId, currentIndex: Math.max(0, (round5.turn?.order || []).indexOf(currentPlayerId)) },
+      duel: { ...defaultRound5.duel },
+      outsiders: { ...defaultRound5.outsiders },
+    });
+  };
   $("m5-start-duel").onclick = async () => {
     const { attackerId, targetId } = readDuelSelection();
     if (!canStartDuel(attackerId, targetId)) return;
@@ -199,7 +241,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   const openOutsiderAnswers = async (message = "Duel sans réponse, outsiders autorisés.") => save({
     phase: PHASES.OUTSIDERS_ANSWER,
     duel: { ...round5.duel, buzzerOpen: false, answerStatus: round5.duel?.buzzedBy ? "wrong" : "no_answer" },
-    outsiders: { ...round5.outsiders, enabled: true },
+    outsiders: { ...defaultRound5.outsiders, enabled: true },
     lastResult: { type: round5.duel?.buzzedBy ? "duel_failed" : "duel_no_answer", message, damagedPlayers: {} },
   });
   $("m5-close-buzzer").onclick = async () => {
@@ -215,16 +257,24 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   const adjustHp = async (delta) => runTransaction(ref(db, ROUND5_PATH), (curr) => {
     const s = toRound5(curr); const id = $("m5-hp-player").value; if (!id || !s.participants?.[id]) return s;
     const hp = Math.max(0, Number(s.participants[id].hp || 0) + delta);
-    s.participants[id] = { ...s.participants[id], hp, alive: hp > 0, eliminated: hp <= 0 };
-    return { ...s, participants: s.participants, actionLog: addLog(s, `${delta > 0 ? "+" : ""}${delta} PV -> ${s.participants[id].name}`), updatedAt: Date.now() };
+    const maxHp = Math.max(Number(s.participants[id].maxHp || 0), Number(s.participants[id].initialHp || 0), hp, 1);
+    s.participants[id] = { ...s.participants[id], hp, maxHp, alive: hp > 0, eliminated: hp <= 0 };
+    const { next, alive } = getNextAliveTurn({ ...s, participants: s.participants });
+    const phase = alive.length <= 1 ? PHASES.FINISHED : (s.phase === PHASES.FINISHED ? PHASES.TARGET_SELECTION : s.phase);
+    const turn = alive.includes(s.turn?.currentPlayerId)
+      ? s.turn
+      : { ...s.turn, currentPlayerId: next, currentIndex: Math.max(0, (s.turn?.order || []).indexOf(next)) };
+    return { ...s, participants: s.participants, phase, turn, actionLog: addLog(s, `${delta > 0 ? "+" : ""}${delta} PV -> ${s.participants[id].name}`), updatedAt: Date.now() };
   });
-  $("m5-hp-plus").onclick = () => adjustHp(Number($("m5-hp-amount").value || 1));
-  $("m5-hp-minus").onclick = () => adjustHp(-Number($("m5-hp-amount").value || 1));
+  const getHpAmount = () => Math.max(1, Number($("m5-hp-amount").value || 1));
+  $("m5-hp-plus").onclick = () => adjustHp(getHpAmount());
+  $("m5-hp-minus").onclick = () => adjustHp(-getHpAmount());
 
   $("m5-mark-correct").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
     const s = toRound5(curr); const winner = s.duel?.buzzedBy; if (!winner) return s;
     const loser = winner === s.duel.attackerId ? s.duel.targetId : s.duel.attackerId;
-    const damage = getConfiguredDamage(); const hp = Math.max(0, Number(s.participants?.[loser]?.hp || 0) - damage);
+    if (!loser || !s.participants?.[loser]) return s;
+    const damage = getConfiguredDamage(); const hp = Math.max(0, Number(s.participants[loser].hp || 0) - damage);
     s.participants[loser] = { ...s.participants[loser], hp, alive: hp > 0, eliminated: hp <= 0 };
     return { ...s, participants: s.participants, phase: getAliveOrder({ ...s, participants: s.participants }).length <= 1 ? PHASES.FINISHED : PHASES.RESULT, duel: { ...s.duel, buzzerOpen: false, answerStatus: "correct" }, lastResult: { type: "duel_correct", message: `${s.participants?.[winner]?.name || winner} touche ${s.participants?.[loser]?.name || loser}`, damagedPlayers: { [loser]: damage } }, actionLog: addLog(s, `Bonne réponse duel: ${winner}`), updatedAt: Date.now() };
   });
@@ -242,8 +292,9 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   });
 
   $("m5-next-turn").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
-    const s = toRound5(curr); const alive = getAliveOrder(s); if (alive.length <= 1) return { ...s, phase: PHASES.FINISHED };
-    const i = Math.max(0, alive.indexOf(s.turn?.currentPlayerId)); const next = alive[(i + 1) % alive.length];
+    const s = toRound5(curr);
+    const { next, alive } = getNextAliveTurn(s);
+    if (alive.length <= 1) return { ...s, phase: PHASES.FINISHED, turn: { ...s.turn, currentPlayerId: next, currentIndex: Math.max(0, (s.turn?.order || []).indexOf(next)) }, updatedAt: Date.now() };
     return { ...s, phase: PHASES.TARGET_SELECTION, turn: { ...s.turn, currentPlayerId: next, currentIndex: Math.max(0, (s.turn?.order || []).indexOf(next)) }, duel: { ...defaultRound5.duel }, outsiders: { ...defaultRound5.outsiders }, updatedAt: Date.now() };
   });
 }
@@ -508,9 +559,9 @@ export function initMortSubiteOverlay() {
     const participant = state.participants?.[id] || {};
     const hp = Math.max(0, Number(participant.hp || 0));
     const configuredMax = Number(overlayConfig?.maxHp || 0);
+    const storedMax = Math.max(0, Number(participant.maxHp || participant.initialHp || 0));
     const scoreMax = Math.max(0, Number(participant.score || 0));
-    const liveMax = Math.max(...Object.values(state.participants || {}).map((p) => Number(p?.hp || 0)), 0);
-    const maxHp = configuredMax > 0 ? configuredMax : Math.max(scoreMax, liveMax, hp, 1);
+    const maxHp = configuredMax > 0 ? configuredMax : Math.max(storedMax, scoreMax, hp, 1);
     return Math.max(0, Math.min(100, (hp / maxHp) * 100));
   }
 
