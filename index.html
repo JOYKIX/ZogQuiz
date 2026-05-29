@@ -825,7 +825,16 @@ SNK OP1"></textarea></label>
                 </div>
               </div>
               <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants. Les slots “Participant à la manche” suivent maintenant automatiquement le compte actif de la manche (ex : joueur actif en manche 3), au lieu de prendre une caméra au hasard.</p>
-              <section class="subpanel compact-panel guest-camera-panel admin-camera-panel">
+              <nav class="camera-config-nav" id="camera-config-nav" aria-label="Sélection de la configuration caméra">
+                <button class="camera-config-tab active" type="button" data-camera-config-target="admin" aria-selected="true">Cam Admin</button>
+                <button class="camera-config-tab" type="button" data-camera-config-target="round1" aria-selected="false">Manche 1</button>
+                <button class="camera-config-tab" type="button" data-camera-config-target="round2" aria-selected="false">Manche 2</button>
+                <button class="camera-config-tab" type="button" data-camera-config-target="round3" aria-selected="false">Manche 3</button>
+                <button class="camera-config-tab" type="button" data-camera-config-target="round4" aria-selected="false">Manche 4</button>
+                <button class="camera-config-tab" type="button" data-camera-config-target="round5" aria-selected="false">Manche 5</button>
+                <button class="camera-config-tab" type="button" data-camera-config-target="round6" aria-selected="false">Manche 6</button>
+              </nav>
+              <section id="admin-camera-config-panel" class="subpanel compact-panel guest-camera-panel admin-camera-panel">
                 <div class="panel-head compact-head">
                   <div>
                     <p class="eyebrow">Cam admin</p>
