@@ -3,6 +3,7 @@ import { playBuzzerSound } from "./audio.js";
 import { watchOverlayConfig } from "./overlay-config.js";
 
 const ROUND5_PATH = "rounds/round5";
+const ROUND5_LEGACY_PATH = "rooms/manche5/state";
 const DEFAULT_PHASE = "setup";
 const DEFAULT_DAMAGE = 10;
 const PHASES = {
@@ -80,6 +81,102 @@ const toRound5 = (value) => {
   return normalized;
 };
 
+
+function legacyToRound5(value) {
+  if (!value || value.participants || value.turn) return toRound5(value);
+
+  const participants = {};
+  const ids = Array.from(new Set([
+    ...(value.turnOrder || []),
+    ...Object.keys(value.hpByPlayer || {}),
+    ...Object.keys(value.eliminated || {}),
+    value.currentTurnPlayerId,
+    value.targetPlayerId,
+    value.duel?.attackerId,
+    value.duel?.targetId,
+  ].filter(Boolean)));
+
+  ids.forEach((id) => {
+    const hp = Math.max(0, Number(value.hpByPlayer?.[id] ?? DEFAULT_DAMAGE));
+    const eliminated = Boolean(value.eliminated?.[id]) || hp <= 0;
+    participants[id] = {
+      name: id,
+      score: hp,
+      initialHp: Math.max(hp, DEFAULT_DAMAGE),
+      maxHp: Math.max(hp, DEFAULT_DAMAGE, 1),
+      hp,
+      alive: !eliminated,
+      eliminated,
+      color: "#fff",
+    };
+  });
+
+  const duel = { ...defaultRound5.duel, ...(value.duel || {}) };
+  const legacyPhase = value.duel?.phase;
+  const phase = value.phase
+    || (legacyPhase === "duel" ? PHASES.DUEL : null)
+    || (legacyPhase === "target" ? PHASES.TARGET_SELECTION : null)
+    || (value.active ? PHASES.TARGET_SELECTION : DEFAULT_PHASE);
+
+  return toRound5({
+    name: value.name || "Mort Subite",
+    phase,
+    participants,
+    turn: {
+      order: ids,
+      currentIndex: Math.max(0, ids.indexOf(value.currentTurnPlayerId)),
+      currentPlayerId: value.currentTurnPlayerId || ids[0] || null,
+    },
+    duel: {
+      ...duel,
+      attackerId: duel.attackerId || value.currentTurnPlayerId || null,
+      targetId: duel.targetId || value.targetPlayerId || null,
+      buzzerOpen: Boolean(duel.buzzerOpen),
+    },
+    settings: { damage: Number(value.damage || value.settings?.damage || DEFAULT_DAMAGE) },
+    updatedAt: Number(value.updatedAt || 0),
+    updatedBy: value.updatedBy || "",
+  });
+}
+
+function toLegacyRound5Patch(state) {
+  const s = toRound5(state);
+  const hpByPlayer = {};
+  const eliminated = {};
+  Object.entries(s.participants || {}).forEach(([id, participant]) => {
+    hpByPlayer[id] = Math.max(0, Number(participant?.hp || 0));
+    eliminated[id] = participant?.alive === false || participant?.eliminated === true || hpByPlayer[id] <= 0;
+  });
+  return {
+    active: s.phase !== PHASES.SETUP && s.phase !== PHASES.FINISHED,
+    turnOrder: s.turn?.order || [],
+    hpByPlayer,
+    eliminated,
+    currentTurnPlayerId: s.turn?.currentPlayerId || null,
+    targetPlayerId: s.duel?.targetId || null,
+    duel: { ...s.duel, phase: s.phase === PHASES.DUEL ? "duel" : "target" },
+    phase: s.phase,
+    settings: s.settings,
+    participants: s.participants || {},
+    updatedAt: s.updatedAt || Date.now(),
+    updatedBy: s.updatedBy || "",
+  };
+}
+
+function chooseNewestRound5(primary, legacy) {
+  const main = toRound5(primary);
+  const fallback = legacyToRound5(legacy);
+  return Number(fallback.updatedAt || 0) > Number(main.updatedAt || 0) ? fallback : main;
+}
+
+async function runRound5SyncedTransaction(updater) {
+  const result = await runTransaction(ref(db, ROUND5_PATH), updater);
+  if (result?.committed) {
+    await update(ref(db, ROUND5_LEGACY_PATH), toLegacyRound5Patch(result.snapshot.val()));
+  }
+  return result;
+}
+
 const isAlive = (s, id) => {
   const p = s?.participants?.[id];
   return Boolean(p && p.alive !== false && p.eliminated !== true && Number(p.hp || 0) > 0);
@@ -136,9 +233,20 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   if (!document.getElementById("m5-admin")) return;
   const $ = (id) => document.getElementById(id);
   let round5 = { ...defaultRound5 };
-  const save = (patch) => update(ref(db, ROUND5_PATH), { ...patch, damage: null, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
+  const save = async (patch) => {
+    const next = toRound5({ ...round5, ...patch, damage: null, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
+    await update(ref(db, ROUND5_PATH), next);
+    await update(ref(db, ROUND5_LEGACY_PATH), toLegacyRound5Patch(next));
+  };
 
-  onValue(ref(db, ROUND5_PATH), (snap) => { round5 = toRound5(snap.val()); render(); });
+  let primaryRound5 = null;
+  let legacyRound5 = null;
+  const renderSyncedRound5 = () => {
+    round5 = chooseNewestRound5(primaryRound5, legacyRound5);
+    render();
+  };
+  onValue(ref(db, ROUND5_PATH), (snap) => { primaryRound5 = snap.val(); renderSyncedRound5(); });
+  onValue(ref(db, ROUND5_LEGACY_PATH), (snap) => { legacyRound5 = snap.val(); renderSyncedRound5(); });
 
 
   function getRoundDamage(state = round5) {
@@ -212,12 +320,26 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     return { attackerId: selectedAttacker, targetId: selectedTarget };
   }
 
-  function canStartDuel(attackerId, targetId) {
-    return Boolean(attackerId && targetId && attackerId !== targetId && isAlive(round5, attackerId) && isAlive(round5, targetId));
+  function canStartDuel(state, attackerId, targetId) {
+    return Boolean(attackerId && targetId && attackerId !== targetId && isAlive(state, attackerId) && isAlive(state, targetId));
   }
 
   $("m5-duel-attacker").addEventListener("change", render);
   $("m5-init-hp").onclick = async () => save(buildRound5FromSessions(getSessionsById?.() || {}, round5, { resetHp: true }));
+
+  function getPlayableRound5() {
+    if (getAliveOrder(round5).length >= 2) return round5;
+    const hydrated = buildRound5FromSessions(getSessionsById?.() || {}, round5, { resetHp: false });
+    return getAliveOrder(hydrated).length >= 2 ? hydrated : round5;
+  }
+
+  function readDuelSelectionFrom(state) {
+    const alive = getAliveOrder(state);
+    const selectedAttacker = $("m5-duel-attacker").value || state.turn?.currentPlayerId || alive[0] || null;
+    let selectedTarget = $("m5-duel-target").value || alive.find((id) => id !== selectedAttacker) || null;
+    if (selectedTarget === selectedAttacker) selectedTarget = alive.find((id) => id !== selectedAttacker) || null;
+    return { attackerId: selectedAttacker, targetId: selectedTarget };
+  }
   $("m5-set-active-player").onclick = async () => {
     const currentPlayerId = $("m5-current-player").value;
     if (!currentPlayerId || !isAlive(round5, currentPlayerId)) return;
@@ -229,14 +351,16 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     });
   };
   $("m5-start-duel").onclick = async () => {
-    const { attackerId, targetId } = readDuelSelection();
-    if (!canStartDuel(attackerId, targetId)) return;
-    await save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId, targetId, question: $("m5-question").value.trim(), buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
+    const base = getPlayableRound5();
+    const { attackerId, targetId } = readDuelSelectionFrom(base);
+    if (!canStartDuel(base, attackerId, targetId)) return;
+    await save({ ...base, phase: PHASES.DUEL, duel: { ...base.duel, attackerId, targetId, question: $("m5-question").value.trim(), buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
   };
   $("m5-open-buzzer").onclick = async () => {
-    const { attackerId, targetId } = readDuelSelection();
-    if (!canStartDuel(attackerId, targetId)) return;
-    await save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId, targetId, buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
+    const base = getPlayableRound5();
+    const { attackerId, targetId } = readDuelSelectionFrom(base);
+    if (!canStartDuel(base, attackerId, targetId)) return;
+    await save({ ...base, phase: PHASES.DUEL, duel: { ...base.duel, attackerId, targetId, buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
   };
   const openOutsiderAnswers = async (message = "Duel sans réponse, outsiders autorisés.") => save({
     phase: PHASES.OUTSIDERS_ANSWER,
@@ -254,8 +378,8 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   $("m5-mark-fail").onclick = async () => openOutsiderAnswers(round5.duel?.buzzedBy ? "Duel raté, outsiders autorisés." : "Personne n’a répondu, outsiders autorisés.");
   $("m5-reset").onclick = async () => save({ ...defaultRound5, name: "Mort Subite" });
 
-  const adjustHp = async (delta) => runTransaction(ref(db, ROUND5_PATH), (curr) => {
-    const s = toRound5(curr); const id = $("m5-hp-player").value; if (!id || !s.participants?.[id]) return s;
+  const adjustHp = async (delta) => runRound5SyncedTransaction((curr) => {
+    const s = chooseNewestRound5(curr, legacyRound5); const id = $("m5-hp-player").value; if (!id || !s.participants?.[id]) return s;
     const hp = Math.max(0, Number(s.participants[id].hp || 0) + delta);
     const maxHp = Math.max(Number(s.participants[id].maxHp || 0), Number(s.participants[id].initialHp || 0), hp, 1);
     s.participants[id] = { ...s.participants[id], hp, maxHp, alive: hp > 0, eliminated: hp <= 0 };
@@ -270,8 +394,8 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   $("m5-hp-plus").onclick = () => adjustHp(getHpAmount());
   $("m5-hp-minus").onclick = () => adjustHp(-getHpAmount());
 
-  $("m5-mark-correct").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
-    const s = toRound5(curr); const winner = s.duel?.buzzedBy; if (!winner) return s;
+  $("m5-mark-correct").onclick = async () => runRound5SyncedTransaction((curr) => {
+    const s = chooseNewestRound5(curr, legacyRound5); const winner = s.duel?.buzzedBy; if (!winner) return s;
     const loser = winner === s.duel.attackerId ? s.duel.targetId : s.duel.attackerId;
     if (!loser || !s.participants?.[loser]) return s;
     const damage = getConfiguredDamage(); const hp = Math.max(0, Number(s.participants[loser].hp || 0) - damage);
@@ -279,8 +403,8 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     return { ...s, participants: s.participants, phase: getAliveOrder({ ...s, participants: s.participants }).length <= 1 ? PHASES.FINISHED : PHASES.RESULT, duel: { ...s.duel, buzzerOpen: false, answerStatus: "correct" }, lastResult: { type: "duel_correct", message: `${s.participants?.[winner]?.name || winner} touche ${s.participants?.[loser]?.name || loser}`, damagedPlayers: { [loser]: damage } }, actionLog: addLog(s, `Bonne réponse duel: ${winner}`), updatedAt: Date.now() };
   });
 
-  $("m5-outsider-correct").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
-    const s = toRound5(curr); const win = $("m5-outsider-winner").value || Object.keys(s.outsiders?.answers || {})[0]; if (!win) return s;
+  $("m5-outsider-correct").onclick = async () => runRound5SyncedTransaction((curr) => {
+    const s = chooseNewestRound5(curr, legacyRound5); const win = $("m5-outsider-winner").value || Object.keys(s.outsiders?.answers || {})[0]; if (!win) return s;
     const damage = getConfiguredDamage(); const damagedPlayers = {};
     for (const id of [s.duel.attackerId, s.duel.targetId]) {
       if (!id || !s.participants[id]) continue;
@@ -291,8 +415,8 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     return { ...s, participants: s.participants, phase: getAliveOrder({ ...s, participants: s.participants }).length <= 1 ? PHASES.FINISHED : PHASES.RESULT, outsiders: { ...s.outsiders, winnerId: win }, lastResult: { type: "outsider_correct", message: `${s.participants?.[win]?.name || win} a répondu juste`, damagedPlayers }, actionLog: addLog(s, `Outsider correct: ${win}`), updatedAt: Date.now() };
   });
 
-  $("m5-next-turn").onclick = async () => runTransaction(ref(db, ROUND5_PATH), (curr) => {
-    const s = toRound5(curr);
+  $("m5-next-turn").onclick = async () => runRound5SyncedTransaction((curr) => {
+    const s = chooseNewestRound5(curr, legacyRound5);
     const { next, alive } = getNextAliveTurn(s);
     if (alive.length <= 1) return { ...s, phase: PHASES.FINISHED, turn: { ...s.turn, currentPlayerId: next, currentIndex: Math.max(0, (s.turn?.order || []).indexOf(next)) }, updatedAt: Date.now() };
     return { ...s, phase: PHASES.TARGET_SELECTION, turn: { ...s.turn, currentPlayerId: next, currentIndex: Math.max(0, (s.turn?.order || []).indexOf(next)) }, duel: { ...defaultRound5.duel }, outsiders: { ...defaultRound5.outsiders }, updatedAt: Date.now() };
@@ -342,11 +466,16 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     playBuzzerSound();
   }
 
-  onValue(ref(db, ROUND5_PATH), (snap) => {
-    round5 = toRound5(snap.val());
+  let primaryRound5 = null;
+  let legacyRound5 = null;
+  const renderSyncedRound5 = () => {
+    round5 = chooseNewestRound5(primaryRound5, legacyRound5);
     triggerDuelBuzzSound(round5);
     render();
-  });
+  };
+
+  onValue(ref(db, ROUND5_PATH), (snap) => { primaryRound5 = snap.val(); renderSyncedRound5(); });
+  onValue(ref(db, ROUND5_LEGACY_PATH), (snap) => { legacyRound5 = snap.val(); renderSyncedRound5(); });
 
   function getRoleState(me) {
     const duelists = [round5.duel?.attackerId, round5.duel?.targetId].filter(Boolean);
@@ -450,8 +579,8 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     buzzInFlight = true;
     render();
     try {
-      await runTransaction(ref(db, ROUND5_PATH), (curr) => {
-        const s = toRound5(curr);
+      await runRound5SyncedTransaction((curr) => {
+        const s = chooseNewestRound5(curr, legacyRound5);
         const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
         if (!(s.phase === PHASES.DUEL && s.duel?.buzzerOpen && duelist && isAlive(s, me) && !s.duel?.buzzedBy)) return s;
         return { ...s, duel: { ...s.duel, buzzerOpen: false, buzzedBy: me, buzzedAt: Date.now() }, updatedAt: Date.now() };
@@ -492,8 +621,8 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     const me = getMe();
     const answer = els.outsiderInput.value.trim();
     if (!answer) return;
-    await runTransaction(ref(db, ROUND5_PATH), (curr) => {
-      const s = toRound5(curr);
+    await runRound5SyncedTransaction((curr) => {
+      const s = chooseNewestRound5(curr, legacyRound5);
       const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
       if (!(s.phase === PHASES.OUTSIDERS_ANSWER && s.outsiders?.enabled && isAlive(s, me) && !duelist)) return s;
       const answers = { ...(s.outsiders?.answers || {}), [me]: { answer, timestamp: Date.now() } };
@@ -584,8 +713,12 @@ export function initMortSubiteOverlay() {
   }
 
   watchOverlayConfig("round5", applyOverlayConfig);
-  onValue(ref(db, ROUND5_PATH), (snap) => {
-    roundState = toRound5(snap.val());
+  let primaryRound5 = null;
+  let legacyRound5 = null;
+  const renderSyncedRound5 = () => {
+    roundState = chooseNewestRound5(primaryRound5, legacyRound5);
     render();
-  });
+  };
+  onValue(ref(db, ROUND5_PATH), (snap) => { primaryRound5 = snap.val(); renderSyncedRound5(); });
+  onValue(ref(db, ROUND5_LEGACY_PATH), (snap) => { legacyRound5 = snap.val(); renderSyncedRound5(); });
 }

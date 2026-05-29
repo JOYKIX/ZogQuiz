@@ -46,6 +46,13 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
+
+function chooseFreshestRoundState(current = {}, next = {}) {
+  if (!current || !Object.keys(current).length) return next || {};
+  if (!next || !Object.keys(next).length) return current || {};
+  return Number(next.updatedAt || 0) >= Number(current.updatedAt || 0) ? next : current;
+}
+
 function closePeer(entry) {
   entry?.unsubscribeAnswer?.();
   entry?.unsubscribeCandidates?.();
@@ -532,7 +539,7 @@ export function initCameraOverlay(roundKey) {
   const extraRoundStatePaths = roundKey === "round2" ? ["rooms/manche2/state"] : [];
   [...extraRoundStatePaths, ...(CAMERA_ROUND_STATE_PATHS[roundKey] || [])].forEach((path) => {
     onValue(ref(db, path), (snap) => {
-      roundStates[roundKey] = snap.val() || {};
+      roundStates[roundKey] = chooseFreshestRoundState(roundStates[roundKey], snap.val() || {});
       reconcile();
       updateAnswerOverlays();
     });
@@ -790,9 +797,9 @@ export function initGuestCameraWall({
       reconcile();
     });
     const extraRoundStatePaths = roundKey === "round2" ? ["rooms/manche2/state"] : [];
-  [...extraRoundStatePaths, ...(CAMERA_ROUND_STATE_PATHS[roundKey] || [])].forEach((path) => {
+    [...extraRoundStatePaths, ...(CAMERA_ROUND_STATE_PATHS[roundKey] || [])].forEach((path) => {
       onValue(ref(db, path), (snap) => {
-        roundStates[roundKey] = snap.val() || {};
+        roundStates[roundKey] = chooseFreshestRoundState(roundStates[roundKey], snap.val() || {});
         reconcile();
       });
     });
