@@ -265,7 +265,7 @@ export async function ensureRoundsSeed(uid) {
       gap: 14,
       perRow: 3,
       borderRadius: 18,
-      showNames: true,
+      showNames: false,
       updatedBy: uid,
       updatedAt: Date.now(),
     };
