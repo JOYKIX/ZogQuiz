@@ -122,6 +122,7 @@ const m2LiveCurrentImage = $("m2-live-current-image");
 const m2LiveCurrentTitle = $("m2-live-current-title");
 const m2LiveCurrentLocation = $("m2-live-current-location");
 const m2LiveCurrentQuestion = $("m2-live-current-question");
+const m2LiveAnswers = $("m2-live-answers");
 const m2LivePrevBtn = $("m2-live-prev");
 const m2LiveNextBtn = $("m2-live-next");
 const m2QuestionSearch = $("m2-question-search");
@@ -242,6 +243,7 @@ let participantQuestions = {};
 let viewerQuestions = {};
 let manche2Questions = {};
 let manche2State = null;
+let manche2Answers = {};
 let selectedManche2QuestionId = null;
 let buzzesById = {};
 let guestAccountsById = {};
@@ -744,8 +746,9 @@ function initListeners() {
     syncOverlayInputs();
   });
 
-  onValue(ref(db, "rooms/manche2/questions"), (snap) => { manche2Questions = snap.val() || {}; renderRound2Questions(); });
+  onValue(ref(db, "rooms/manche2/questions"), (snap) => { manche2Questions = snap.val() || {}; renderRound2Questions(); updateRound2Status(); });
   onValue(ref(db, "rooms/manche2/state"), (snap) => { manche2State = snap.val() || {}; renderRound2Questions(); updateRound2Status(); });
+  onValue(ref(db, "rooms/manche2/answers"), (snap) => { manche2Answers = snap.val() || {}; updateRound2Status(); });
   onValue(ref(db, "rooms/manche3/themes"), (snap) => { manche3Themes = snap.val() || {}; renderRound3Themes(); renderRound3State(); });
   onValue(ref(db, "rooms/manche3/state"), (snap) => {
     manche3State = snap.val() || null;
@@ -963,6 +966,7 @@ async function resetCompleteQuiz() {
     remove(ref(db, GUEST_ACCOUNTS_PATH)),
     remove(ref(db, GUEST_LOGIN_INDEX_PATH)),
     remove(ref(db, "rooms/manche2/questions")),
+    remove(ref(db, "rooms/manche2/answers")),
     remove(ref(db, "rooms/manche3/themes")),
     remove(ref(db, "rooms/manche4/grids")),
     remove(ref(db, "rooms/viewers/questions")),
@@ -1486,6 +1490,7 @@ function renderRound2Questions() {
     deleteBtn.addEventListener("click", async () => {
       if (!(await showConfirm("Supprimer cette image ?", { title: "Suppression" }))) return;
       await remove(ref(db, `rooms/manche2/questions/${id}`));
+      await remove(ref(db, `rooms/manche2/answers/${id}`));
       if (manche2State?.activeQuestionId === id) {
         await update(ref(db, "rooms/manche2/state"), { activeQuestionId: null, updatedAt: Date.now(), updatedBy: currentAdminId });
       }
@@ -1584,9 +1589,47 @@ function updateRound1Status() {
   }
 }
 
+function renderRound2LiveAnswers() {
+  if (!m2LiveAnswers) return;
+  const questionId = manche2State?.activeQuestionId || null;
+  m2LiveAnswers.innerHTML = "";
+  if (!questionId) {
+    m2LiveAnswers.innerHTML = "<li class='empty-state'>Aucune image active.</li>";
+    return;
+  }
+
+  const entries = Object.values(manche2Answers?.[questionId] || {})
+    .filter((item) => String(item?.answer || "").trim())
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  if (!entries.length) {
+    m2LiveAnswers.innerHTML = "<li class='empty-state'>Aucune réponse écrite pour cette image.</li>";
+    return;
+  }
+
+  entries.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = "answer-item";
+
+    const name = document.createElement("strong");
+    name.textContent = item.nickname || item.loginId || item.accountId || "Invité";
+
+    const answer = document.createElement("p");
+    answer.textContent = item.answer || "—";
+
+    const meta = document.createElement("small");
+    meta.className = "muted";
+    meta.textContent = item.updatedAt ? new Date(item.updatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
+
+    li.append(name, answer, meta);
+    m2LiveAnswers.appendChild(li);
+  });
+}
+
 function updateRound2Status() {
   const active = manche2State?.activeQuestionId ? manche2Questions[manche2State.activeQuestionId] : null;
-  const statusText = active ? `Image live : ${active.work}` : "Aucune image active.";
+  const answerCount = manche2State?.activeQuestionId ? Object.values(manche2Answers?.[manche2State.activeQuestionId] || {}).filter((item) => String(item?.answer || "").trim()).length : 0;
+  const statusText = active ? `Image live : ${active.work} • ${answerCount} réponse${answerCount > 1 ? "s" : ""}` : "Aucune image active.";
   setMessage(m2LiveStatus, statusText);
   setMessage(m2OverviewStatus, statusText);
   if (m2LiveCurrentImage) {
@@ -1601,6 +1644,7 @@ function updateRound2Status() {
   if (m2LiveCurrentTitle) m2LiveCurrentTitle.textContent = active?.work || "—";
   if (m2LiveCurrentLocation) m2LiveCurrentLocation.textContent = active?.location || "—";
   if (m2LiveCurrentQuestion) m2LiveCurrentQuestion.textContent = active?.questionText || "—";
+  renderRound2LiveAnswers();
   const entries = sortedRound2Entries();
   const currentIndex = entries.findIndex(([id]) => id === manche2State?.activeQuestionId);
   if (m2LivePrevBtn) m2LivePrevBtn.disabled = currentIndex <= 0;

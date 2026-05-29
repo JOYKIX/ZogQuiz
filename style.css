@@ -305,6 +305,8 @@ tr:hover td { background: rgba(255,255,255,.04); }
 .guest-round-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); max-width: 760px; width: 100%; margin: 0 auto; }
 .guest-round-info-grid > * { margin: 0; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.045); }
 .guest-choice-area, .guest-answer-form { width: min(100%, 760px); margin-inline: auto; }
+.guest-answer-form { padding: clamp(1rem, 2vw, 1.35rem); border: 1px solid rgba(35,213,255,.22); border-radius: var(--radius-lg); background: rgba(3, 8, 24, .32); }
+.guest-answer-form textarea { min-height: 110px; resize: vertical; }
 .guest-image-card { min-height: clamp(260px, 48vh, 540px); display: grid; place-items: center; text-align: center; }
 .guest-image { max-height: min(56vh, 560px); width: auto; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
 .guest-empty { color: var(--muted); font-size: clamp(1.4rem, 4vw, 3rem); font-weight: 900; }
@@ -328,6 +330,9 @@ tr:hover td { background: rgba(255,255,255,.04); }
 .m6-timer { display: block; margin: .7rem 0; color: var(--primary-2); font: 900 clamp(2.4rem, 7vw, 5.5rem)/1 var(--font-display); font-variant-numeric: tabular-nums; text-shadow: 0 0 28px rgba(35,213,255,.32); }
 .m4-youtube-host { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .m2-thumb { max-height: 360px; border-radius: var(--radius-md); object-fit: contain; border: 1px solid var(--line); }
+.answer-item { display: grid; gap: .35rem; align-items: start; }
+.answer-item p { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+.answer-item small { font-size: .78rem; }
 
 .app-modal-root { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
 .app-modal-overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: var(--space-4); pointer-events: auto; background: rgba(0,0,0,.64); backdrop-filter: blur(14px); animation: fadeIn .2s var(--ease); }
