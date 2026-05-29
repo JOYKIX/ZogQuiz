@@ -55,6 +55,7 @@ const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
 const m2AnswerForm = document.getElementById("m2-answer-form");
 const m2AnswerInput = document.getElementById("m2-answer-input");
+const m2AnswerSubmit = document.getElementById("m2-answer-submit");
 const m2AnswerStatus = document.getElementById("m2-answer-status");
 
 const m3GuestStatus = document.getElementById("m3-guest-status");
@@ -491,6 +492,7 @@ function renderRound2AnswerForm() {
   if (!canAnswer) {
     lastRenderedRound2QuestionId = questionId;
     m2AnswerInput.value = "";
+    if (m2AnswerSubmit) m2AnswerSubmit.disabled = true;
     setRound2AnswerStatus(questionId ? "Connectez-vous pour répondre." : "", questionId ? "error" : "default");
     return;
   }
@@ -501,8 +503,12 @@ function renderRound2AnswerForm() {
   lastRenderedRound2QuestionId = questionId;
 
   if (existingAnswer?.answer) {
-    setRound2AnswerStatus("Réponse envoyée. Vous pouvez la modifier puis renvoyer.", "success");
+    m2AnswerInput.disabled = true;
+    if (m2AnswerSubmit) m2AnswerSubmit.disabled = true;
+    setRound2AnswerStatus("Réponse envoyée. Une seule réponse est autorisée par image.", "success");
   } else {
+    m2AnswerInput.disabled = false;
+    if (m2AnswerSubmit) m2AnswerSubmit.disabled = false;
     setRound2AnswerStatus("Écrivez votre réponse puis envoyez-la à l’admin.");
   }
 }
@@ -530,8 +536,10 @@ async function submitRound2Answer(event) {
   if (!questionId || !activeQuestion?.imageDataUrl) return setRound2AnswerStatus("Aucune image active pour le moment.", "error");
   if (!answer) return setRound2AnswerStatus("Réponse obligatoire.", "error");
 
-  setRound2AnswerStatus("Envoi de la réponse...", "loading");
   const existingAnswer = getCurrentRound2Answer();
+  if (existingAnswer?.answer) return setRound2AnswerStatus("Réponse déjà envoyée pour cette image.", "error");
+
+  setRound2AnswerStatus("Envoi de la réponse...", "loading");
   const now = Date.now();
   await set(ref(db, `rooms/manche2/answers/${questionId}/${guestAuth.accountId}`), {
     accountId: guestAuth.accountId,
