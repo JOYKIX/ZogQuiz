@@ -397,8 +397,18 @@ export function initCameraOverlay(roundKey) {
   });
 }
 
-export function initGuestCameraWall({ root, status, getCurrentSessionId }) {
-  if (!root) return null;
+export function initGuestCameraWall({
+  root,
+  status,
+  adminRoot = root,
+  participantsRoot = root,
+  adminStatus = status,
+  participantsStatus = status,
+  showAdminInput,
+  showParticipantsInput,
+  getCurrentSessionId,
+}) {
+  if (!adminRoot && !participantsRoot) return null;
   const viewerId = createClientId("guest_viewer");
   const peers = new Map();
   const configs = {};
@@ -409,6 +419,18 @@ export function initGuestCameraWall({ root, status, getCurrentSessionId }) {
 
   function currentRoundKey() {
     return ROOM_TO_ROUND_KEY[liveRoom === "finale" ? "manche5" : liveRoom] || "round1";
+  }
+
+  function shouldShowAdmin() {
+    return showAdminInput ? showAdminInput.checked : true;
+  }
+
+  function shouldShowParticipants() {
+    return showParticipantsInput ? showParticipantsInput.checked : true;
+  }
+
+  function setStatusText(target, text) {
+    if (target) target.textContent = text;
   }
 
   function activePresenceEntries() {
@@ -432,48 +454,61 @@ export function initGuestCameraWall({ root, status, getCurrentSessionId }) {
     const activeParticipantIds = getActiveParticipantIdsForRound(roundKey, roundStates[roundKey] || {});
     const used = new Set();
     const desired = [];
+    const showAdmin = shouldShowAdmin();
+    const showParticipants = shouldShowParticipants();
 
-    if (byId.has(ADMIN_CAMERA_ID)) {
-      desired.push({ guestId: ADMIN_CAMERA_ID, nickname: byId.get(ADMIN_CAMERA_ID)?.nickname || "Admin" });
+    if (showAdmin && byId.has(ADMIN_CAMERA_ID)) {
+      desired.push({ guestId: ADMIN_CAMERA_ID, nickname: byId.get(ADMIN_CAMERA_ID)?.nickname || "Admin", group: "admin" });
       used.add(ADMIN_CAMERA_ID);
     }
 
-    if (config?.enabled && config.cameras?.length) {
+    if (showParticipants && config?.enabled && config.cameras?.length) {
       config.cameras.forEach((slot) => {
         const guestId = resolveCameraSlotGuestId(slot, { activeEntries: entries, activeParticipantIds, used, includeAdmin: false });
         if (!guestId || guestId === ADMIN_CAMERA_ID) return;
         used.add(guestId);
-        desired.push({ guestId, nickname: byId.get(guestId)?.nickname || "Invité" });
+        desired.push({ guestId, nickname: byId.get(guestId)?.nickname || "Invité", group: "participants" });
       });
     }
 
-    activeParticipantIds.forEach((participantId) => {
-      if (!byId.has(participantId) || used.has(participantId)) return;
-      used.add(participantId);
-      desired.push({ guestId: participantId, nickname: byId.get(participantId)?.nickname || "Participant" });
-    });
+    if (showParticipants) {
+      activeParticipantIds.forEach((participantId) => {
+        if (!byId.has(participantId) || used.has(participantId)) return;
+        used.add(participantId);
+        desired.push({ guestId: participantId, nickname: byId.get(participantId)?.nickname || "Participant", group: "participants" });
+      });
+    }
 
-    if (desired.length <= 1) {
+    if (showParticipants && desired.filter((item) => item.group === "participants").length === 0) {
       entries.forEach(([guestId, item]) => {
         if (used.has(guestId) || guestId === ADMIN_CAMERA_ID) return;
         used.add(guestId);
-        desired.push({ guestId, nickname: item?.nickname || "Invité" });
+        desired.push({ guestId, nickname: item?.nickname || "Invité", group: "participants" });
       });
     }
 
     return desired;
   }
 
-  function ensureCard(guestId, nickname) {
+  function rootForGroup(group) {
+    return group === "admin" ? adminRoot : participantsRoot;
+  }
+
+  function ensureCard(guestId, nickname, group) {
     let entry = peers.get(guestId);
+    const targetRoot = rootForGroup(group);
     if (entry?.card) {
       entry.nickname = nickname;
+      entry.group = group;
       entry.name.textContent = nickname;
+      entry.card.classList.toggle("admin", guestId === ADMIN_CAMERA_ID);
+      if (targetRoot && entry.card.parentElement !== targetRoot) targetRoot.append(entry.card);
       return entry;
     }
     const card = document.createElement("article");
     card.className = `guest-remote-camera-card connecting${guestId === ADMIN_CAMERA_ID ? " admin" : ""}`;
     card.dataset.guestId = guestId;
+    card.dataset.cameraGroup = group;
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
@@ -482,14 +517,14 @@ export function initGuestCameraWall({ root, status, getCurrentSessionId }) {
     name.className = "guest-remote-camera-name";
     name.textContent = nickname;
     card.append(video, name);
-    root.append(card);
-    entry = { ...(entry || {}), card, video, name, guestId, nickname };
+    targetRoot?.append(card);
+    entry = { ...(entry || {}), card, video, name, guestId, nickname, group };
     peers.set(guestId, entry);
     return entry;
   }
 
-  async function connect(guestId, nickname) {
-    const entry = ensureCard(guestId, nickname);
+  async function connect(guestId, nickname, group) {
+    const entry = ensureCard(guestId, nickname, group);
     if (entry.pc && !["failed", "closed", "disconnected"].includes(entry.pc.connectionState)) return;
     closePeer(entry);
 
@@ -553,9 +588,26 @@ export function initGuestCameraWall({ root, status, getCurrentSessionId }) {
     for (const guestId of [...peers.keys()]) {
       if (!ids.has(guestId)) disconnect(guestId).catch(console.warn);
     }
-    desired.forEach(({ guestId, nickname }) => connect(guestId, nickname).catch(console.warn));
-    if (status) status.textContent = desired.length ? `${desired.length} caméra(s) visible(s)` : "Aucune caméra active pour le moment.";
+    desired.forEach(({ guestId, nickname, group }) => connect(guestId, nickname, group).catch(console.warn));
+
+    const adminCount = desired.filter((item) => item.group === "admin").length;
+    const participantCount = desired.filter((item) => item.group === "participants").length;
+    setStatusText(
+      adminStatus,
+      shouldShowAdmin()
+        ? (adminCount ? `${adminCount} caméra admin visible.` : "Aucune caméra admin active.")
+        : "Rendu de la cam admin désactivé.",
+    );
+    setStatusText(
+      participantsStatus,
+      shouldShowParticipants()
+        ? (participantCount ? `${participantCount} caméra(s) participant(s) visible(s).` : "Aucune caméra participant active pour le moment.")
+        : "Rendu des cams participants désactivé.",
+    );
   }
+
+  showAdminInput?.addEventListener("change", reconcile);
+  showParticipantsInput?.addEventListener("change", reconcile);
 
   onValue(ref(db, "quiz/state"), (snap) => {
     const state = snap.val() || {};
