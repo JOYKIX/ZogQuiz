@@ -67,12 +67,15 @@ const m3AnswerForm = document.getElementById("m3-answer-form");
 const m3AnswerInput = document.getElementById("m3-answer-input");
 const m3AnswerStatus = document.getElementById("m3-answer-status");
 
-const GUEST_STORAGE_KEY = "zogquiz.guestSession.v2";
+const LEGACY_GUEST_STORAGE_KEY = "zogquiz.guestSession.v2";
+const GUEST_CLIENT_STORAGE_KEY = "zogquiz.guestClientId.v1";
 const BUZZ_KEYBIND_STORAGE_KEY = "zogquiz.guestBuzzKeybind.v1";
 const ROUND1_STATE_PATH = "rooms/manche1/state";
 const ROUND1_GUEST_SESSIONS_PATH = "rooms/manche1/guestSessions";
 const ROUND1_QUESTION_BLOCKS_PATH = "rooms/manche1/questionBlocks";
 const ROUND1_BUZZES_PATH = "rooms/manche1/buzzes";
+const GUEST_CLIENT_SESSIONS_PATH = "rooms/manche1/guestClientSessions";
+const CLIENT_SESSION_HEARTBEAT_MS = 20000;
 const DEFAULT_BUZZ_KEY = "Space";
 
 const FRIENDLY_KEY_NAMES = {
@@ -112,6 +115,7 @@ let guestCameraController = null;
 let guestCameraWallController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
+let clientSessionHeartbeat = null;
 
 
 function safeFirebaseKey(value) {
@@ -121,17 +125,30 @@ function isAccountActive(account) {
   return account?.active !== false;
 }
 
+function normalizeBuzzKeyCode(code) {
+  return String(code || "").trim() || DEFAULT_BUZZ_KEY;
+}
+
 function readStoredBuzzKeybind() {
   try {
-    const stored = String(localStorage.getItem(BUZZ_KEYBIND_STORAGE_KEY) || "").trim();
-    return stored || DEFAULT_BUZZ_KEY;
+    return normalizeBuzzKeyCode(localStorage.getItem(BUZZ_KEYBIND_STORAGE_KEY));
   } catch {
     return DEFAULT_BUZZ_KEY;
   }
 }
 
 function writeStoredBuzzKeybind(code) {
-  localStorage.setItem(BUZZ_KEYBIND_STORAGE_KEY, code);
+  const normalized = normalizeBuzzKeyCode(code);
+  try {
+    localStorage.setItem(BUZZ_KEYBIND_STORAGE_KEY, normalized);
+  } catch {}
+  if (guestAuth.accountId) {
+    update(ref(db, `${GUEST_ACCOUNTS_PATH}/${guestAuth.accountId}`), {
+      buzzKeyCode: normalized,
+      updatedAt: Date.now(),
+    }).catch(() => {});
+    touchRealtimeClientSession();
+  }
 }
 
 function formatKeybindLabel(code) {
@@ -176,9 +193,40 @@ const triggerBuzzSound = createBuzzSoundTrigger({
   resolveBuzzerFile: (state) => sessionsById[state?.lockedBySessionId]?.buzzerSound || "buzzer.mp3",
 });
 
-function readStoredGuestSession() {
+function createGuestClientId() {
+  if (crypto?.randomUUID) return `guest_client_${crypto.randomUUID()}`;
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `guest_client_${Date.now().toString(36)}_${randomPart}`;
+}
+
+function readStoredClientId() {
   try {
-    const raw = localStorage.getItem(GUEST_STORAGE_KEY);
+    return String(localStorage.getItem(GUEST_CLIENT_STORAGE_KEY) || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function getOrCreateClientId() {
+  const existing = readStoredClientId();
+  if (existing) return existing;
+  const next = safeFirebaseKey(createGuestClientId());
+  try {
+    localStorage.setItem(GUEST_CLIENT_STORAGE_KEY, next);
+  } catch {}
+  return next;
+}
+
+function clearStoredClientId() {
+  try {
+    localStorage.removeItem(GUEST_CLIENT_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_GUEST_STORAGE_KEY);
+  } catch {}
+}
+
+function readLegacyStoredGuestSession() {
+  try {
+    const raw = localStorage.getItem(LEGACY_GUEST_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.accountId || !parsed?.authVersion) return null;
@@ -188,19 +236,55 @@ function readStoredGuestSession() {
   }
 }
 
-function writeStoredGuestSession(account) {
-  localStorage.setItem(
-    GUEST_STORAGE_KEY,
-    JSON.stringify({
-      accountId: account.accountId,
-      authVersion: Number(account.authVersion || 1),
-      updatedAt: Date.now(),
-    })
-  );
+async function writeRealtimeClientSession(account) {
+  const clientId = getOrCreateClientId();
+  if (!clientId || !account?.accountId) return;
+  await set(ref(db, `${GUEST_CLIENT_SESSIONS_PATH}/${clientId}`), {
+    clientId,
+    accountId: account.accountId,
+    authVersion: Number(account.authVersion || 1),
+    buzzKeyCode: normalizeBuzzKeyCode(account.buzzKeyCode || buzzKeybindCode),
+    active: true,
+    connected: true,
+    lastSeenAt: Date.now(),
+    createdAt: Date.now(),
+  });
 }
 
-function clearStoredGuestSession() {
-  localStorage.removeItem(GUEST_STORAGE_KEY);
+async function touchRealtimeClientSession() {
+  const clientId = readStoredClientId();
+  if (!clientId || !guestAuth.accountId) return;
+  await update(ref(db, `${GUEST_CLIENT_SESSIONS_PATH}/${clientId}`), {
+    accountId: guestAuth.accountId,
+    authVersion: Number(guestAuth.account?.authVersion || 1),
+    buzzKeyCode: normalizeBuzzKeyCode(buzzKeybindCode),
+    active: true,
+    connected: true,
+    lastSeenAt: Date.now(),
+  }).catch(() => {});
+}
+
+function startClientSessionHeartbeat() {
+  clearInterval(clientSessionHeartbeat);
+  if (!isGuestAuthenticated()) return;
+  touchRealtimeClientSession();
+  clientSessionHeartbeat = setInterval(touchRealtimeClientSession, CLIENT_SESSION_HEARTBEAT_MS);
+}
+
+function stopClientSessionHeartbeat() {
+  clearInterval(clientSessionHeartbeat);
+  clientSessionHeartbeat = null;
+}
+
+function deactivateRealtimeClientSession() {
+  const clientId = readStoredClientId();
+  if (!clientId) return;
+  update(ref(db, `${GUEST_CLIENT_SESSIONS_PATH}/${clientId}`), {
+    active: false,
+    connected: false,
+    disconnectedAt: Date.now(),
+    lastSeenAt: Date.now(),
+  }).catch(() => {});
 }
 
 function setGuestMessage(text, type = "default") {
@@ -215,6 +299,12 @@ function getCurrentSessionId() {
 
 function getCurrentNickname() {
   return guestAuth.nickname;
+}
+
+function dispatchGuestAuthChanged() {
+  window.dispatchEvent(new CustomEvent("zogquiz:guest-auth-changed", {
+    detail: { accountId: guestAuth.accountId, nickname: guestAuth.nickname, status: guestAuth.status },
+  }));
 }
 
 function isGuestConnected() {
@@ -274,9 +364,12 @@ function clearCurrentGuest({ reason = "Déconnecté.", type = "default" } = {}) 
     status: "logged_out",
   };
   currentQuestionBlocked = false;
+  stopClientSessionHeartbeat();
   guestCameraController?.stop?.({ keepMessage: true });
-  clearStoredGuestSession();
+  deactivateRealtimeClientSession();
+  clearStoredClientId();
   showLoginForm();
+  dispatchGuestAuthChanged();
   setGuestMessage(reason, type);
   renderRound3();
   refreshButtonState();
@@ -290,7 +383,11 @@ function applyConnectedState(account) {
     nickname,
     status: nickname ? "connected" : "awaiting_display_name",
   };
-  writeStoredGuestSession(account);
+  buzzKeybindCode = normalizeBuzzKeyCode(account.buzzKeyCode || buzzKeybindCode);
+  renderBuzzKeybind();
+  startClientSessionHeartbeat();
+
+  dispatchGuestAuthChanged();
 
   const loginIdInput = document.getElementById("guest-login-id");
   loginIdInput.value = account.loginId || "";
@@ -353,6 +450,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
     color,
   });
 
+  await writeRealtimeClientSession(account);
   applyConnectedState(account);
   if (nickname) setGuestMessage(sessionSnap.exists() ? reconnectMessage : "Connecté.", "success");
   return true;
@@ -417,31 +515,65 @@ guestLogoutBtn.addEventListener("click", () => {
   clearCurrentGuest({ reason: "Déconnecté." });
 });
 
-async function tryAutoReconnect() {
-  const stored = readStoredGuestSession();
-  if (!stored) return;
+async function restoreAccountFromClientSession(clientId) {
+  if (!clientId) return { ok: false, message: "" };
+  const clientSnap = await get(ref(db, `${GUEST_CLIENT_SESSIONS_PATH}/${clientId}`));
+  const clientSession = clientSnap.val() || {};
+  if (!clientSession?.accountId || clientSession.active === false) return { ok: false, message: "" };
 
-  const accountSnap = await get(ref(db, `${GUEST_ACCOUNTS_PATH}/${stored.accountId}`));
+  const accountSnap = await get(ref(db, `${GUEST_ACCOUNTS_PATH}/${clientSession.accountId}`));
   if (!accountSnap.exists()) {
-    clearStoredGuestSession();
-    setGuestMessage("Session expirée : compte supprimé.", "error");
-    return;
+    return { ok: false, message: "Session expirée : compte supprimé.", type: "error" };
   }
 
   const account = accountSnap.val() || {};
   const authVersion = Number(account.authVersion || 1);
   if (!isAccountActive(account)) {
-    clearStoredGuestSession();
-    setGuestMessage("Session invalide : compte désactivé.", "error");
-    return;
+    return { ok: false, message: "Session invalide : compte désactivé.", type: "error" };
   }
-  if (authVersion !== Number(stored.authVersion)) {
-    clearStoredGuestSession();
-    setGuestMessage("Session invalide : mot de passe modifié.", "error");
-    return;
+  if (authVersion !== Number(clientSession.authVersion || 0)) {
+    return { ok: false, message: "Session invalide : mot de passe modifié.", type: "error" };
   }
 
-  await ensureGuestSession({ ...account, accountId: stored.accountId }, { reconnectMessage: "Reconnexion automatique réussie." });
+  await ensureGuestSession({ ...account, accountId: clientSession.accountId }, { reconnectMessage: "Reconnexion automatique réussie." });
+  return { ok: true };
+}
+
+async function tryAutoReconnect() {
+  const clientId = readStoredClientId();
+  if (clientId) {
+    const restored = await restoreAccountFromClientSession(clientId);
+    if (restored.ok) return true;
+    clearStoredClientId();
+    if (restored.message) setGuestMessage(restored.message, restored.type || "error");
+    return false;
+  }
+
+  const legacyStored = readLegacyStoredGuestSession();
+  if (!legacyStored) return false;
+
+  const accountSnap = await get(ref(db, `${GUEST_ACCOUNTS_PATH}/${legacyStored.accountId}`));
+  if (!accountSnap.exists()) {
+    clearStoredClientId();
+    setGuestMessage("Session expirée : compte supprimé.", "error");
+    return false;
+  }
+
+  const account = accountSnap.val() || {};
+  const authVersion = Number(account.authVersion || 1);
+  if (!isAccountActive(account)) {
+    clearStoredClientId();
+    setGuestMessage("Session invalide : compte désactivé.", "error");
+    return false;
+  }
+  if (authVersion !== Number(legacyStored.authVersion)) {
+    clearStoredClientId();
+    setGuestMessage("Session invalide : mot de passe modifié.", "error");
+    return false;
+  }
+
+  await ensureGuestSession({ ...account, accountId: legacyStored.accountId }, { reconnectMessage: "Reconnexion automatique réussie." });
+  return true;
 }
 
 function renderByRound() {
@@ -946,7 +1078,12 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
     nickname,
     status: nickname ? "connected" : "awaiting_display_name",
   };
+  if (fresh.buzzKeyCode) {
+    buzzKeybindCode = normalizeBuzzKeyCode(fresh.buzzKeyCode);
+    renderBuzzKeybind();
+  }
   renderGuestView();
+  dispatchGuestAuthChanged();
   refreshButtonState();
 });
 
@@ -984,10 +1121,17 @@ manche4Controller = initManche4Guest({
 watchRound1State();
 watchingRound1 = true;
 renderByRound();
-showLoginForm();
 buzzKeybindCode = readStoredBuzzKeybind();
 renderBuzzKeybind();
-tryAutoReconnect();
+setGuestMessage("Reconnexion en cours…", "loading");
+tryAutoReconnect().then((reconnected) => {
+  if (!reconnected && !isGuestAuthenticated()) showLoginForm();
+}).catch(() => {
+  if (!isGuestAuthenticated()) {
+    showLoginForm();
+    setGuestMessage("Reconnexion impossible : reconnectez-vous.", "error");
+  }
+});
 
 initMortSubiteGuest({
   getCurrentSessionId,

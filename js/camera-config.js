@@ -174,9 +174,40 @@ function uniqueIds(values) {
   return ids;
 }
 
+function normalizeMatchText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getRound5State(rawState = {}) {
+  return rawState?.state || rawState || {};
+}
+
+function getRound5Participants(rawState = {}) {
+  const state = getRound5State(rawState);
+  return rawState?.participants || state.participants || {};
+}
+
+function getRound5ParticipantName(rawState = {}, participantId = "") {
+  const participant = getRound5Participants(rawState)?.[participantId];
+  return normalizeText(participant?.name || participant?.nickname || participant?.displayName || participantId, 120);
+}
+
+function uniqueNames(values) {
+  const names = [];
+  const seen = new Set();
+  values.forEach((value) => {
+    const name = normalizeText(value, 120);
+    const key = normalizeMatchText(name);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    names.push(name);
+  });
+  return names;
+}
+
 function collectRound5Ids(rawState = {}) {
-  const state = rawState?.state || rawState || {};
-  const participants = rawState?.participants || state.participants || {};
+  const state = getRound5State(rawState);
+  const participants = getRound5Participants(rawState);
   const duel = rawState?.duel || state.duel || {};
   const turn = rawState?.turn || state.turn || {};
   const aliveFromParticipants = Object.entries(participants)
@@ -205,7 +236,7 @@ export function getActiveParticipantIdsForRound(roundKey, roundState = {}) {
 
 export function getCameraRoleParticipantIds(roundKey, roundState = {}) {
   if (roundKey === "round5") {
-    const state = roundState?.state || roundState || {};
+    const state = getRound5State(roundState);
     const duel = roundState?.duel || state.duel || {};
     return {
       "duel-1": uniqueIds([duel.attackerId]),
@@ -224,7 +255,22 @@ export function getCameraRoleParticipantIds(roundKey, roundState = {}) {
   return { participant: getActiveParticipantIdsForRound(roundKey, roundState) };
 }
 
-export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParticipantIds = [], roleParticipantIds = {}, used = new Set(), includeAdmin = true } = {}) {
+export function getCameraRoleParticipantNames(roundKey, roundState = {}) {
+  if (roundKey === "round5") {
+    const state = getRound5State(roundState);
+    const duel = roundState?.duel || state.duel || {};
+    const participantIds = collectRound5Ids(roundState);
+    return {
+      "duel-1": uniqueNames([getRound5ParticipantName(roundState, duel.attackerId)]),
+      "duel-2": uniqueNames([getRound5ParticipantName(roundState, duel.targetId)]),
+      participant: uniqueNames(participantIds.map((id) => getRound5ParticipantName(roundState, id))),
+    };
+  }
+
+  return {};
+}
+
+export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParticipantIds = [], roleParticipantIds = {}, roleParticipantNames = {}, used = new Set(), includeAdmin = true } = {}) {
   if (!slot?.enabled) return "";
   const activeById = new Map(activeEntries);
   if (slot.participantId) return activeById.has(slot.participantId) && !used.has(slot.participantId) ? slot.participantId : "";
@@ -237,6 +283,15 @@ export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParti
       : (slot.role === "participant" ? activeParticipantIds : [activeParticipantIds[fallbackIndex]]);
     const participantId = orderedIds.find((id) => activeById.has(id) && !used.has(id));
     if (participantId) return participantId;
+
+    const expectedNames = (roleParticipantNames[slot.role] || []).map(normalizeMatchText).filter(Boolean);
+    if (expectedNames.length) {
+      const matchedEntry = activeEntries.find(([candidateId, item]) => (
+        !used.has(candidateId)
+        && expectedNames.includes(normalizeMatchText(item?.nickname || item?.displayName || item?.name))
+      ));
+      if (matchedEntry) return matchedEntry[0];
+    }
   }
   if (slot.role === "host") return includeAdmin && activeById.has(ADMIN_CAMERA_ID) && !used.has(ADMIN_CAMERA_ID) ? ADMIN_CAMERA_ID : "";
   const next = activeEntries.find(([candidateId]) => !used.has(candidateId) && candidateId !== ADMIN_CAMERA_ID);

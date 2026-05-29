@@ -9,7 +9,7 @@ import {
   update,
   remove,
 } from "./firebase.js";
-import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, getCameraRoleParticipantIds, getCameraSlotPreviewLabel, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
+import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, getCameraRoleParticipantIds, getCameraRoleParticipantNames, getCameraSlotPreviewLabel, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
 
 const RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 const GUEST_HEARTBEAT_MS = 15000;
@@ -355,11 +355,12 @@ export function initCameraOverlay(roundKey) {
     const roundState = roundStates[roundKey] || {};
     const activeParticipantIds = getActiveParticipantIdsForRound(roundKey, roundState);
     const roleParticipantIds = getCameraRoleParticipantIds(roundKey, roundState);
+    const roleParticipantNames = getCameraRoleParticipantNames(roundKey, roundState);
     const used = new Set();
     const slots = currentConfig.cameras || [];
 
     return slots.flatMap((slot, slotIndex) => {
-      const guestId = resolveCameraSlotGuestId(slot, { activeEntries, activeParticipantIds, roleParticipantIds, used });
+      const guestId = resolveCameraSlotGuestId(slot, { activeEntries, activeParticipantIds, roleParticipantIds, roleParticipantNames, used });
       if (!guestId) return [];
       used.add(guestId);
       const item = activeById.get(guestId) || {};
@@ -620,6 +621,7 @@ export function initGuestCameraWall({
     const roundState = roundStates[roundKey] || {};
     const activeParticipantIds = getActiveParticipantIdsForRound(roundKey, roundState);
     const roleParticipantIds = getCameraRoleParticipantIds(roundKey, roundState);
+    const roleParticipantNames = getCameraRoleParticipantNames(roundKey, roundState);
     const used = new Set();
     const desired = [];
     const showAdmin = shouldShowAdmin();
@@ -632,7 +634,7 @@ export function initGuestCameraWall({
 
     if (showParticipants && config?.enabled && config.cameras?.length) {
       config.cameras.forEach((slot) => {
-        const guestId = resolveCameraSlotGuestId(slot, { activeEntries: entries, activeParticipantIds, roleParticipantIds, used, includeAdmin: false });
+        const guestId = resolveCameraSlotGuestId(slot, { activeEntries: entries, activeParticipantIds, roleParticipantIds, roleParticipantNames, used, includeAdmin: false });
         if (!guestId || guestId === ADMIN_CAMERA_ID) return;
         used.add(guestId);
         desired.push({ guestId, nickname: byId.get(guestId)?.nickname || "Invité", group: "participants" });
