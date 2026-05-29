@@ -37,28 +37,30 @@ body {
 .theme-overlay-list {
   display: grid;
   grid-template-columns: repeat(var(--theme-columns, 2), minmax(0, 1fr));
-  gap: clamp(18px, 2.4vw, 42px);
+  column-gap: var(--theme-column-gap, clamp(18px, 2.4vw, 42px));
   width: 100%;
 }
 
 .theme-overlay-column {
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 1.2vw, 22px);
+  gap: var(--theme-row-gap, clamp(10px, 1.2vw, 22px));
   min-width: 0;
 }
 
 .theme-overlay-item {
   margin: 0;
-  padding: .38em .62em;
+  padding: var(--theme-padding-y, .38em) var(--theme-padding-x, .62em);
+  width: var(--theme-item-width, 100%);
+  align-self: var(--theme-item-self, stretch);
   color: var(--theme-color, var(--cyan));
   background: var(--theme-background-color, #10233f);
-  border: 2px solid rgba(255, 255, 255, .16);
-  border-radius: .42em;
+  border: var(--theme-border-width, 2px) solid rgba(255, 255, 255, .16);
+  border-radius: var(--theme-radius, .42em);
   font-size: var(--theme-font-size, 34px);
   font-weight: var(--theme-font-weight, 800);
-  line-height: 1.08;
-  letter-spacing: -0.035em;
+  line-height: var(--theme-line-height, 1.08);
+  letter-spacing: var(--theme-letter-spacing, -0.035em);
   text-align: var(--theme-align, center);
   text-transform: uppercase;
   overflow-wrap: anywhere;
@@ -66,7 +68,7 @@ body {
 }
 
 .theme-overlay-item.is-active {
-  border-color: var(--gold);
+  border-color: var(--theme-active-border-color, var(--gold));
   box-shadow: 0 0 0 3px rgba(255, 218, 107, .28), 0 0 28px rgba(255, 218, 107, .3);
   text-shadow: 0 4px 28px rgba(0, 0, 0, .72), 0 1px 2px rgba(0, 0, 0, .9), 0 0 24px rgba(255, 218, 107, .38);
 }

@@ -33,11 +33,7 @@ function runAutoFit() {
     container: rootNode,
     textElement: themeNode,
     minFontSizePx: overlayConfig.questionMinFontSizePx,
-    maxFontSizePx: Math.max(
-      overlayConfig.questionMaxFontSizePx,
-      rootNode.clientWidth,
-      rootNode.clientHeight,
-    ),
+    maxFontSizePx: overlayConfig.questionMaxFontSizePx,
     paddingPx: overlayConfig.questionPaddingPx,
     lineHeight: overlayConfig.questionLineHeight,
     maxWidthPx: overlayConfig.maxWidthPx,

@@ -152,19 +152,39 @@ const m3PassBtn = $("m3-pass");
 const m3CorrectBtn = $("m3-correct");
 const m3NextBtn = $("m3-next");
 const overlayRound3QuestionSizeInput = $("overlay-round3-question-size");
-const overlayRound3ThemeSizeInput = $("overlay-round3-theme-size");
-const overlayRound3TimerSizeInput = $("overlay-round3-timer-size");
-const overlayRound3QuestionColorInput = $("overlay-round3-question-color");
+const overlayRound3QuestionMinSizeInput = $("overlay-round3-question-min-size");
+const overlayRound3PaddingInput = $("overlay-round3-padding");
+const overlayRound3LineHeightInput = $("overlay-round3-line-height");
 const overlayRound3ThemeColorInput = $("overlay-round3-theme-color");
-const overlayRound3ThemeOverlayTextColorInput = $("overlay-round3-theme-overlay-text-color");
-const overlayRound3ThemeOverlayBackgroundColorInput = $("overlay-round3-theme-overlay-background-color");
-const overlayRound3TimerColorInput = $("overlay-round3-timer-color");
-const overlayRound3TimerFormatInput = $("overlay-round3-timer-format");
 const overlayRound3FontWeightInput = $("overlay-round3-font-weight");
 const overlayRound3AlignInput = $("overlay-round3-align");
-const overlayRound3GapInput = $("overlay-round3-gap");
 const overlayRound3MaxWidthInput = $("overlay-round3-max-width");
-const overlayRound3ThemeColumnsInput = $("overlay-round3-theme-columns");
+const overlayRound3TimerSizeInput = $("overlay-round3-timer-size");
+const overlayRound3TimerColorInput = $("overlay-round3-timer-color");
+const overlayRound3TimerFormatInput = $("overlay-round3-timer-format");
+const overlayRound3TimerFontWeightInput = $("overlay-round3-timer-font-weight");
+const overlayRound3TimerAlignInput = $("overlay-round3-timer-align");
+const overlayRound3TimerPaddingInput = $("overlay-round3-timer-padding");
+const overlayRound3TimerLineHeightInput = $("overlay-round3-timer-line-height");
+const overlayRound3TimerMaxWidthInput = $("overlay-round3-timer-max-width");
+const overlayRound3ThemeOverlayTextColorInput = $("overlay-round3-theme-overlay-text-color");
+const overlayRound3ThemeOverlayBackgroundColorInput = $("overlay-round3-theme-overlay-background-color");
+const overlayRound3ThemeOverlayActiveBorderColorInput = $("overlay-round3-theme-overlay-active-border-color");
+const overlayRound3ThemeOverlayFontSizeInput = $("overlay-round3-theme-overlay-font-size");
+const overlayRound3ThemeOverlayFontWeightInput = $("overlay-round3-theme-overlay-font-weight");
+const overlayRound3ThemeOverlayAlignInput = $("overlay-round3-theme-overlay-align");
+const overlayRound3ThemeOverlayColumnsInput = $("overlay-round3-theme-overlay-columns");
+const overlayRound3ThemeOverlayMaxWidthInput = $("overlay-round3-theme-overlay-max-width");
+const overlayRound3ThemeOverlayPaddingInput = $("overlay-round3-theme-overlay-padding");
+const overlayRound3ThemeOverlayColumnGapInput = $("overlay-round3-theme-overlay-column-gap");
+const overlayRound3ThemeOverlayRowGapInput = $("overlay-round3-theme-overlay-row-gap");
+const overlayRound3ThemeOverlayBackgroundWidthInput = $("overlay-round3-theme-overlay-background-width");
+const overlayRound3ThemeOverlayPaddingYInput = $("overlay-round3-theme-overlay-padding-y");
+const overlayRound3ThemeOverlayPaddingXInput = $("overlay-round3-theme-overlay-padding-x");
+const overlayRound3ThemeOverlayRadiusInput = $("overlay-round3-theme-overlay-radius");
+const overlayRound3ThemeOverlayBorderWidthInput = $("overlay-round3-theme-overlay-border-width");
+const overlayRound3ThemeOverlayLineHeightInput = $("overlay-round3-theme-overlay-line-height");
+const overlayRound3ThemeOverlayLetterSpacingInput = $("overlay-round3-theme-overlay-letter-spacing");
 
 const overlayRound4ClueSizeInput = $("overlay-round4-clue-size");
 const overlayRound4ClueColorInput = $("overlay-round4-clue-color");
@@ -212,6 +232,8 @@ let overlayConfigs = {
   round1: { ...OVERLAY_DEFAULTS.round1 },
   round2: { ...OVERLAY_DEFAULTS.round2 },
   round3: { ...OVERLAY_DEFAULTS.round3 },
+  round3Timer: { ...OVERLAY_DEFAULTS.round3Timer },
+  round3ThemeOverlay: { ...OVERLAY_DEFAULTS.round3ThemeOverlay },
   round4: { ...OVERLAY_DEFAULTS.round4 },
   round5: { ...OVERLAY_DEFAULTS.round5 },
 };
@@ -509,11 +531,21 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound2MaxWidthInput, overlayRound2MaxHeightInput, overlayRound2RadiusInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round2")));
 [
-  overlayRound3QuestionSizeInput, overlayRound3ThemeSizeInput, overlayRound3TimerSizeInput,
-  overlayRound3QuestionColorInput, overlayRound3ThemeColorInput, overlayRound3ThemeOverlayTextColorInput,
-  overlayRound3ThemeOverlayBackgroundColorInput, overlayRound3TimerColorInput, overlayRound3TimerFormatInput,
-  overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput, overlayRound3ThemeColumnsInput,
+  overlayRound3QuestionSizeInput, overlayRound3QuestionMinSizeInput, overlayRound3PaddingInput, overlayRound3LineHeightInput,
+  overlayRound3ThemeColorInput, overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3")));
+[
+  overlayRound3TimerSizeInput, overlayRound3TimerColorInput, overlayRound3TimerFormatInput, overlayRound3TimerFontWeightInput,
+  overlayRound3TimerAlignInput, overlayRound3TimerPaddingInput, overlayRound3TimerLineHeightInput, overlayRound3TimerMaxWidthInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3Timer")));
+[
+  overlayRound3ThemeOverlayTextColorInput, overlayRound3ThemeOverlayBackgroundColorInput, overlayRound3ThemeOverlayActiveBorderColorInput,
+  overlayRound3ThemeOverlayFontSizeInput, overlayRound3ThemeOverlayFontWeightInput, overlayRound3ThemeOverlayAlignInput,
+  overlayRound3ThemeOverlayColumnsInput, overlayRound3ThemeOverlayMaxWidthInput, overlayRound3ThemeOverlayPaddingInput,
+  overlayRound3ThemeOverlayColumnGapInput, overlayRound3ThemeOverlayRowGapInput, overlayRound3ThemeOverlayBackgroundWidthInput,
+  overlayRound3ThemeOverlayPaddingYInput, overlayRound3ThemeOverlayPaddingXInput, overlayRound3ThemeOverlayRadiusInput,
+  overlayRound3ThemeOverlayBorderWidthInput, overlayRound3ThemeOverlayLineHeightInput, overlayRound3ThemeOverlayLetterSpacingInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3ThemeOverlay")));
 [
   overlayRound4ClueSizeInput, overlayRound4ClueColorInput, overlayRound4WordSizeInput,
   overlayRound4CellRadiusInput, overlayRound4MarkerSizeInput, overlayRound4MarkerOpacityInput,
@@ -693,6 +725,15 @@ function initListeners() {
     overlayConfigs.round3 = normalizeOverlayConfig("round3", snap.val() || OVERLAY_DEFAULTS.round3);
     syncOverlayInputs();
     renderRound3State();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round3Timer`), (snap) => {
+    overlayConfigs.round3Timer = normalizeOverlayConfig("round3Timer", snap.val() || OVERLAY_DEFAULTS.round3Timer);
+    syncOverlayInputs();
+    renderRound3State();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round3ThemeOverlay`), (snap) => {
+    overlayConfigs.round3ThemeOverlay = normalizeOverlayConfig("round3ThemeOverlay", snap.val() || OVERLAY_DEFAULTS.round3ThemeOverlay);
+    syncOverlayInputs();
   });
   onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round4`), (snap) => {
     overlayConfigs.round4 = normalizeOverlayConfig("round4", snap.val() || OVERLAY_DEFAULTS.round4);
@@ -1567,7 +1608,7 @@ function updateRound2Status() {
 }
 
 function formatRound3Timer(ms) {
-  return formatTimerDisplay(ms, overlayConfigs.round3?.timerFormat);
+  return formatTimerDisplay(ms, overlayConfigs.round3Timer?.timerFormat);
 }
 
 function round3RemainingMs() {
@@ -1820,20 +1861,44 @@ function syncOverlayInputs() {
   if (overlayRound2RadiusInput) overlayRound2RadiusInput.value = String(r2.borderRadiusPx);
 
   const r3 = overlayConfigs.round3;
-  if (overlayRound3QuestionSizeInput) overlayRound3QuestionSizeInput.value = String(r3.questionFontSizePx);
-  if (overlayRound3ThemeSizeInput) overlayRound3ThemeSizeInput.value = String(r3.themeFontSizePx);
-  if (overlayRound3TimerSizeInput) overlayRound3TimerSizeInput.value = String(r3.timerFontSizePx);
-  if (overlayRound3QuestionColorInput) overlayRound3QuestionColorInput.value = r3.questionColor;
+  if (overlayRound3QuestionSizeInput) overlayRound3QuestionSizeInput.value = String(r3.questionMaxFontSizePx);
+  if (overlayRound3QuestionMinSizeInput) overlayRound3QuestionMinSizeInput.value = String(r3.questionMinFontSizePx);
+  if (overlayRound3PaddingInput) overlayRound3PaddingInput.value = String(r3.questionPaddingPx);
+  if (overlayRound3LineHeightInput) overlayRound3LineHeightInput.value = String(r3.questionLineHeight);
   if (overlayRound3ThemeColorInput) overlayRound3ThemeColorInput.value = r3.themeColor;
-  if (overlayRound3ThemeOverlayTextColorInput) overlayRound3ThemeOverlayTextColorInput.value = r3.themeOverlayTextColor;
-  if (overlayRound3ThemeOverlayBackgroundColorInput) overlayRound3ThemeOverlayBackgroundColorInput.value = r3.themeOverlayBackgroundColor;
-  if (overlayRound3TimerColorInput) overlayRound3TimerColorInput.value = r3.timerColor;
-  if (overlayRound3TimerFormatInput) overlayRound3TimerFormatInput.value = r3.timerFormat;
   if (overlayRound3FontWeightInput) overlayRound3FontWeightInput.value = String(r3.fontWeight);
   if (overlayRound3AlignInput) overlayRound3AlignInput.value = r3.align;
-  if (overlayRound3GapInput) overlayRound3GapInput.value = String(r3.blockGapPx);
   if (overlayRound3MaxWidthInput) overlayRound3MaxWidthInput.value = String(r3.maxWidthPx);
-  if (overlayRound3ThemeColumnsInput) overlayRound3ThemeColumnsInput.value = String(r3.themeOverlayColumns);
+
+  const r3Timer = overlayConfigs.round3Timer;
+  if (overlayRound3TimerSizeInput) overlayRound3TimerSizeInput.value = String(r3Timer.timerFontSizePx);
+  if (overlayRound3TimerColorInput) overlayRound3TimerColorInput.value = r3Timer.timerColor;
+  if (overlayRound3TimerFormatInput) overlayRound3TimerFormatInput.value = r3Timer.timerFormat;
+  if (overlayRound3TimerFontWeightInput) overlayRound3TimerFontWeightInput.value = String(r3Timer.fontWeight);
+  if (overlayRound3TimerAlignInput) overlayRound3TimerAlignInput.value = r3Timer.align;
+  if (overlayRound3TimerPaddingInput) overlayRound3TimerPaddingInput.value = String(r3Timer.paddingPx);
+  if (overlayRound3TimerLineHeightInput) overlayRound3TimerLineHeightInput.value = String(r3Timer.lineHeight);
+  if (overlayRound3TimerMaxWidthInput) overlayRound3TimerMaxWidthInput.value = String(r3Timer.maxWidthPx);
+
+  const r3ThemeOverlay = overlayConfigs.round3ThemeOverlay;
+  if (overlayRound3ThemeOverlayTextColorInput) overlayRound3ThemeOverlayTextColorInput.value = r3ThemeOverlay.textColor;
+  if (overlayRound3ThemeOverlayBackgroundColorInput) overlayRound3ThemeOverlayBackgroundColorInput.value = r3ThemeOverlay.backgroundColor;
+  if (overlayRound3ThemeOverlayActiveBorderColorInput) overlayRound3ThemeOverlayActiveBorderColorInput.value = r3ThemeOverlay.activeBorderColor;
+  if (overlayRound3ThemeOverlayFontSizeInput) overlayRound3ThemeOverlayFontSizeInput.value = String(r3ThemeOverlay.fontSizePx);
+  if (overlayRound3ThemeOverlayFontWeightInput) overlayRound3ThemeOverlayFontWeightInput.value = String(r3ThemeOverlay.fontWeight);
+  if (overlayRound3ThemeOverlayAlignInput) overlayRound3ThemeOverlayAlignInput.value = r3ThemeOverlay.align;
+  if (overlayRound3ThemeOverlayColumnsInput) overlayRound3ThemeOverlayColumnsInput.value = String(r3ThemeOverlay.columns);
+  if (overlayRound3ThemeOverlayMaxWidthInput) overlayRound3ThemeOverlayMaxWidthInput.value = String(r3ThemeOverlay.maxWidthPx);
+  if (overlayRound3ThemeOverlayPaddingInput) overlayRound3ThemeOverlayPaddingInput.value = String(r3ThemeOverlay.paddingPx);
+  if (overlayRound3ThemeOverlayColumnGapInput) overlayRound3ThemeOverlayColumnGapInput.value = String(r3ThemeOverlay.columnGapPx);
+  if (overlayRound3ThemeOverlayRowGapInput) overlayRound3ThemeOverlayRowGapInput.value = String(r3ThemeOverlay.rowGapPx);
+  if (overlayRound3ThemeOverlayBackgroundWidthInput) overlayRound3ThemeOverlayBackgroundWidthInput.value = String(r3ThemeOverlay.itemBackgroundWidthPercent);
+  if (overlayRound3ThemeOverlayPaddingYInput) overlayRound3ThemeOverlayPaddingYInput.value = String(r3ThemeOverlay.itemPaddingYPx);
+  if (overlayRound3ThemeOverlayPaddingXInput) overlayRound3ThemeOverlayPaddingXInput.value = String(r3ThemeOverlay.itemPaddingXPx);
+  if (overlayRound3ThemeOverlayRadiusInput) overlayRound3ThemeOverlayRadiusInput.value = String(r3ThemeOverlay.borderRadiusPx);
+  if (overlayRound3ThemeOverlayBorderWidthInput) overlayRound3ThemeOverlayBorderWidthInput.value = String(r3ThemeOverlay.borderWidthPx);
+  if (overlayRound3ThemeOverlayLineHeightInput) overlayRound3ThemeOverlayLineHeightInput.value = String(r3ThemeOverlay.lineHeight);
+  if (overlayRound3ThemeOverlayLetterSpacingInput) overlayRound3ThemeOverlayLetterSpacingInput.value = String(r3ThemeOverlay.letterSpacingEm);
 
   const r4 = overlayConfigs.round4;
   if (overlayRound4ClueSizeInput) overlayRound4ClueSizeInput.value = String(r4.clueFontSizePx);
@@ -1884,19 +1949,48 @@ function readOverlayConfigInputs(roundKey) {
   if (roundKey === "round3") {
     return {
       questionFontSizePx: overlayRound3QuestionSizeInput?.value,
-      themeFontSizePx: overlayRound3ThemeSizeInput?.value,
-      timerFontSizePx: overlayRound3TimerSizeInput?.value,
-      questionColor: overlayRound3QuestionColorInput?.value,
+      questionMaxFontSizePx: overlayRound3QuestionSizeInput?.value,
+      questionMinFontSizePx: overlayRound3QuestionMinSizeInput?.value,
+      questionPaddingPx: overlayRound3PaddingInput?.value,
+      questionLineHeight: overlayRound3LineHeightInput?.value,
       themeColor: overlayRound3ThemeColorInput?.value,
-      themeOverlayTextColor: overlayRound3ThemeOverlayTextColorInput?.value,
-      themeOverlayBackgroundColor: overlayRound3ThemeOverlayBackgroundColorInput?.value,
-      timerColor: overlayRound3TimerColorInput?.value,
-      timerFormat: overlayRound3TimerFormatInput?.value,
       fontWeight: overlayRound3FontWeightInput?.value,
       align: overlayRound3AlignInput?.value,
-      blockGapPx: overlayRound3GapInput?.value,
       maxWidthPx: overlayRound3MaxWidthInput?.value,
-      themeOverlayColumns: overlayRound3ThemeColumnsInput?.value,
+    };
+  }
+  if (roundKey === "round3Timer") {
+    return {
+      timerFontSizePx: overlayRound3TimerSizeInput?.value,
+      timerColor: overlayRound3TimerColorInput?.value,
+      timerFormat: overlayRound3TimerFormatInput?.value,
+      fontWeight: overlayRound3TimerFontWeightInput?.value,
+      align: overlayRound3TimerAlignInput?.value,
+      paddingPx: overlayRound3TimerPaddingInput?.value,
+      lineHeight: overlayRound3TimerLineHeightInput?.value,
+      maxWidthPx: overlayRound3TimerMaxWidthInput?.value,
+    };
+  }
+  if (roundKey === "round3ThemeOverlay") {
+    return {
+      textColor: overlayRound3ThemeOverlayTextColorInput?.value,
+      backgroundColor: overlayRound3ThemeOverlayBackgroundColorInput?.value,
+      activeBorderColor: overlayRound3ThemeOverlayActiveBorderColorInput?.value,
+      fontSizePx: overlayRound3ThemeOverlayFontSizeInput?.value,
+      fontWeight: overlayRound3ThemeOverlayFontWeightInput?.value,
+      align: overlayRound3ThemeOverlayAlignInput?.value,
+      columns: overlayRound3ThemeOverlayColumnsInput?.value,
+      maxWidthPx: overlayRound3ThemeOverlayMaxWidthInput?.value,
+      paddingPx: overlayRound3ThemeOverlayPaddingInput?.value,
+      columnGapPx: overlayRound3ThemeOverlayColumnGapInput?.value,
+      rowGapPx: overlayRound3ThemeOverlayRowGapInput?.value,
+      itemBackgroundWidthPercent: overlayRound3ThemeOverlayBackgroundWidthInput?.value,
+      itemPaddingYPx: overlayRound3ThemeOverlayPaddingYInput?.value,
+      itemPaddingXPx: overlayRound3ThemeOverlayPaddingXInput?.value,
+      borderRadiusPx: overlayRound3ThemeOverlayRadiusInput?.value,
+      borderWidthPx: overlayRound3ThemeOverlayBorderWidthInput?.value,
+      lineHeight: overlayRound3ThemeOverlayLineHeightInput?.value,
+      letterSpacingEm: overlayRound3ThemeOverlayLetterSpacingInput?.value,
     };
   }
   if (roundKey === "round4") {

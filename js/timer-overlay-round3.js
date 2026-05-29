@@ -20,7 +20,7 @@ function remainingMs() {
 
 function applyOverlayConfig() {
   if (!overlayConfig || !rootNode || !timerNode) return;
-  rootNode.style.padding = `${overlayConfig.questionPaddingPx}px`;
+  rootNode.style.padding = `${overlayConfig.paddingPx}px`;
   rootNode.style.textAlign = overlayConfig.align;
   timerNode.style.color = overlayConfig.timerColor;
   timerNode.style.fontWeight = String(overlayConfig.fontWeight);
@@ -32,11 +32,11 @@ function runAutoFit() {
   autoFitText({
     container: rootNode,
     textElement: timerNode,
-    minFontSizePx: Math.max(20, Math.min(overlayConfig.questionMinFontSizePx, overlayConfig.timerFontSizePx)),
-    maxFontSizePx: Math.max(overlayConfig.timerFontSizePx, rootNode.clientWidth, rootNode.clientHeight),
-    paddingPx: overlayConfig.questionPaddingPx,
-    lineHeight: 0.9,
-    maxWidthPx: rootNode.clientWidth,
+    minFontSizePx: 20,
+    maxFontSizePx: overlayConfig.timerFontSizePx,
+    paddingPx: overlayConfig.paddingPx,
+    lineHeight: overlayConfig.lineHeight,
+    maxWidthPx: overlayConfig.maxWidthPx,
   });
 }
 
@@ -66,7 +66,7 @@ onValue(ref(db, "rooms/manche3/state"), (snap) => {
   startTicker();
 });
 
-watchOverlayConfig("round3", (config) => {
+watchOverlayConfig("round3Timer", (config) => {
   overlayConfig = config;
   render();
 });

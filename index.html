@@ -570,21 +570,47 @@ La Tour Eiffel"></textarea></label>
                     <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
                   </div>
                   <div class="stack overlay-settings-block">
-                    <h4>Personnalisation</h4>
-                    <label>Taille question (px)<input id="overlay-round3-question-size" type="number" min="20" max="200" value="74" /></label>
-                    <label>Taille thème (px)<input id="overlay-round3-theme-size" type="number" min="14" max="120" value="34" /></label>
-                    <label>Taille chrono (px)<input id="overlay-round3-timer-size" type="number" min="20" max="220" value="72" /></label>
-                    <label>Couleur question<input id="overlay-round3-question-color" type="color" value="#ffffff" /></label>
-                    <label>Couleur thème actif<input id="overlay-round3-theme-color" type="color" value="#cfe6ff" /></label>
-                    <label>Couleur texte overlay thèmes<input id="overlay-round3-theme-overlay-text-color" type="color" value="#cfe6ff" /></label>
-                    <label>Fond overlay thèmes<input id="overlay-round3-theme-overlay-background-color" type="color" value="#10233f" /></label>
-                    <label>Couleur chrono<input id="overlay-round3-timer-color" type="color" value="#8cf5dc" /></label>
-                    <label>Format chrono<select id="overlay-round3-timer-format"><option value="minutes-seconds" selected>Minutes + secondes (1:30)</option><option value="seconds">Secondes seules (90)</option></select></label>
+                    <h4>Overlay manche 3 (thème actif)</h4>
+                    <label>Taille max texte (px)<input id="overlay-round3-question-size" type="number" min="20" max="200" value="74" /></label>
+                    <label>Taille min texte (px)<input id="overlay-round3-question-min-size" type="number" min="14" max="140" value="24" /></label>
+                    <label>Couleur texte<input id="overlay-round3-theme-color" type="color" value="#cfe6ff" /></label>
                     <label>Poids texte<input id="overlay-round3-font-weight" type="number" min="300" max="900" step="100" value="800" /></label>
                     <label>Alignement<select id="overlay-round3-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select></label>
-                    <label>Espacement blocs (px)<input id="overlay-round3-gap" type="number" min="0" max="120" value="14" /></label>
-                    <label>Largeur max (px)<input id="overlay-round3-max-width" type="number" min="400" max="2200" value="1600" /></label>
-                    <label>Colonnes overlay thèmes<input id="overlay-round3-theme-columns" type="number" min="1" max="12" value="2" /></label>
+                    <label>Padding écran (px)<input id="overlay-round3-padding" type="number" min="0" max="220" value="40" /></label>
+                    <label>Hauteur de ligne<input id="overlay-round3-line-height" type="number" min="1" max="2" step="0.01" value="1.2" /></label>
+                    <label>Largeur max texte (px)<input id="overlay-round3-max-width" type="number" min="400" max="2200" value="1600" /></label>
+                  </div>
+                  <div class="stack overlay-settings-block">
+                    <h4>Timer manche 3</h4>
+                    <label>Taille chrono (px)<input id="overlay-round3-timer-size" type="number" min="20" max="260" value="72" /></label>
+                    <label>Couleur chrono<input id="overlay-round3-timer-color" type="color" value="#8cf5dc" /></label>
+                    <label>Format chrono<select id="overlay-round3-timer-format"><option value="minutes-seconds" selected>Minutes + secondes (1:30)</option><option value="seconds">Secondes seules (90)</option></select></label>
+                    <label>Poids texte<input id="overlay-round3-timer-font-weight" type="number" min="300" max="1000" step="50" value="950" /></label>
+                    <label>Alignement<select id="overlay-round3-timer-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select></label>
+                    <label>Padding écran (px)<input id="overlay-round3-timer-padding" type="number" min="0" max="220" value="40" /></label>
+                    <label>Hauteur de ligne<input id="overlay-round3-timer-line-height" type="number" min="0.7" max="1.4" step="0.01" value="0.9" /></label>
+                    <label>Largeur max (px)<input id="overlay-round3-timer-max-width" type="number" min="200" max="2600" value="2200" /></label>
+                  </div>
+                  <div class="stack overlay-settings-block">
+                    <h4>Overlay des thèmes manche 3</h4>
+                    <label>Taille texte thèmes (px)<input id="overlay-round3-theme-overlay-font-size" type="number" min="12" max="160" value="34" /></label>
+                    <label>Couleur texte thèmes<input id="overlay-round3-theme-overlay-text-color" type="color" value="#cfe6ff" /></label>
+                    <label>Fond derrière les thèmes<input id="overlay-round3-theme-overlay-background-color" type="color" value="#10233f" /></label>
+                    <label>Couleur bord actif<input id="overlay-round3-theme-overlay-active-border-color" type="color" value="#ffda6b" /></label>
+                    <label>Largeur du fond (%)<input id="overlay-round3-theme-overlay-background-width" type="number" min="20" max="100" value="100" /></label>
+                    <label>Colonnes<input id="overlay-round3-theme-overlay-columns" type="number" min="1" max="12" value="2" /></label>
+                    <label>Espacement colonnes (px)<input id="overlay-round3-theme-overlay-column-gap" type="number" min="0" max="160" value="36" /></label>
+                    <label>Espacement thèmes (px)<input id="overlay-round3-theme-overlay-row-gap" type="number" min="0" max="120" value="16" /></label>
+                    <label>Largeur max overlay (px)<input id="overlay-round3-theme-overlay-max-width" type="number" min="200" max="2600" value="1600" /></label>
+                    <label>Padding écran (px)<input id="overlay-round3-theme-overlay-padding" type="number" min="0" max="220" value="40" /></label>
+                    <label>Padding vertical fond (px)<input id="overlay-round3-theme-overlay-padding-y" type="number" min="0" max="80" value="13" /></label>
+                    <label>Padding horizontal fond (px)<input id="overlay-round3-theme-overlay-padding-x" type="number" min="0" max="120" value="21" /></label>
+                    <label>Arrondi fond (px)<input id="overlay-round3-theme-overlay-radius" type="number" min="0" max="80" value="14" /></label>
+                    <label>Épaisseur bordure (px)<input id="overlay-round3-theme-overlay-border-width" type="number" min="0" max="12" value="2" /></label>
+                    <label>Poids texte<input id="overlay-round3-theme-overlay-font-weight" type="number" min="300" max="1000" step="50" value="800" /></label>
+                    <label>Alignement<select id="overlay-round3-theme-overlay-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select></label>
+                    <label>Hauteur de ligne<input id="overlay-round3-theme-overlay-line-height" type="number" min="0.8" max="1.8" step="0.01" value="1.08" /></label>
+                    <label>Espacement lettres (em)<input id="overlay-round3-theme-overlay-letter-spacing" type="number" min="-0.12" max="0.08" step="0.001" value="-0.035" /></label>
                   </div>
                 </article>
               </section>
