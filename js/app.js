@@ -156,6 +156,8 @@ const overlayRound3ThemeSizeInput = $("overlay-round3-theme-size");
 const overlayRound3TimerSizeInput = $("overlay-round3-timer-size");
 const overlayRound3QuestionColorInput = $("overlay-round3-question-color");
 const overlayRound3ThemeColorInput = $("overlay-round3-theme-color");
+const overlayRound3ThemeOverlayTextColorInput = $("overlay-round3-theme-overlay-text-color");
+const overlayRound3ThemeOverlayBackgroundColorInput = $("overlay-round3-theme-overlay-background-color");
 const overlayRound3TimerColorInput = $("overlay-round3-timer-color");
 const overlayRound3TimerFormatInput = $("overlay-round3-timer-format");
 const overlayRound3FontWeightInput = $("overlay-round3-font-weight");
@@ -508,8 +510,9 @@ buzzMinusBtn.addEventListener("click", async () => {
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round2")));
 [
   overlayRound3QuestionSizeInput, overlayRound3ThemeSizeInput, overlayRound3TimerSizeInput,
-  overlayRound3QuestionColorInput, overlayRound3ThemeColorInput, overlayRound3TimerColorInput,
-  overlayRound3TimerFormatInput, overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput, overlayRound3ThemeColumnsInput,
+  overlayRound3QuestionColorInput, overlayRound3ThemeColorInput, overlayRound3ThemeOverlayTextColorInput,
+  overlayRound3ThemeOverlayBackgroundColorInput, overlayRound3TimerColorInput, overlayRound3TimerFormatInput,
+  overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput, overlayRound3ThemeColumnsInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3")));
 [
   overlayRound4ClueSizeInput, overlayRound4ClueColorInput, overlayRound4WordSizeInput,
@@ -1822,6 +1825,8 @@ function syncOverlayInputs() {
   if (overlayRound3TimerSizeInput) overlayRound3TimerSizeInput.value = String(r3.timerFontSizePx);
   if (overlayRound3QuestionColorInput) overlayRound3QuestionColorInput.value = r3.questionColor;
   if (overlayRound3ThemeColorInput) overlayRound3ThemeColorInput.value = r3.themeColor;
+  if (overlayRound3ThemeOverlayTextColorInput) overlayRound3ThemeOverlayTextColorInput.value = r3.themeOverlayTextColor;
+  if (overlayRound3ThemeOverlayBackgroundColorInput) overlayRound3ThemeOverlayBackgroundColorInput.value = r3.themeOverlayBackgroundColor;
   if (overlayRound3TimerColorInput) overlayRound3TimerColorInput.value = r3.timerColor;
   if (overlayRound3TimerFormatInput) overlayRound3TimerFormatInput.value = r3.timerFormat;
   if (overlayRound3FontWeightInput) overlayRound3FontWeightInput.value = String(r3.fontWeight);
@@ -1883,6 +1888,8 @@ function readOverlayConfigInputs(roundKey) {
       timerFontSizePx: overlayRound3TimerSizeInput?.value,
       questionColor: overlayRound3QuestionColorInput?.value,
       themeColor: overlayRound3ThemeColorInput?.value,
+      themeOverlayTextColor: overlayRound3ThemeOverlayTextColorInput?.value,
+      themeOverlayBackgroundColor: overlayRound3ThemeOverlayBackgroundColorInput?.value,
       timerColor: overlayRound3TimerColorInput?.value,
       timerFormat: overlayRound3TimerFormatInput?.value,
       fontWeight: overlayRound3FontWeightInput?.value,

@@ -29,7 +29,8 @@ function applyOverlayConfig() {
   rootNode.style.padding = `${overlayConfig.questionPaddingPx}px`;
   panelNode.style.width = `min(100%, ${overlayConfig.maxWidthPx}px)`;
   listNode.style.setProperty("--theme-columns", String(columnCount));
-  listNode.style.setProperty("--theme-color", overlayConfig.themeColor);
+  listNode.style.setProperty("--theme-color", overlayConfig.themeOverlayTextColor);
+  listNode.style.setProperty("--theme-background-color", overlayConfig.themeOverlayBackgroundColor);
   listNode.style.setProperty("--theme-font-size", `${overlayConfig.themeFontSizePx}px`);
   listNode.style.setProperty("--theme-font-weight", String(overlayConfig.fontWeight));
   listNode.style.setProperty("--theme-align", overlayConfig.align);

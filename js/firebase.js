@@ -214,6 +214,8 @@ export async function ensureRoundsSeed(uid) {
         timerFontSizePx: 72,
         questionColor: "#ffffff",
         themeColor: "#cfe6ff",
+        themeOverlayTextColor: "#cfe6ff",
+        themeOverlayBackgroundColor: "#10233f",
         timerColor: "#8cf5dc",
         timerFormat: "minutes-seconds",
         fontWeight: 800,
