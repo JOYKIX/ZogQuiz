@@ -3,7 +3,7 @@ import { createBuzzSoundTrigger } from "./audio.js";
 import { initManche4Guest } from "./manche4.js";
 import { initMortSubiteGuest } from "./mort-subite.js";
 import { initManche6Display } from "./manche6.js";
-import { createGuestCameraController } from "./guest-camera-webrtc.js";
+import { createGuestCameraController, initGuestCameraWall } from "./guest-camera-webrtc.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -39,6 +39,9 @@ const guestCameraPanel = document.getElementById("guest-camera-panel");
 const guestCameraToggle = document.getElementById("guest-camera-toggle");
 const guestCameraStatus = document.getElementById("guest-camera-status");
 const guestCameraPreview = document.getElementById("guest-camera-preview");
+const guestCameraWallPanel = document.getElementById("guest-camera-wall-panel");
+const guestCameraWall = document.getElementById("guest-camera-wall");
+const guestCameraWallStatus = document.getElementById("guest-camera-wall-status");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -87,6 +90,7 @@ let round3Themes = {};
 let sessionsById = {};
 let manche4Controller = null;
 let guestCameraController = null;
+let guestCameraWallController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 
@@ -212,12 +216,15 @@ function renderGuestView() {
     guestTitle.textContent = `Connecté : ${getCurrentNickname()}`;
     buzzerPanel.classList.remove("hidden");
     guestCameraPanel?.classList.remove("hidden");
+    guestCameraWallPanel?.classList.remove("hidden");
     guestCameraController?.refreshIdentity?.();
+    guestCameraWallController?.refresh?.();
   } else {
     guestSessionMeta.classList.add("hidden");
     guestTitle.textContent = "";
     buzzerPanel.classList.add("hidden");
     guestCameraPanel?.classList.add("hidden");
+    guestCameraWallPanel?.classList.add("hidden");
   }
 }
 
@@ -751,6 +758,12 @@ guestCameraController = createGuestCameraController({
     status: guestCameraStatus,
     preview: guestCameraPreview,
   },
+});
+
+guestCameraWallController = initGuestCameraWall({
+  root: guestCameraWall,
+  status: guestCameraWallStatus,
+  getCurrentSessionId,
 });
 
 manche4Controller = initManche4Guest({

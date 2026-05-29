@@ -1,5 +1,6 @@
 import { db, ref, onValue, update } from "./firebase.js";
-import { CAMERA_CONFIGS_PATH, CAMERA_ROUNDS, CAMERA_ROLE_OPTIONS, normalizeCameraConfig } from "./camera-config.js";
+import { createCameraPublisherController } from "./guest-camera-webrtc.js";
+import { ADMIN_CAMERA_ID, ADMIN_CAMERA_LABEL, CAMERA_CONFIGS_PATH, CAMERA_PRESENCE_PATH, CAMERA_ROUNDS, CAMERA_ROLE_OPTIONS, normalizeCameraConfig } from "./camera-config.js";
 
 const LABELS = {
   round1: "Manche 1",
@@ -17,6 +18,24 @@ let presence = {};
 let isHydrating = false;
 let saveTimers = {};
 let localSaveEchoUntil = {};
+
+const adminCameraButton = document.getElementById("admin-camera-toggle");
+const adminCameraStatus = document.getElementById("admin-camera-status");
+const adminCameraPreview = document.getElementById("admin-camera-preview");
+
+if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
+  createCameraPublisherController({
+    getSessionId: () => ADMIN_CAMERA_ID,
+    getNickname: () => ADMIN_CAMERA_LABEL,
+    sourceType: "admin",
+    activeLabel: "Caméra admin active : elle est disponible pour les invités et les overlays.",
+    elements: {
+      button: adminCameraButton,
+      status: adminCameraStatus,
+      preview: adminCameraPreview,
+    },
+  });
+}
 
 function fieldId(roundKey, field, index = null) {
   return index === null ? `camera-${roundKey}-${field}` : `camera-${roundKey}-${index}-${field}`;
@@ -186,7 +205,7 @@ if (root) {
   CAMERA_ROUNDS.forEach((roundKey) => {
     onValue(ref(db, `${CAMERA_CONFIGS_PATH}/${roundKey}`), (snap) => hydrate(roundKey, snap.val() || {}));
   });
-  onValue(ref(db, "guestCameras/presence"), (snap) => {
+  onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
     presence = snap.val() || {};
     if (!root.contains(document.activeElement)) render();
   });

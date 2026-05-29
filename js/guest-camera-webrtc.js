@@ -9,7 +9,7 @@ import {
   update,
   remove,
 } from "./firebase.js";
-import { CAMERA_PRESENCE_PATH, CAMERA_SIGNALING_PATH, watchCameraConfig } from "./camera-config.js";
+import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
 
 const RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 const GUEST_HEARTBEAT_MS = 15000;
@@ -54,7 +54,7 @@ function closePeer(entry) {
   try { entry?.pc?.close(); } catch {}
 }
 
-export function createGuestCameraController({ getSessionId, getNickname, elements }) {
+export function createCameraPublisherController({ getSessionId, getNickname, elements, sourceType = "guest", activeLabel = "Caméra active : flux prêt pour les overlays OBS." }) {
   const state = {
     stream: null,
     status: "off",
@@ -73,7 +73,7 @@ export function createGuestCameraController({ getSessionId, getNickname, element
     elements.status.textContent = text || {
       off: "Caméra désactivée.",
       starting: "Demande d’autorisation caméra…",
-      active: "Caméra active : flux prêt pour les overlays OBS.",
+      active: activeLabel,
       error: "Erreur caméra.",
     }[status] || "";
     elements.preview.classList.toggle("hidden", !state.stream);
@@ -87,6 +87,8 @@ export function createGuestCameraController({ getSessionId, getNickname, element
     await set(presenceRef, {
       sessionId: safeKey(sessionId),
       nickname: String(getNickname() || "Invité").slice(0, 40),
+      sourceType,
+      isAdmin: sourceType === "admin",
       active: true,
       tracks: state.stream.getVideoTracks().map((track) => ({ id: track.id, label: track.label, enabled: track.enabled })),
       updatedAt: Date.now(),
@@ -151,6 +153,7 @@ export function createGuestCameraController({ getSessionId, getNickname, element
     await update(ref(db, signalPath), {
       status: "offered",
       nickname: String(getNickname() || "Invité").slice(0, 40),
+      sourceType,
       offer: toPlainDescription(pc.localDescription),
       offeredAt: Date.now(),
     });
@@ -211,6 +214,10 @@ export function createGuestCameraController({ getSessionId, getNickname, element
   return { start, stop, isActive: () => Boolean(state.stream), refreshIdentity: writePresence };
 }
 
+export function createGuestCameraController(options) {
+  return createCameraPublisherController({ ...options, sourceType: "guest" });
+}
+
 export function initCameraOverlay(roundKey) {
   const overlayId = createClientId(`obs_${roundKey}`);
   const grid = document.getElementById("camera-grid");
@@ -218,6 +225,7 @@ export function initCameraOverlay(roundKey) {
   const peers = new Map();
   let currentConfig = null;
   let presence = {};
+  let roundStates = {};
   let retryTimer = null;
 
   function slotName(slot, nickname) {
@@ -253,20 +261,16 @@ export function initCameraOverlay(roundKey) {
     if (!currentConfig?.enabled) return [];
     const activeEntries = activePresenceEntries();
     const activeById = new Map(activeEntries);
+    const activeParticipantIds = getActiveParticipantIdsForRound(roundKey, roundStates[roundKey] || {});
     const used = new Set();
     const slots = currentConfig.cameras || [];
 
     return slots.flatMap((slot, slotIndex) => {
-      if (!slot.enabled) return [];
-      let guestId = slot.guestId && activeById.has(slot.guestId) ? slot.guestId : "";
-      if (!guestId) {
-        const next = activeEntries.find(([candidateId]) => !used.has(candidateId));
-        guestId = next?.[0] || "";
-      }
+      const guestId = resolveCameraSlotGuestId(slot, { activeEntries, activeParticipantIds, used });
       if (!guestId) return [];
       used.add(guestId);
       const item = activeById.get(guestId) || {};
-      return [{ guestId, nickname: item.nickname || "Invité", slot, slotIndex }];
+      return [{ guestId, nickname: item.nickname || (guestId === ADMIN_CAMERA_ID ? "Admin" : "Invité"), slot, slotIndex }];
     });
   }
 
@@ -372,11 +376,17 @@ export function initCameraOverlay(roundKey) {
       if (!desiredIds.has(guestId)) disconnectGuest(guestId).catch(console.warn);
     }
     desired.forEach(({ guestId, nickname, slot, slotIndex }) => connectGuest(guestId, nickname, slot, slotIndex).catch(console.warn));
-    if (status) status.textContent = currentConfig.enabled ? `${desired.length}/${currentConfig.cameraCount} caméra(s) invité(s)` : "Caméras désactivées pour cette manche";
+    if (status) status.textContent = currentConfig.enabled ? `${desired.length}/${currentConfig.cameraCount} caméra(s) connectée(s)` : "Caméras désactivées pour cette manche";
     updateLayout();
   }
 
   watchCameraConfig(roundKey, applyConfig);
+  (CAMERA_ROUND_STATE_PATHS[roundKey] || []).forEach((path) => {
+    onValue(ref(db, path), (snap) => {
+      roundStates[roundKey] = snap.val() || {};
+      reconcile();
+    });
+  });
   onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
     presence = snap.val() || {};
     reconcile();
@@ -385,4 +395,192 @@ export function initCameraOverlay(roundKey) {
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
   });
+}
+
+export function initGuestCameraWall({ root, status, getCurrentSessionId }) {
+  if (!root) return null;
+  const viewerId = createClientId("guest_viewer");
+  const peers = new Map();
+  const configs = {};
+  const roundStates = {};
+  let presence = {};
+  let liveRoom = "manche1";
+  let retryTimer = null;
+
+  function currentRoundKey() {
+    return ROOM_TO_ROUND_KEY[liveRoom === "finale" ? "manche5" : liveRoom] || "round1";
+  }
+
+  function activePresenceEntries() {
+    const now = Date.now();
+    const selfId = safeKey(getCurrentSessionId?.() || "");
+    return Object.entries(presence)
+      .filter(([id, item]) => item?.active && id !== selfId && now - Number(item.updatedAt || 0) < PRESENCE_STALE_MS)
+      .sort((a, b) => {
+        if (a[0] === ADMIN_CAMERA_ID) return -1;
+        if (b[0] === ADMIN_CAMERA_ID) return 1;
+        return String(a[1].nickname || a[0]).localeCompare(String(b[1].nickname || b[0]), "fr");
+      });
+  }
+
+  function desiredStreams() {
+    if (!getCurrentSessionId?.()) return [];
+    const roundKey = currentRoundKey();
+    const config = configs[roundKey];
+    const entries = activePresenceEntries();
+    const byId = new Map(entries);
+    const activeParticipantIds = getActiveParticipantIdsForRound(roundKey, roundStates[roundKey] || {});
+    const used = new Set();
+    const desired = [];
+
+    if (byId.has(ADMIN_CAMERA_ID)) {
+      desired.push({ guestId: ADMIN_CAMERA_ID, nickname: byId.get(ADMIN_CAMERA_ID)?.nickname || "Admin" });
+      used.add(ADMIN_CAMERA_ID);
+    }
+
+    if (config?.enabled && config.cameras?.length) {
+      config.cameras.forEach((slot) => {
+        const guestId = resolveCameraSlotGuestId(slot, { activeEntries: entries, activeParticipantIds, used, includeAdmin: false });
+        if (!guestId || guestId === ADMIN_CAMERA_ID) return;
+        used.add(guestId);
+        desired.push({ guestId, nickname: byId.get(guestId)?.nickname || "Invité" });
+      });
+    }
+
+    activeParticipantIds.forEach((participantId) => {
+      if (!byId.has(participantId) || used.has(participantId)) return;
+      used.add(participantId);
+      desired.push({ guestId: participantId, nickname: byId.get(participantId)?.nickname || "Participant" });
+    });
+
+    if (desired.length <= 1) {
+      entries.forEach(([guestId, item]) => {
+        if (used.has(guestId) || guestId === ADMIN_CAMERA_ID) return;
+        used.add(guestId);
+        desired.push({ guestId, nickname: item?.nickname || "Invité" });
+      });
+    }
+
+    return desired;
+  }
+
+  function ensureCard(guestId, nickname) {
+    let entry = peers.get(guestId);
+    if (entry?.card) {
+      entry.nickname = nickname;
+      entry.name.textContent = nickname;
+      return entry;
+    }
+    const card = document.createElement("article");
+    card.className = `guest-remote-camera-card connecting${guestId === ADMIN_CAMERA_ID ? " admin" : ""}`;
+    card.dataset.guestId = guestId;
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    const name = document.createElement("span");
+    name.className = "guest-remote-camera-name";
+    name.textContent = nickname;
+    card.append(video, name);
+    root.append(card);
+    entry = { ...(entry || {}), card, video, name, guestId, nickname };
+    peers.set(guestId, entry);
+    return entry;
+  }
+
+  async function connect(guestId, nickname) {
+    const entry = ensureCard(guestId, nickname);
+    if (entry.pc && !["failed", "closed", "disconnected"].includes(entry.pc.connectionState)) return;
+    closePeer(entry);
+
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    const signalId = safeKey(`${viewerId}_${guestId}_${Date.now().toString(36)}`);
+    const signalPath = `${CAMERA_SIGNALING_PATH}/${safeKey(guestId)}/${signalId}`;
+    Object.assign(entry, { pc, signalPath, signalId });
+
+    pc.ontrack = (event) => {
+      const [stream] = event.streams;
+      entry.video.srcObject = stream;
+      entry.card.classList.remove("connecting");
+    };
+    pc.onicecandidate = async (event) => {
+      const candidate = toPlainCandidate(event.candidate);
+      if (!candidate) return;
+      const key = safeKey(`${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      await set(ref(db, `${signalPath}/overlayCandidates/${key}`), candidate);
+    };
+    pc.onconnectionstatechange = async () => {
+      await update(ref(db, signalPath), { viewerConnectionState: pc.connectionState, viewerStateAt: Date.now() }).catch(() => {});
+      entry.card.classList.toggle("connecting", !["connected", "completed"].includes(pc.connectionState));
+      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) scheduleReconnect();
+    };
+    entry.unsubscribeOffer = onValue(ref(db, `${signalPath}/offer`), async (snap) => {
+      const offer = snap.val();
+      if (!offer || pc.signalingState === "closed" || pc.remoteDescription) return;
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await update(ref(db, signalPath), { status: "answered", answer: toPlainDescription(pc.localDescription), answeredAt: Date.now() });
+    });
+    entry.unsubscribeCandidates = onChildAdded(ref(db, `${signalPath}/guestCandidates`), async (snap) => {
+      const candidate = snap.val();
+      if (!candidate || pc.signalingState === "closed") return;
+      await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.warn);
+    });
+
+    await set(ref(db, signalPath), { status: "requesting", viewerId, requestedAt: Date.now(), viewerType: "guest-wall" });
+    await onDisconnect(ref(db, signalPath)).remove();
+  }
+
+  async function disconnect(guestId, removeSignal = true) {
+    const entry = peers.get(guestId);
+    if (!entry) return;
+    closePeer(entry);
+    entry.video?.srcObject?.getTracks?.().forEach((track) => track.stop());
+    entry.card?.remove();
+    peers.delete(guestId);
+    if (removeSignal && entry.signalPath) await remove(ref(db, entry.signalPath)).catch(() => {});
+  }
+
+  function scheduleReconnect() {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(reconcile, OVERLAY_RETRY_MS);
+  }
+
+  function reconcile() {
+    const desired = desiredStreams();
+    const ids = new Set(desired.map((item) => item.guestId));
+    for (const guestId of [...peers.keys()]) {
+      if (!ids.has(guestId)) disconnect(guestId).catch(console.warn);
+    }
+    desired.forEach(({ guestId, nickname }) => connect(guestId, nickname).catch(console.warn));
+    if (status) status.textContent = desired.length ? `${desired.length} caméra(s) visible(s)` : "Aucune caméra active pour le moment.";
+  }
+
+  onValue(ref(db, "quiz/state"), (snap) => {
+    const state = snap.val() || {};
+    liveRoom = state.liveRound || state.activeRound || "manche1";
+    reconcile();
+  });
+  ["round1", "round2", "round3", "round4", "round5", "round6"].forEach((roundKey) => {
+    watchCameraConfig(roundKey, (config) => {
+      configs[roundKey] = config;
+      reconcile();
+    });
+    (CAMERA_ROUND_STATE_PATHS[roundKey] || []).forEach((path) => {
+      onValue(ref(db, path), (snap) => {
+        roundStates[roundKey] = snap.val() || {};
+        reconcile();
+      });
+    });
+  });
+  onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
+    presence = snap.val() || {};
+    reconcile();
+  });
+  window.addEventListener("beforeunload", () => {
+    peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
+  });
+
+  return { refresh: reconcile };
 }

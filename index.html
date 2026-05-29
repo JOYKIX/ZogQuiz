@@ -821,7 +821,19 @@ SNK OP1"></textarea></label>
                   <p class="muted">Choisis le nombre de cams, leur taille, leur position et leur rôle précis pour chaque manche.</p>
                 </div>
               </div>
-              <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants. Les manches 3, 5 et 6 peuvent par exemple avoir une cam assignée “Participant à la manche”.</p>
+              <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants. Les slots “Participant à la manche” suivent maintenant automatiquement le compte actif de la manche (ex : joueur actif en manche 3), au lieu de prendre une caméra au hasard.</p>
+              <section class="subpanel compact-panel guest-camera-panel admin-camera-panel">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">Cam admin</p>
+                    <h3>Webcam administrateur</h3>
+                  </div>
+                  <button id="admin-camera-toggle" class="btn btn-secondary" type="button">Activer la caméra admin</button>
+                </div>
+                <p class="muted">Cette caméra peut être placée dans les overlays via le rôle “Cam admin” et apparaît aussi dans la vue des invités.</p>
+                <p id="admin-camera-status" class="message camera-status off">Caméra désactivée.</p>
+                <video id="admin-camera-preview" class="guest-camera-preview hidden" autoplay muted playsinline></video>
+              </section>
               <p id="camera-config-status" class="message"></p>
               <div id="camera-config-root" class="camera-config-root"></div>
             </article>

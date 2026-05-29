@@ -4,9 +4,21 @@ export const CAMERA_CONFIGS_PATH = "cameraOverlayConfigs";
 export const CAMERA_PRESENCE_PATH = "guestCameras/presence";
 export const CAMERA_SIGNALING_PATH = "guestCameras/signaling";
 export const CAMERA_ROUNDS = ["round1", "round2", "round3", "round4", "round5", "round6"];
+export const ADMIN_CAMERA_ID = "admin-host";
+export const ADMIN_CAMERA_LABEL = "Admin";
+export const ROUND_KEY_TO_ROOM = {
+  round1: "manche1",
+  round2: "manche2",
+  round3: "manche3",
+  round4: "manche4",
+  round5: "manche5",
+  round6: "manche6",
+};
+export const ROOM_TO_ROUND_KEY = Object.fromEntries(Object.entries(ROUND_KEY_TO_ROOM).map(([roundKey, roomKey]) => [roomKey, roundKey]));
 
 export const CAMERA_ROLE_OPTIONS = [
   { value: "auto", label: "Auto / non assignée" },
+  { value: "admin", label: "Cam admin" },
   { value: "participant", label: "Participant à la manche" },
   { value: "viewer", label: "Viewer / Twitch" },
   { value: "duel-1", label: "Duel joueur 1" },
@@ -14,6 +26,12 @@ export const CAMERA_ROLE_OPTIONS = [
   { value: "host", label: "Host / animateur" },
   { value: "custom", label: "Libellé personnalisé" },
 ];
+
+export const CAMERA_ROUND_STATE_PATHS = {
+  round3: ["rooms/manche3/state"],
+  round5: ["rounds/round5"],
+  round6: ["rooms/manche6/state"],
+};
 
 export const CAMERA_SLOT_DEFAULT = {
   enabled: true,
@@ -122,4 +140,62 @@ export function watchCameraConfig(roundKey, callback) {
   return onValue(ref(db, `${CAMERA_CONFIGS_PATH}/${roundKey}`), (snap) => {
     callback(normalizeCameraConfig(snap.val() || CAMERA_DEFAULT_CONFIG));
   });
+}
+
+
+function uniqueIds(values) {
+  const ids = [];
+  const seen = new Set();
+  values.forEach((value) => {
+    const id = normalizeText(value, 120);
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    ids.push(id);
+  });
+  return ids;
+}
+
+function collectRound5Ids(rawState = {}) {
+  const state = rawState?.state || rawState || {};
+  const participants = rawState?.participants || state.participants || {};
+  const duel = rawState?.duel || state.duel || {};
+  const turn = rawState?.turn || state.turn || {};
+  const aliveFromParticipants = Object.entries(participants)
+    .filter(([, participant]) => participant?.active !== false && participant?.eliminated !== true && participant?.alive !== false && Number(participant?.hp ?? 1) > 0)
+    .map(([id]) => id);
+  return uniqueIds([duel.attackerId, duel.targetId, turn.currentPlayerId, state.currentTurnPlayerId, state.targetPlayerId, ...(turn.order || []), ...(state.turnOrder || []), ...aliveFromParticipants]);
+}
+
+export function getActiveParticipantIdsForRound(roundKey, roundState = {}) {
+  if (roundKey === "round3") return uniqueIds([roundState?.activePlayerId]);
+  if (roundKey === "round5") return collectRound5Ids(roundState);
+  if (roundKey === "round6") {
+    return uniqueIds([
+      roundState?.participantId,
+      roundState?.viewerId,
+      roundState?.players?.participantId,
+      roundState?.players?.viewerId,
+      roundState?.players?.participant?.id,
+      roundState?.players?.viewer?.id,
+      roundState?.duel?.participantId,
+      roundState?.duel?.viewerId,
+    ]);
+  }
+  return [];
+}
+
+export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParticipantIds = [], used = new Set(), includeAdmin = true } = {}) {
+  if (!slot?.enabled) return "";
+  const activeById = new Map(activeEntries);
+  if (slot.role === "admin") return includeAdmin && activeById.has(ADMIN_CAMERA_ID) ? ADMIN_CAMERA_ID : "";
+  if (slot.guestId && activeById.has(slot.guestId) && !used.has(slot.guestId)) return slot.guestId;
+  if (["participant", "viewer", "duel-1", "duel-2"].includes(slot.role)) {
+    const roleIndex = slot.role === "duel-2" || slot.role === "viewer" ? 1 : 0;
+    const orderedIds = slot.role === "participant" ? activeParticipantIds : [activeParticipantIds[roleIndex]];
+    const participantId = orderedIds.find((id) => activeById.has(id) && !used.has(id));
+    if (participantId) return participantId;
+  }
+  if (slot.role === "host") return includeAdmin && activeById.has(ADMIN_CAMERA_ID) && !used.has(ADMIN_CAMERA_ID) ? ADMIN_CAMERA_ID : "";
+  const next = activeEntries.find(([candidateId]) => !used.has(candidateId) && candidateId !== ADMIN_CAMERA_ID);
+  return next?.[0] || "";
 }
