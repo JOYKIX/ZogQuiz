@@ -90,6 +90,12 @@
                     Activer cam
                   </button>
                 </div>
+                <label
+                  id="guest-camera-device-field"
+                  class="camera-device-field hidden"
+                  >Caméra
+                  <select id="guest-camera-device"></select>
+                </label>
                 <label class="toggle-line camera-render-toggle">
                   <input
                     id="guest-self-camera-render"
@@ -98,6 +104,7 @@
                   />
                   Afficher ma cam
                 </label>
+                <p id="guest-camera-status" class="message camera-status off">Caméra désactivée.</p>
                 <video
                   id="guest-camera-preview"
                   class="guest-camera-preview hidden"

@@ -28,6 +28,8 @@ let activeCameraConfig = "admin";
 const adminCameraButton = document.getElementById("admin-camera-toggle");
 const adminCameraStatus = document.getElementById("admin-camera-status");
 const adminCameraPreview = document.getElementById("admin-camera-preview");
+const adminCameraDevice = document.getElementById("admin-camera-device");
+const adminCameraDeviceField = document.getElementById("admin-camera-device-field");
 
 if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
   createCameraPublisherController({
@@ -39,6 +41,8 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       button: adminCameraButton,
       status: adminCameraStatus,
       preview: adminCameraPreview,
+      deviceSelect: adminCameraDevice,
+      deviceField: adminCameraDeviceField,
     },
   });
 }
