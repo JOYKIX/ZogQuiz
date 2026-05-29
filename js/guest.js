@@ -576,12 +576,23 @@ async function tryAutoReconnect() {
   return true;
 }
 
+function normalizeLiveRoundKey(round) {
+  if (round === "round1") return "manche1";
+  if (round === "round2") return "manche2";
+  if (round === "round3") return "manche3";
+  if (round === "round4") return "manche4";
+  if (round === "round5") return "manche5";
+  if (round === "round6" || round === "finale") return "manche6";
+  return round || "manche1";
+}
+
 function renderByRound() {
-  const isRound2 = liveRound === "manche2";
-  const isRound3 = liveRound === "manche3";
-  const isRound4 = liveRound === "manche4";
-  const isRound5 = liveRound === "manche5" || liveRound === "finale";
-  const isRound6 = liveRound === "manche6";
+  const normalizedLiveRound = normalizeLiveRoundKey(liveRound);
+  const isRound2 = normalizedLiveRound === "manche2";
+  const isRound3 = normalizedLiveRound === "manche3";
+  const isRound4 = normalizedLiveRound === "manche4";
+  const isRound5 = normalizedLiveRound === "manche5";
+  const isRound6 = normalizedLiveRound === "manche6";
   round1Root.classList.toggle("hidden", isRound2 || isRound3 || isRound4 || isRound5 || isRound6);
   round2Root.classList.toggle("hidden", !isRound2);
   round3Root.classList.toggle("hidden", !isRound3);
@@ -841,7 +852,7 @@ function getBuzzAvailability() {
   if (!guestAuth.accountId) return { canBuzz: false, message: "Vous n’êtes pas connecté." };
   if (!isAccountActive(guestAuth.account)) return { canBuzz: false, message: "Compte désactivé. Contactez l’admin." };
   if (!guestAuth.nickname) return { canBuzz: false, message: "Pseudo d’affichage requis." };
-  if (liveRound !== "manche1") return { canBuzz: false, message: "Buzzer indisponible hors manche 1." };
+  if (normalizeLiveRoundKey(liveRound) !== "manche1") return { canBuzz: false, message: "Buzzer indisponible hors manche 1." };
   if (!liveState.currentQuestionId) return { canBuzz: false, message: "Manche inactive : aucune question ouverte." };
   if (liveState.currentType === "viewers") return { canBuzz: false, message: "Buzzer non autorisé en mode viewers." };
   if (currentQuestionBlocked) return { canBuzz: false, message: "Vous avez déjà tenté sur cette question." };
@@ -1009,7 +1020,7 @@ document.addEventListener("keydown", async (event) => {
 
 onValue(ref(db, "quiz/state"), (snap) => {
   const state = snap.val() || {};
-  liveRound = state.liveRound || state.activeRound || "manche1";
+  liveRound = normalizeLiveRoundKey(state.liveRound || state.activeRound || "manche1");
   renderByRound();
 });
 

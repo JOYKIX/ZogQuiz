@@ -4,6 +4,8 @@ import { watchOverlayConfig } from "./overlay-config.js";
 
 const ROUND5_PATH = "rounds/round5";
 const ROUND5_LEGACY_PATH = "rooms/manche5/state";
+const QUIZ_STATE_PATH = "quiz/state";
+const ROUND5_LIVE_ROUND = "manche5";
 const DEFAULT_PHASE = "setup";
 const DEFAULT_DAMAGE = 10;
 const PHASES = {
@@ -177,6 +179,15 @@ async function runRound5SyncedTransaction(updater) {
   return result;
 }
 
+async function publishRound5Live(updatedBy = "admin") {
+  await update(ref(db, QUIZ_STATE_PATH), {
+    activeRound: ROUND5_LIVE_ROUND,
+    liveRound: ROUND5_LIVE_ROUND,
+    updatedBy,
+    updatedAt: Date.now(),
+  });
+}
+
 const isAlive = (s, id) => {
   const p = s?.participants?.[id];
   return Boolean(p && p.alive !== false && p.eliminated !== true && Number(p.hp || 0) > 0);
@@ -233,10 +244,19 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   if (!document.getElementById("m5-admin")) return;
   const $ = (id) => document.getElementById(id);
   let round5 = { ...defaultRound5 };
+  const getAdminId = () => getCurrentAdminId?.() || "admin";
+  const ensureRound5VisibleToGuests = () => publishRound5Live(getAdminId());
   const save = async (patch) => {
-    const next = toRound5({ ...round5, ...patch, damage: null, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
+    const next = toRound5({ ...round5, ...patch, damage: null, updatedAt: Date.now(), updatedBy: getAdminId() });
     await update(ref(db, ROUND5_PATH), next);
     await update(ref(db, ROUND5_LEGACY_PATH), toLegacyRound5Patch(next));
+    await ensureRound5VisibleToGuests();
+  };
+
+  const runAdminRound5Transaction = async (updater) => {
+    const result = await runRound5SyncedTransaction(updater);
+    if (result?.committed) await ensureRound5VisibleToGuests();
+    return result;
   };
 
   let primaryRound5 = null;
@@ -378,7 +398,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   $("m5-mark-fail").onclick = async () => openOutsiderAnswers(round5.duel?.buzzedBy ? "Duel raté, outsiders autorisés." : "Personne n’a répondu, outsiders autorisés.");
   $("m5-reset").onclick = async () => save({ ...defaultRound5, name: "Mort Subite" });
 
-  const adjustHp = async (delta) => runRound5SyncedTransaction((curr) => {
+  const adjustHp = async (delta) => runAdminRound5Transaction((curr) => {
     const s = chooseNewestRound5(curr, legacyRound5); const id = $("m5-hp-player").value; if (!id || !s.participants?.[id]) return s;
     const hp = Math.max(0, Number(s.participants[id].hp || 0) + delta);
     const maxHp = Math.max(Number(s.participants[id].maxHp || 0), Number(s.participants[id].initialHp || 0), hp, 1);
@@ -394,7 +414,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   $("m5-hp-plus").onclick = () => adjustHp(getHpAmount());
   $("m5-hp-minus").onclick = () => adjustHp(-getHpAmount());
 
-  $("m5-mark-correct").onclick = async () => runRound5SyncedTransaction((curr) => {
+  $("m5-mark-correct").onclick = async () => runAdminRound5Transaction((curr) => {
     const s = chooseNewestRound5(curr, legacyRound5); const winner = s.duel?.buzzedBy; if (!winner) return s;
     const loser = winner === s.duel.attackerId ? s.duel.targetId : s.duel.attackerId;
     if (!loser || !s.participants?.[loser]) return s;
@@ -403,7 +423,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     return { ...s, participants: s.participants, phase: getAliveOrder({ ...s, participants: s.participants }).length <= 1 ? PHASES.FINISHED : PHASES.RESULT, duel: { ...s.duel, buzzerOpen: false, answerStatus: "correct" }, lastResult: { type: "duel_correct", message: `${s.participants?.[winner]?.name || winner} touche ${s.participants?.[loser]?.name || loser}`, damagedPlayers: { [loser]: damage } }, actionLog: addLog(s, `Bonne réponse duel: ${winner}`), updatedAt: Date.now() };
   });
 
-  $("m5-outsider-correct").onclick = async () => runRound5SyncedTransaction((curr) => {
+  $("m5-outsider-correct").onclick = async () => runAdminRound5Transaction((curr) => {
     const s = chooseNewestRound5(curr, legacyRound5); const win = $("m5-outsider-winner").value || Object.keys(s.outsiders?.answers || {})[0]; if (!win) return s;
     const damage = getConfiguredDamage(); const damagedPlayers = {};
     for (const id of [s.duel.attackerId, s.duel.targetId]) {
@@ -415,7 +435,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
     return { ...s, participants: s.participants, phase: getAliveOrder({ ...s, participants: s.participants }).length <= 1 ? PHASES.FINISHED : PHASES.RESULT, outsiders: { ...s.outsiders, winnerId: win }, lastResult: { type: "outsider_correct", message: `${s.participants?.[win]?.name || win} a répondu juste`, damagedPlayers }, actionLog: addLog(s, `Outsider correct: ${win}`), updatedAt: Date.now() };
   });
 
-  $("m5-next-turn").onclick = async () => runRound5SyncedTransaction((curr) => {
+  $("m5-next-turn").onclick = async () => runAdminRound5Transaction((curr) => {
     const s = chooseNewestRound5(curr, legacyRound5);
     const { next, alive } = getNextAliveTurn(s);
     if (alive.length <= 1) return { ...s, phase: PHASES.FINISHED, turn: { ...s.turn, currentPlayerId: next, currentIndex: Math.max(0, (s.turn?.order || []).indexOf(next)) }, updatedAt: Date.now() };
