@@ -128,6 +128,7 @@ const m2QuestionSearch = $("m2-question-search");
 const m2QuestionCount = $("m2-question-count");
 const m2EditorMode = $("m2-editor-mode");
 const m2NewQuestionBtn = $("m2-new-question");
+const m2SaveQuestionBtn = $("m2-save-question");
 
 const m3ThemeForm = $("m3-theme-form");
 const m3ThemeName = $("m3-theme-name");
@@ -332,7 +333,10 @@ quickNavBtns.forEach((btn) => btn.addEventListener("click", () => activateWorksp
 roundTabs.forEach((btn) => btn.addEventListener("click", async () => setEditingRound(btn.dataset.round)));
 roundSectionTabs.forEach((btn) => btn.addEventListener("click", () => activateRoundSection(btn.dataset.round, btn.dataset.roundSection)));
 m2QuestionSearch?.addEventListener("input", () => renderRound2Questions());
-m2NewQuestionBtn?.addEventListener("click", () => selectRound2Question(null));
+m2NewQuestionBtn?.addEventListener("click", () => {
+  selectRound2Question(null);
+  m2WorkInput?.focus();
+});
 pushLiveRoundBtn?.addEventListener("click", async () => {
   if (!isLoggedIn()) return;
   await update(ref(db, "quiz/state"), { liveRound: editingRound, updatedAt: Date.now(), updatedBy: currentAdminId });
@@ -1445,7 +1449,12 @@ function renderRound2Questions() {
     const editBtn = document.createElement("button");
     editBtn.className = "btn btn-secondary";
     editBtn.textContent = "Éditer";
-    editBtn.addEventListener("click", async () => editRound2Question(id, item));
+    editBtn.addEventListener("click", () => {
+      selectRound2Question(id);
+      activateRoundSection("manche2", "questions");
+      m2ImageInput?.focus();
+      showToast("Question chargée dans l’éditeur : vous pouvez aussi remplacer l’image.");
+    });
 
     actions.append(liveBtn, editBtn, deleteBtn);
     li.appendChild(actions);
@@ -1456,11 +1465,15 @@ function renderRound2Questions() {
 function selectRound2Question(questionId) {
   selectedManche2QuestionId = questionId;
   const item = questionId ? manche2Questions?.[questionId] : null;
-  if (m2EditorMode) m2EditorMode.textContent = item ? `Édition • Q${item.order || "?"}` : "Mode création";
+  if (m2EditorMode) m2EditorMode.textContent = item ? `Édition • Q${item.order || "?"} • image remplaçable` : "Mode création";
   if (m2WorkInput) m2WorkInput.value = item?.work || "";
   if (m2LocationInput) m2LocationInput.value = item?.location || "";
   if (m2QuestionTextInput) m2QuestionTextInput.value = item?.questionText || "";
-  if (m2ImageInput) m2ImageInput.required = !item;
+  if (m2ImageInput) {
+    m2ImageInput.value = "";
+    m2ImageInput.required = !item;
+  }
+  if (m2SaveQuestionBtn) m2SaveQuestionBtn.textContent = item ? "Mettre à jour" : "Enregistrer";
   renderRound2Questions();
 }
 
@@ -1477,41 +1490,6 @@ async function moveRound2Image(step) {
   const [nextId] = entries[nextIndex];
   if (!nextId || nextId === manche2State?.activeQuestionId) return;
   await update(ref(db, "rooms/manche2/state"), { activeQuestionId: nextId, updatedAt: Date.now(), updatedBy: currentAdminId });
-}
-
-async function editRound2Question(questionId, item) {
-  const work = await showPrompt("Modifier l'œuvre", {
-    title: "Éditer la question manche 2",
-    inputLabel: "Œuvre",
-    defaultValue: item.work || "",
-    confirmText: "Continuer",
-  });
-  if (work === null) return;
-  const location = await showPrompt("Modifier le lieu", {
-    title: "Éditer la question manche 2",
-    inputLabel: "Lieu",
-    defaultValue: item.location || "",
-    confirmText: "Continuer",
-  });
-  if (location === null) return;
-  const questionText = await showPrompt("Modifier le texte de la question (optionnel)", {
-    title: "Éditer la question manche 2",
-    inputLabel: "Question (optionnelle)",
-    defaultValue: item.questionText || "",
-    confirmText: "Enregistrer",
-  });
-  if (questionText === null) return;
-  const nextWork = work.trim();
-  const nextLocation = location.trim();
-  if (!nextWork || !nextLocation) return showToast("Œuvre et lieu obligatoires.", "error");
-  await update(ref(db, `rooms/manche2/questions/${questionId}`), {
-    work: nextWork,
-    location: nextLocation,
-    questionText: questionText.trim(),
-    updatedAt: Date.now(),
-    updatedBy: currentAdminId,
-  });
-  showToast("Question manche 2 mise à jour");
 }
 
 function refreshRound1Snapshot() {
