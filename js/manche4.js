@@ -165,6 +165,21 @@ function resolveGuestPlaybackTrack(track, state) {
   return track;
 }
 
+function normalizeParticipantProposals(item = {}) {
+  const proposals = Array.isArray(item.proposals) ? item.proposals : [];
+  if (proposals.length) {
+    return proposals
+      .map((proposal) => ({
+        answer: String(proposal?.answer || "").trim(),
+        answeredAt: Number(proposal?.answeredAt || item.answeredAt || 0),
+      }))
+      .filter((proposal) => proposal.answer);
+  }
+
+  const legacyAnswer = String(item.answer || "").trim();
+  return legacyAnswer ? [{ answer: legacyAnswer, answeredAt: Number(item.answeredAt || 0) }] : [];
+}
+
 export function initManche4Admin(options) {
   const { getCurrentAdminId, setMessage, showToast } = options;
 
@@ -392,10 +407,21 @@ export function initManche4Admin(options) {
       return;
     }
     answers.slice(0, 20).forEach((item) => {
+      const proposals = normalizeParticipantProposals(item);
+      const latestAt = proposals.at(-1)?.answeredAt || item.answeredAt || 0;
       const li = document.createElement("li");
       li.className = "leader-item";
-      const when = item.answeredAt ? new Date(item.answeredAt).toLocaleTimeString("fr-FR") : "—";
-      li.innerHTML = `<span class="leader-name">${item.nickname || "Invité"} · ${item.answer || "—"}</span><span class="leader-score">${when}</span>`;
+
+      const name = document.createElement("span");
+      name.className = "leader-name";
+      const proposalText = proposals.map((proposal, index) => `${index + 1}. ${proposal.answer}`).join(" · ") || "—";
+      name.textContent = `${item.nickname || "Invité"} · ${proposalText}`;
+
+      const when = document.createElement("span");
+      when.className = "leader-score";
+      when.textContent = latestAt ? new Date(latestAt).toLocaleTimeString("fr-FR") : "—";
+
+      li.append(name, when);
       els.answersList?.appendChild(li.cloneNode(true));
       els.answersLiveList?.appendChild(li);
     });
@@ -440,7 +466,7 @@ export function initManche4Admin(options) {
     els.prevBtn.disabled = !hasTracks || currentIndex <= 0;
     if (els.showAnswerBtn) {
       els.showAnswerBtn.disabled = !hasCurrentTrack;
-      els.showAnswerBtn.textContent = liveState.showAnswer ? "Masquer la réponse" : "Afficher la réponse";
+      els.showAnswerBtn.textContent = liveState.showAnswer ? "Masquer la réponse (manuel)" : "Afficher la réponse (manuel)";
     }
   }
 
@@ -654,6 +680,7 @@ export function initManche4Guest(options = {}) {
   const audioHint = document.getElementById("m4-audio-hint");
   const answerForm = document.getElementById("m4-guest-answer-form");
   const answerInput = document.getElementById("m4-guest-answer-input");
+  const answerSubmit = document.getElementById("m4-guest-answer-submit");
   const answerStatus = document.getElementById("m4-guest-answer-status");
   const getSessionId = typeof options.getSessionId === "function" ? options.getSessionId : () => "";
   const getNickname = typeof options.getNickname === "function" ? options.getNickname : () => "";
@@ -695,6 +722,13 @@ export function initManche4Guest(options = {}) {
     trackLabelNode.textContent = currentTrack ? `Piste : ${index + 1} / ${enabledTracks.length}` : "Piste : —";
     playbackLabelNode.textContent = `État : ${statusLabel(liveState.playbackState)}`;
     if (answerRevealNode) answerRevealNode.textContent = liveState.showAnswer ? `Réponse : ${currentTrack?.answer || "—"}` : "";
+
+    const sessionId = getSessionId();
+    const proposals = normalizeParticipantProposals(liveState.participantAnswers?.[sessionId] || {});
+    const reachedLimit = proposals.length >= 2;
+    if (answerSubmit) answerSubmit.disabled = reachedLimit || !liveState.active || !currentTrack;
+    if (answerInput) answerInput.disabled = reachedLimit || !liveState.active || !currentTrack;
+    if (reachedLimit) setAnswerStatus("Deux propositions envoyées pour ce morceau.", "success");
 
     if (!liveState.active) {
       statusLabelNode.textContent = "En attente du lancement admin.";
@@ -748,22 +782,37 @@ export function initManche4Guest(options = {}) {
     const sessionId = String(getSessionId() || "").trim();
     const nickname = String(getNickname() || "").trim();
     const answer = String(answerInput?.value || "").trim();
+    const existing = liveState.participantAnswers?.[sessionId] || {};
+    const proposals = normalizeParticipantProposals(existing);
     if (!sessionId || !nickname) {
       setAnswerStatus("Vous devez être connecté pour répondre.", "error");
+      return;
+    }
+    const currentTrack = findTrackByIdOrIndex(activeTracks(tracks), liveState);
+    if (!liveState.active || !currentTrack) {
+      setAnswerStatus("Aucun morceau actif pour le moment.", "error");
       return;
     }
     if (!answer) {
       setAnswerStatus("Tapez une réponse avant d’envoyer.", "error");
       return;
     }
+    if (proposals.length >= 2) {
+      setAnswerStatus("Vous avez déjà envoyé vos deux propositions pour ce morceau.", "error");
+      return;
+    }
     setAnswerStatus("Envoi…", "loading");
+    const now = Date.now();
+    const nextProposals = [...proposals, { answer, answeredAt: now }].slice(0, 2);
     await update(ref(db, `rooms/manche4/blindtest/live/participantAnswers/${sessionId}`), {
       sessionId,
       nickname,
       answer,
-      answeredAt: Date.now(),
+      proposals: nextProposals,
+      answeredAt: now,
     });
-    setAnswerStatus("Réponse envoyée.", "success");
+    if (answerInput) answerInput.value = "";
+    setAnswerStatus(nextProposals.length >= 2 ? "Deuxième proposition envoyée." : "Première proposition envoyée. Il vous reste une proposition.", "success");
   }
   watchBlindtestTracks((nextTracks) => {
     tracks = nextTracks;

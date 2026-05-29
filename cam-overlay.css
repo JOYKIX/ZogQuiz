@@ -76,6 +76,30 @@ body { background-color: transparent; }
 .camera-name,
 .camera-grid.names-hidden .camera-name { display: none; }
 
+.camera-answer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  max-width: calc(100% - 20px);
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: clamp(14px, 7.5%, 26px);
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .9);
+  background: linear-gradient(90deg, rgba(8, 18, 42, .82), rgba(23, 47, 92, .72));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+.camera-answer.hidden { display: none; }
+
 .camera-preview-card {
   display: grid;
   place-items: center;

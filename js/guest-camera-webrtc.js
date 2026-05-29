@@ -266,11 +266,56 @@ export function initCameraOverlay(roundKey) {
   const previewCards = new Map();
   let currentConfig = null;
   let presence = {};
+  let guestSessions = {};
+  let roundAnswers = { round2: {}, round3: {} };
   let roundStates = {};
   let retryTimer = null;
 
   function slotName(slot, nickname) {
     return slot?.label || nickname || "Invité";
+  }
+
+  function activeQuizParticipantIds() {
+    return Object.entries(guestSessions)
+      .filter(([, session]) => session?.active !== false && String(session?.nickname || "").trim())
+      .map(([id]) => id);
+  }
+
+  function currentAnswerSet() {
+    if (roundKey === "round2") {
+      const questionId = roundStates.round2?.activeQuestionId || "";
+      return questionId ? (roundAnswers.round2?.[questionId] || {}) : {};
+    }
+    if (roundKey === "round3") {
+      const state = roundStates.round3 || {};
+      const themeId = state.activeThemeId || "";
+      if (!themeId) return {};
+      const answerKey = safeKey(`${themeId}_${Number(state.questionIndex || 0)}`);
+      return roundAnswers.round3?.[answerKey] || {};
+    }
+    return {};
+  }
+
+  function shouldRevealWrittenAnswers(answerSet) {
+    const participantIds = activeQuizParticipantIds();
+    if (!participantIds.length) return false;
+    return participantIds.every((id) => String(answerSet?.[id]?.answer || "").trim());
+  }
+
+  function getVisibleAnswerForGuest(guestId) {
+    if (!["round2", "round3"].includes(roundKey)) return "";
+    const answerSet = currentAnswerSet();
+    if (!shouldRevealWrittenAnswers(answerSet)) return "";
+    return String(answerSet?.[guestId]?.answer || "").trim();
+  }
+
+  function updateAnswerOverlays() {
+    peers.forEach((entry, guestId) => {
+      if (!entry.answer) return;
+      const answer = getVisibleAnswerForGuest(guestId);
+      entry.answer.textContent = answer;
+      entry.answer.classList.toggle("hidden", !answer);
+    });
   }
 
   function formatPx(value) {
@@ -363,6 +408,11 @@ export function initCameraOverlay(roundKey) {
       entry.slot = slot;
       entry.slotIndex = slotIndex;
       entry.name.textContent = slotName(slot, nickname);
+      if (entry.answer) {
+        const visibleAnswer = getVisibleAnswerForGuest(guestId);
+        entry.answer.textContent = visibleAnswer;
+        entry.answer.classList.toggle("hidden", !visibleAnswer);
+      }
       applyCardLayout(entry, slot);
       return entry;
     }
@@ -377,10 +427,15 @@ export function initCameraOverlay(roundKey) {
     const name = document.createElement("span");
     name.className = "camera-name";
     name.textContent = slotName(slot, nickname);
-    card.append(video, name);
+    const answer = document.createElement("span");
+    answer.className = "camera-answer hidden";
+    card.append(video, name, answer);
     grid.append(card);
-    entry = { ...(entry || {}), card, video, name, guestId, nickname, slot, slotIndex };
+    entry = { ...(entry || {}), card, video, name, answer, guestId, nickname, slot, slotIndex };
     peers.set(guestId, entry);
+    const visibleAnswer = getVisibleAnswerForGuest(guestId);
+    answer.textContent = visibleAnswer;
+    answer.classList.toggle("hidden", !visibleAnswer);
     applyCardLayout(entry, slot);
     return entry;
   }
@@ -467,19 +522,38 @@ export function initCameraOverlay(roundKey) {
     desired.forEach(({ guestId, nickname, slot, slotIndex }) => connectGuest(guestId, nickname, slot, slotIndex).catch(console.warn));
     if (status) status.textContent = currentConfig.enabled ? `${desired.length}/${currentConfig.cameraCount} caméra(s) connectée(s)` : "Caméras désactivées pour cette manche";
     updateLayout();
+    updateAnswerOverlays();
   }
 
   watchCameraConfig(roundKey, applyConfig);
-  (CAMERA_ROUND_STATE_PATHS[roundKey] || []).forEach((path) => {
+  const extraRoundStatePaths = roundKey === "round2" ? ["rooms/manche2/state"] : [];
+  [...extraRoundStatePaths, ...(CAMERA_ROUND_STATE_PATHS[roundKey] || [])].forEach((path) => {
     onValue(ref(db, path), (snap) => {
       roundStates[roundKey] = snap.val() || {};
       reconcile();
+      updateAnswerOverlays();
     });
   });
   onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
     presence = snap.val() || {};
     reconcile();
   });
+  onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
+    guestSessions = snap.val() || {};
+    updateAnswerOverlays();
+  });
+  if (roundKey === "round2") {
+    onValue(ref(db, "rooms/manche2/answers"), (snap) => {
+      roundAnswers.round2 = snap.val() || {};
+      updateAnswerOverlays();
+    });
+  }
+  if (roundKey === "round3") {
+    onValue(ref(db, "rooms/manche3/answers"), (snap) => {
+      roundAnswers.round3 = snap.val() || {};
+      updateAnswerOverlays();
+    });
+  }
   setInterval(reconcile, 10000);
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
@@ -709,7 +783,8 @@ export function initGuestCameraWall({
       configs[roundKey] = config;
       reconcile();
     });
-    (CAMERA_ROUND_STATE_PATHS[roundKey] || []).forEach((path) => {
+    const extraRoundStatePaths = roundKey === "round2" ? ["rooms/manche2/state"] : [];
+  [...extraRoundStatePaths, ...(CAMERA_ROUND_STATE_PATHS[roundKey] || [])].forEach((path) => {
       onValue(ref(db, path), (snap) => {
         roundStates[roundKey] = snap.val() || {};
         reconcile();
@@ -720,6 +795,22 @@ export function initGuestCameraWall({
     presence = snap.val() || {};
     reconcile();
   });
+  onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
+    guestSessions = snap.val() || {};
+    updateAnswerOverlays();
+  });
+  if (roundKey === "round2") {
+    onValue(ref(db, "rooms/manche2/answers"), (snap) => {
+      roundAnswers.round2 = snap.val() || {};
+      updateAnswerOverlays();
+    });
+  }
+  if (roundKey === "round3") {
+    onValue(ref(db, "rooms/manche3/answers"), (snap) => {
+      roundAnswers.round3 = snap.val() || {};
+      updateAnswerOverlays();
+    });
+  }
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
   });

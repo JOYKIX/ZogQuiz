@@ -62,6 +62,9 @@ const m3GuestPlayer = document.getElementById("m3-guest-player");
 const m3GuestTheme = document.getElementById("m3-guest-theme");
 const m3GuestHelp = document.getElementById("m3-guest-help");
 const m3ThemeButtons = document.getElementById("m3-theme-buttons");
+const m3AnswerForm = document.getElementById("m3-answer-form");
+const m3AnswerInput = document.getElementById("m3-answer-input");
+const m3AnswerStatus = document.getElementById("m3-answer-status");
 
 const GUEST_STORAGE_KEY = "zogquiz.guestSession.v2";
 const BUZZ_KEYBIND_STORAGE_KEY = "zogquiz.guestBuzzKeybind.v1";
@@ -100,6 +103,8 @@ let manche2Answers = {};
 let lastRenderedRound2QuestionId = null;
 let round3State = null;
 let round3Themes = {};
+let round3Answers = {};
+let lastRenderedRound3AnswerKey = null;
 let sessionsById = {};
 let manche4Controller = null;
 let guestCameraController = null;
@@ -107,6 +112,10 @@ let guestCameraWallController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 
+
+function safeFirebaseKey(value) {
+  return String(value || "").replace(/[.#$\[\]\/]/g, "_").slice(0, 120);
+}
 function isAccountActive(account) {
   return account?.active !== false;
 }
@@ -537,6 +546,86 @@ async function submitRound2Answer(event) {
   setRound2AnswerStatus("Réponse envoyée à l’admin.", "success");
 }
 
+function getRound3AnswerKey() {
+  const themeId = round3State?.activeThemeId || "";
+  if (!themeId) return "";
+  return safeFirebaseKey(`${themeId}_${Number(round3State?.questionIndex || 0)}`);
+}
+
+function getCurrentRound3Answer() {
+  const answerKey = getRound3AnswerKey();
+  const sessionId = getCurrentSessionId();
+  if (!answerKey || !sessionId) return null;
+  return round3Answers?.[answerKey]?.[sessionId] || null;
+}
+
+function setRound3AnswerStatus(text = "", type = "default") {
+  if (!m3AnswerStatus) return;
+  m3AnswerStatus.textContent = text;
+  m3AnswerStatus.classList.remove("success", "error", "loading");
+  if (type !== "default") m3AnswerStatus.classList.add(type);
+}
+
+function getRound3CurrentQuestion(activeTheme) {
+  const questions = Object.values(activeTheme?.questions || {}).sort((a, b) => (a.order || 0) - (b.order || 0));
+  return questions[Number(round3State?.questionIndex || 0)] || null;
+}
+
+function renderRound3AnswerForm(activeTheme) {
+  if (!m3AnswerForm || !m3AnswerInput) return;
+  const answerKey = getRound3AnswerKey();
+  const currentQuestion = getRound3CurrentQuestion(activeTheme);
+  const canAnswer = Boolean(answerKey && currentQuestion && isGuestConnected());
+  m3AnswerForm.classList.toggle("hidden", !canAnswer);
+  m3AnswerInput.disabled = !canAnswer;
+
+  if (!canAnswer) {
+    lastRenderedRound3AnswerKey = answerKey;
+    m3AnswerInput.value = "";
+    setRound3AnswerStatus(answerKey ? "Connectez-vous pour répondre." : "");
+    return;
+  }
+
+  const existingAnswer = getCurrentRound3Answer();
+  const shouldRefreshInput = answerKey !== lastRenderedRound3AnswerKey || document.activeElement !== m3AnswerInput;
+  if (shouldRefreshInput) m3AnswerInput.value = existingAnswer?.answer || "";
+  lastRenderedRound3AnswerKey = answerKey;
+
+  if (existingAnswer?.answer) {
+    setRound3AnswerStatus("Réponse envoyée. Vous pouvez la modifier puis renvoyer.", "success");
+  } else {
+    setRound3AnswerStatus("Écrivez votre réponse puis envoyez-la à l’admin.");
+  }
+}
+
+async function submitRound3Answer(event) {
+  event.preventDefault();
+  const activeTheme = round3Themes[round3State?.activeThemeId] || null;
+  const currentQuestion = getRound3CurrentQuestion(activeTheme);
+  const answerKey = getRound3AnswerKey();
+  const answer = String(m3AnswerInput?.value || "").trim();
+  if (!isGuestConnected()) return setRound3AnswerStatus("Connexion invitée requise.", "error");
+  if (!answerKey || !currentQuestion) return setRound3AnswerStatus("Aucune question active pour le moment.", "error");
+  if (!answer) return setRound3AnswerStatus("Réponse obligatoire.", "error");
+
+  setRound3AnswerStatus("Envoi de la réponse...", "loading");
+  const existingAnswer = getCurrentRound3Answer();
+  const now = Date.now();
+  await set(ref(db, `rooms/manche3/answers/${answerKey}/${guestAuth.accountId}`), {
+    accountId: guestAuth.accountId,
+    sessionId: guestAuth.accountId,
+    loginId: guestAuth.account?.loginId || "",
+    nickname: guestAuth.nickname,
+    themeId: round3State.activeThemeId,
+    questionIndex: Number(round3State?.questionIndex || 0),
+    questionText: currentQuestion.text || "",
+    answer,
+    createdAt: existingAnswer?.createdAt || now,
+    updatedAt: now,
+  });
+  setRound3AnswerStatus("Réponse envoyée à l’admin.", "success");
+}
+
 function renderRound3() {
   const activePlayerId = round3State?.activePlayerId;
   const activePlayerName = sessionsById[activePlayerId]?.nickname || "Aucun";
@@ -563,6 +652,8 @@ function renderRound3() {
     m3GuestStatus.textContent = "Tour d’un autre joueur.";
     m3GuestHelp.textContent = "Attendez votre tour.";
   }
+
+  renderRound3AnswerForm(activeTheme);
 
   const themes = Object.entries(round3Themes || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
   m3ThemeButtons.innerHTML = "";
@@ -740,6 +831,7 @@ buzzBtn.addEventListener("click", async () => {
 });
 
 m2AnswerForm?.addEventListener("submit", submitRound2Answer);
+m3AnswerForm?.addEventListener("submit", submitRound3Answer);
 
 buzzKeybindChangeBtn?.addEventListener("click", () => {
   isKeybindCaptureActive = true;
@@ -803,6 +895,11 @@ onValue(ref(db, "rooms/manche3/state"), (snap) => {
 
 onValue(ref(db, "rooms/manche3/themes"), (snap) => {
   round3Themes = snap.val() || {};
+  renderRound3();
+});
+
+onValue(ref(db, "rooms/manche3/answers"), (snap) => {
+  round3Answers = snap.val() || {};
   renderRound3();
 });
 
