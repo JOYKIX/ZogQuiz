@@ -40,6 +40,17 @@
           <p id="guest-camera-status" class="message camera-status off">Caméra désactivée.</p>
           <video id="guest-camera-preview" class="guest-camera-preview hidden" autoplay muted playsinline></video>
         </section>
+        <section id="guest-camera-wall-panel" class="panel guest-camera-wall-panel hidden">
+          <div class="panel-head compact-head">
+            <div>
+              <p class="eyebrow">Cams live</p>
+              <h2>Admin & participants</h2>
+            </div>
+          </div>
+          <p class="muted">Vue automatique : cam admin, puis les participants actifs de la manche en cours.</p>
+          <p id="guest-camera-wall-status" class="message camera-status off">Aucune caméra active pour le moment.</p>
+          <div id="guest-camera-wall" class="guest-camera-wall"></div>
+        </section>
         <section id="guest-round1" class="guest-round stack"><section class="panel"><h2>Manche 1</h2><p class="muted">Buzzer actif uniquement sur cette manche.</p></section><section id="buzzer-panel" class="panel hidden"><h2>Buzzer</h2><p id="buzz-keybind-label" class="muted">Touche actuelle : Espace</p><button id="buzz-keybind-change" class="btn btn-secondary" type="button">Changer la touche</button><p id="buzz-keybind-hint" class="muted hidden">Appuyez sur une touche…</p><button id="buzz-btn" class="buzz btn btn-primary">BUZZER</button><p id="buzz-feedback" class="message"></p></section></section>
         <section id="guest-round2" class="guest-round hidden"><section class="panel guest-image-card"><p class="eyebrow">Manche 2</p><img id="m2-live-image" class="guest-image hidden" alt="Question manche 2" /><p id="m2-empty" class="guest-empty">Aucune image active</p></section></section>
         <section id="guest-round3" class="guest-round hidden stack"><section class="panel"><h2>Manche 3</h2><p id="m3-guest-status" class="message">En attente.</p><p id="m3-guest-player" class="muted">Joueur actif : —</p><p id="m3-guest-theme" class="muted">Thème actif : —</p></section><section class="panel"><h3>Choix du thème</h3><p id="m3-guest-help" class="muted">Seul le joueur actif peut choisir.</p><div id="m3-theme-buttons" class="row"></div></section></section>
