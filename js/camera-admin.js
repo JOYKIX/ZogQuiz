@@ -115,7 +115,9 @@ function renderRound(roundKey, index) {
       <div class="camera-config-grid camera-round-settings">
         <label>Nombre de caméras <input id="${fieldId(roundKey, "cameraCount")}" type="number" min="0" max="12" step="1" value="${config.cameraCount}" /></label>
         <label class="toggle-line"><input id="${fieldId(roundKey, "showNames")}" type="checkbox" ${config.showNames ? "checked" : ""} /> Afficher noms / libellés</label>
+        <label class="toggle-line"><input id="${fieldId(roundKey, "preview")}" type="checkbox" ${config.preview ? "checked" : ""} /> Prévisualiser les emplacements</label>
       </div>
+      <p class="muted compact-help">Active la prévisualisation pour afficher dans l’overlay des rectangles noirs à la taille, position, arrondi et profondeur de chaque cam, avec son rôle / sa correspondance.</p>
       <p class="muted compact-help">Chaque cam a sa position, taille, arrondi, profondeur et correspondance. Sans assignation, les invités connectés remplissent les slots dans l’ordre.</p>
       <div class="camera-slot-list">${config.cameras.map((camera, slotIndex) => renderSlot(roundKey, camera, slotIndex)).join("")}</div>
       <div class="row">
@@ -165,6 +167,7 @@ function readRound(roundKey) {
     enabled: getInput(roundKey, "enabled")?.checked,
     cameraCount,
     showNames: getInput(roundKey, "showNames")?.checked,
+    preview: getInput(roundKey, "preview")?.checked,
     cameras: Array.from({ length: Math.max(0, Math.min(12, Math.round(cameraCount))) }, (_, index) => readSlot(roundKey, index)),
   });
 }

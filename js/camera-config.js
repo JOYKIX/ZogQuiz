@@ -58,6 +58,7 @@ export const CAMERA_DEFAULT_CONFIG = {
   perRow: 3,
   borderRadius: 18,
   showNames: true,
+  preview: false,
   cameras: [{ ...CAMERA_SLOT_DEFAULT }],
 };
 
@@ -78,6 +79,14 @@ function normalizeRole(value) {
 
 function normalizeFit(value) {
   return value === "contain" ? "contain" : "cover";
+}
+
+export function getCameraRoleLabel(role) {
+  return CAMERA_ROLE_OPTIONS.find((option) => option.value === role)?.label || "Auto / non assignée";
+}
+
+export function getCameraSlotPreviewLabel(slot = {}, index = 0) {
+  return normalizeText(slot.label, 80) || getCameraRoleLabel(normalizeRole(slot.role)) || `Cam ${index + 1}`;
 }
 
 function defaultSlotFromLegacy(raw, index) {
@@ -131,6 +140,7 @@ export function normalizeCameraConfig(raw = {}) {
     perRow: clampInt(raw.perRow, CAMERA_DEFAULT_CONFIG.perRow, 1, 12),
     borderRadius: clampInt(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
     showNames: Boolean(raw.showNames ?? CAMERA_DEFAULT_CONFIG.showNames),
+    preview: Boolean(raw.preview ?? CAMERA_DEFAULT_CONFIG.preview),
     cameras,
   };
 }

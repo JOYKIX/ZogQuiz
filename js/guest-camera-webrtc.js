@@ -9,7 +9,7 @@ import {
   update,
   remove,
 } from "./firebase.js";
-import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
+import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, getCameraSlotPreviewLabel, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
 
 const RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 const GUEST_HEARTBEAT_MS = 15000;
@@ -223,6 +223,7 @@ export function initCameraOverlay(roundKey) {
   const grid = document.getElementById("camera-grid");
   const status = document.getElementById("camera-overlay-status");
   const peers = new Map();
+  const previewCards = new Map();
   let currentConfig = null;
   let presence = {};
   let roundStates = {};
@@ -240,13 +241,13 @@ export function initCameraOverlay(roundKey) {
     entry.card.style.height = `${slot.height}px`;
     entry.card.style.borderRadius = `${slot.borderRadius}px`;
     entry.card.style.zIndex = String(slot.zIndex);
-    entry.video.style.objectFit = slot.fit || "cover";
+    if (entry.video) entry.video.style.objectFit = slot.fit || "cover";
   }
 
   function applyConfig(config) {
     currentConfig = config;
     grid.classList.toggle("names-hidden", !config.showNames);
-    grid.classList.toggle("disabled", !config.enabled);
+    grid.classList.toggle("disabled", !config.enabled && !config.preview);
     reconcile();
   }
 
@@ -277,6 +278,38 @@ export function initCameraOverlay(roundKey) {
   function updateLayout() {
     peers.forEach((entry) => applyCardLayout(entry, entry.slot));
   }
+  function clearPreviewCards() {
+    previewCards.forEach((card) => card.remove());
+    previewCards.clear();
+  }
+
+  function renderPreviewCards() {
+    const slots = (currentConfig?.cameras || []).filter((slot) => slot.enabled);
+    const activeSlotIndexes = new Set(slots.map((slot) => String((currentConfig.cameras || []).indexOf(slot))));
+    for (const slotIndex of [...previewCards.keys()]) {
+      if (!activeSlotIndexes.has(slotIndex)) {
+        previewCards.get(slotIndex)?.remove();
+        previewCards.delete(slotIndex);
+      }
+    }
+    slots.forEach((slot) => {
+      const slotIndex = String((currentConfig.cameras || []).indexOf(slot));
+      let card = previewCards.get(slotIndex);
+      if (!card) {
+        card = document.createElement("article");
+        card.className = "camera-card camera-preview-card";
+        card.dataset.cameraSlot = slotIndex;
+        const label = document.createElement("span");
+        label.className = "camera-preview-label";
+        card.append(label);
+        grid.append(card);
+        previewCards.set(slotIndex, card);
+      }
+      card.querySelector(".camera-preview-label").textContent = getCameraSlotPreviewLabel(slot, Number(slotIndex));
+      applyCardLayout({ card }, slot);
+    });
+  }
+
 
   function ensureCard(guestId, nickname, slot, slotIndex) {
     let entry = peers.get(guestId);
@@ -370,6 +403,17 @@ export function initCameraOverlay(roundKey) {
 
   function reconcile() {
     if (!grid || !currentConfig) return;
+    if (currentConfig.preview) {
+      for (const guestId of [...peers.keys()]) {
+        disconnectGuest(guestId).catch(console.warn);
+      }
+      renderPreviewCards();
+      grid.classList.toggle("names-hidden", false);
+      if (status) status.textContent = `${previewCards.size}/${currentConfig.cameraCount} emplacement(s) prévisualisé(s)`;
+      return;
+    }
+    clearPreviewCards();
+    grid.classList.toggle("names-hidden", !currentConfig.showNames);
     const desired = desiredGuests();
     const desiredIds = new Set(desired.map((item) => item.guestId));
     for (const guestId of [...peers.keys()]) {
@@ -394,6 +438,7 @@ export function initCameraOverlay(roundKey) {
   setInterval(reconcile, 10000);
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
+    clearPreviewCards();
   });
 }
 
