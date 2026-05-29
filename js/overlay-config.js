@@ -63,14 +63,15 @@ export const OVERLAY_DEFAULTS = {
     letterSpacingEm: -0.035,
   },
   round4: {
-    clueFontSizePx: 40,
-    clueColor: "#ffffff",
-    wordFontSizePx: 28,
-    cellRadiusPx: 14,
-    markerSizePx: 18,
-    markerOpacity: 0.95,
-    gridMaxWidthPx: 1500,
-    gridGapPx: 10,
+    maxFontSizePx: 220,
+    minFontSizePx: 36,
+    textColor: "#ffffff",
+    fontWeight: 950,
+    textShadow: true,
+    align: "center",
+    paddingPx: 40,
+    lineHeight: 1.04,
+    maxWidthPx: 1800,
   },
   round5: {
     primaryFontSizePx: 52,
@@ -208,15 +209,18 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
   }
 
   if (roundKey === "round4") {
+    const maxFontSizePx = clampInt(raw.maxFontSizePx, defaults.maxFontSizePx, 36, 320);
+    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, 140);
     return {
-      clueFontSizePx: clampInt(raw.clueFontSizePx, defaults.clueFontSizePx, 16, 140),
-      clueColor: asColor(raw.clueColor, defaults.clueColor),
-      wordFontSizePx: clampInt(raw.wordFontSizePx, defaults.wordFontSizePx, 12, 92),
-      cellRadiusPx: clampInt(raw.cellRadiusPx, defaults.cellRadiusPx, 0, 60),
-      markerSizePx: clampInt(raw.markerSizePx, defaults.markerSizePx, 8, 42),
-      markerOpacity: clampFloat(raw.markerOpacity, defaults.markerOpacity, 0.1, 1),
-      gridMaxWidthPx: clampInt(raw.gridMaxWidthPx, defaults.gridMaxWidthPx, 500, 2200),
-      gridGapPx: clampInt(raw.gridGapPx, defaults.gridGapPx, 0, 40),
+      maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
+      minFontSizePx: Math.min(minFontSizePx, maxFontSizePx),
+      textColor: asColor(raw.textColor ?? raw.clueColor, defaults.textColor),
+      fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 1000),
+      textShadow: Boolean(raw.textShadow ?? defaults.textShadow),
+      align: asAlign(raw.align, defaults.align),
+      paddingPx: clampInt(raw.paddingPx, defaults.paddingPx, 0, 220),
+      lineHeight: clampFloat(raw.lineHeight, defaults.lineHeight, 0.8, 1.8),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2600),
     };
   }
 
