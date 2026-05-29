@@ -30,6 +30,7 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
 - `overlay-round1.html` : overlay OBS manche 1 (question/réponse).
 - `overlay-round2.html` : overlay OBS manche 2 (image active).
 - `overlay-round3.html` : overlay OBS manche 3 (thème/question/timer).
+- `theme-orverlay.html` : overlay OBS manche 3 listant les 12 thèmes avec nombre de colonnes configurable.
 - `overlay-round4.html` : overlay OBS manche 4 (blindtest : statut, piste en cours, timer).
 - `overlay-round5.html` : overlay OBS manche 5 (mort subite).
 - `overlay-round6.html` : overlay OBS manche 6 / finale.
