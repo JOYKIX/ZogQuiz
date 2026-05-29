@@ -69,13 +69,15 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     const active = status === "active" || status === "starting";
     elements.button.disabled = status === "starting";
     elements.button.textContent = active ? "Désactiver la caméra" : "Activer la caméra";
-    elements.status.className = `message camera-status ${status}`;
-    elements.status.textContent = text || {
-      off: "Caméra désactivée.",
-      starting: "Demande d’autorisation caméra…",
-      active: activeLabel,
-      error: "Erreur caméra.",
-    }[status] || "";
+    if (elements.status) {
+      elements.status.className = `message camera-status ${status}`;
+      elements.status.textContent = text || {
+        off: "Caméra désactivée.",
+        starting: "Demande d’autorisation caméra…",
+        active: activeLabel,
+        error: "Erreur caméra.",
+      }[status] || "";
+    }
     elements.preview.classList.toggle("hidden", !state.stream);
     if (state.stream && elements.preview.srcObject !== state.stream) elements.preview.srcObject = state.stream;
   }
