@@ -21,7 +21,7 @@ export function autoFitText({
   const minSize = Math.max(8, Number(minFontSizePx) || 24);
   const maxSize = Math.max(minSize, Number(maxFontSizePx) || minSize);
   const inset = Math.max(0, Number(paddingPx) || 0) * 2;
-  const effectiveLineHeight = Math.max(1, Number(lineHeight) || 1.2);
+  const effectiveLineHeight = Math.max(0.5, Number(lineHeight) || 1.2);
 
   const availableWidth = Math.max(1, container.clientWidth - inset);
   const availableHeight = Math.max(1, container.clientHeight - inset);

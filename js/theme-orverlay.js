@@ -25,15 +25,26 @@ function chunkThemes(themeList, columnCount) {
 function applyOverlayConfig() {
   if (!overlayConfig || !rootNode || !panelNode || !listNode) return;
 
-  const columnCount = Math.max(1, Math.min(12, overlayConfig.themeOverlayColumns));
-  rootNode.style.padding = `${overlayConfig.questionPaddingPx}px`;
+  const columnCount = Math.max(1, Math.min(12, overlayConfig.columns));
+  rootNode.style.padding = `${overlayConfig.paddingPx}px`;
   panelNode.style.width = `min(100%, ${overlayConfig.maxWidthPx}px)`;
   listNode.style.setProperty("--theme-columns", String(columnCount));
-  listNode.style.setProperty("--theme-color", overlayConfig.themeOverlayTextColor);
-  listNode.style.setProperty("--theme-background-color", overlayConfig.themeOverlayBackgroundColor);
-  listNode.style.setProperty("--theme-font-size", `${overlayConfig.themeFontSizePx}px`);
+  listNode.style.setProperty("--theme-color", overlayConfig.textColor);
+  listNode.style.setProperty("--theme-background-color", overlayConfig.backgroundColor);
+  listNode.style.setProperty("--theme-font-size", `${overlayConfig.fontSizePx}px`);
   listNode.style.setProperty("--theme-font-weight", String(overlayConfig.fontWeight));
   listNode.style.setProperty("--theme-align", overlayConfig.align);
+  listNode.style.setProperty("--theme-item-self", { left: "flex-start", center: "center", right: "flex-end" }[overlayConfig.align] || "center");
+  listNode.style.setProperty("--theme-active-border-color", overlayConfig.activeBorderColor);
+  listNode.style.setProperty("--theme-column-gap", `${overlayConfig.columnGapPx}px`);
+  listNode.style.setProperty("--theme-row-gap", `${overlayConfig.rowGapPx}px`);
+  listNode.style.setProperty("--theme-item-width", `${overlayConfig.itemBackgroundWidthPercent}%`);
+  listNode.style.setProperty("--theme-padding-y", `${overlayConfig.itemPaddingYPx}px`);
+  listNode.style.setProperty("--theme-padding-x", `${overlayConfig.itemPaddingXPx}px`);
+  listNode.style.setProperty("--theme-radius", `${overlayConfig.borderRadiusPx}px`);
+  listNode.style.setProperty("--theme-border-width", `${overlayConfig.borderWidthPx}px`);
+  listNode.style.setProperty("--theme-line-height", String(overlayConfig.lineHeight));
+  listNode.style.setProperty("--theme-letter-spacing", `${overlayConfig.letterSpacingEm}em`);
 }
 
 function renderEmpty() {
@@ -48,7 +59,7 @@ function render() {
   if (!listNode) return;
 
   const themeList = getSortedThemes();
-  const columnCount = Math.max(1, Math.min(12, overlayConfig?.themeOverlayColumns || 2));
+  const columnCount = Math.max(1, Math.min(12, overlayConfig?.columns || 2));
 
   applyOverlayConfig();
 
@@ -84,7 +95,7 @@ onValue(ref(db, "rooms/manche3/themes"), (snap) => {
   render();
 });
 
-watchOverlayConfig("round3", (config) => {
+watchOverlayConfig("round3ThemeOverlay", (config) => {
   overlayConfig = config;
   render();
 });
