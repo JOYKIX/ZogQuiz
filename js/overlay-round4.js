@@ -48,6 +48,16 @@ function getPromptForTrack(track) {
   return CATEGORY_PROMPTS[category] || CATEGORY_PROMPTS.opening;
 }
 
+function getAnswerForTrack(track) {
+  const answer = String(track?.answer || "").trim();
+  return answer || "Réponse indisponible";
+}
+
+function getOverlayText(currentTrack, hasEnabledTracks) {
+  if (liveState.showAnswer && currentTrack) return getAnswerForTrack(currentTrack);
+  return hasEnabledTracks ? getPromptForTrack(currentTrack) : CATEGORY_PROMPTS.opening;
+}
+
 function applyConfig() {
   if (!overlayConfig || !promptNode) return;
   promptNode.style.color = overlayConfig.textColor;
@@ -84,7 +94,8 @@ function scheduleAutoFit() {
 function render() {
   const { enabled, currentTrack } = resolveCurrentTrack();
 
-  promptNode.textContent = enabled.length ? getPromptForTrack(currentTrack) : "Quel est cet opening ?";
+  promptNode.textContent = getOverlayText(currentTrack, enabled.length > 0);
+  promptNode.classList.toggle("is-answer", Boolean(liveState.showAnswer && currentTrack));
 
   if (errorNode && liveState.lastError) {
     errorNode.textContent = liveState.lastError;
