@@ -162,6 +162,7 @@ const overlayRound3FontWeightInput = $("overlay-round3-font-weight");
 const overlayRound3AlignInput = $("overlay-round3-align");
 const overlayRound3GapInput = $("overlay-round3-gap");
 const overlayRound3MaxWidthInput = $("overlay-round3-max-width");
+const overlayRound3ThemeColumnsInput = $("overlay-round3-theme-columns");
 
 const overlayRound4ClueSizeInput = $("overlay-round4-clue-size");
 const overlayRound4ClueColorInput = $("overlay-round4-clue-color");
@@ -508,7 +509,7 @@ buzzMinusBtn.addEventListener("click", async () => {
 [
   overlayRound3QuestionSizeInput, overlayRound3ThemeSizeInput, overlayRound3TimerSizeInput,
   overlayRound3QuestionColorInput, overlayRound3ThemeColorInput, overlayRound3TimerColorInput,
-  overlayRound3TimerFormatInput, overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput,
+  overlayRound3TimerFormatInput, overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3GapInput, overlayRound3MaxWidthInput, overlayRound3ThemeColumnsInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3")));
 [
   overlayRound4ClueSizeInput, overlayRound4ClueColorInput, overlayRound4WordSizeInput,
@@ -1827,6 +1828,7 @@ function syncOverlayInputs() {
   if (overlayRound3AlignInput) overlayRound3AlignInput.value = r3.align;
   if (overlayRound3GapInput) overlayRound3GapInput.value = String(r3.blockGapPx);
   if (overlayRound3MaxWidthInput) overlayRound3MaxWidthInput.value = String(r3.maxWidthPx);
+  if (overlayRound3ThemeColumnsInput) overlayRound3ThemeColumnsInput.value = String(r3.themeOverlayColumns);
 
   const r4 = overlayConfigs.round4;
   if (overlayRound4ClueSizeInput) overlayRound4ClueSizeInput.value = String(r4.clueFontSizePx);
@@ -1887,6 +1889,7 @@ function readOverlayConfigInputs(roundKey) {
       align: overlayRound3AlignInput?.value,
       blockGapPx: overlayRound3GapInput?.value,
       maxWidthPx: overlayRound3MaxWidthInput?.value,
+      themeOverlayColumns: overlayRound3ThemeColumnsInput?.value,
     };
   }
   if (roundKey === "round4") {

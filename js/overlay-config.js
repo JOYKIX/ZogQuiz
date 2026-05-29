@@ -37,6 +37,7 @@ export const OVERLAY_DEFAULTS = {
     align: "center",
     blockGapPx: 14,
     maxWidthPx: 1600,
+    themeOverlayColumns: 2,
   },
   round4: {
     clueFontSizePx: 40,
@@ -150,6 +151,7 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       align: asAlign(raw.align, defaults.align),
       blockGapPx: clampInt(raw.blockGapPx, defaults.blockGapPx, 0, 120),
       maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2200),
+      themeOverlayColumns: clampInt(raw.themeOverlayColumns, defaults.themeOverlayColumns, 1, 12),
     };
   }
 

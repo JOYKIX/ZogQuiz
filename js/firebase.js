@@ -220,6 +220,7 @@ export async function ensureRoundsSeed(uid) {
         align: "center",
         blockGapPx: 14,
         maxWidthPx: 1600,
+        themeOverlayColumns: 2,
         updatedBy: uid,
         updatedAt: Date.now(),
       },
