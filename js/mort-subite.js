@@ -95,7 +95,8 @@ const addLog = (s, msg) => {
 
 function sessionToParticipant(id, session, previous = {}) {
   const score = Math.max(0, Number(session?.score || 0));
-  const hp = previous.hp != null ? Math.max(0, Number(previous.hp || 0)) : score;
+  const initialHp = score > 0 ? score : DEFAULT_DAMAGE;
+  const hp = previous.hp != null ? Math.max(0, Number(previous.hp || 0)) : initialHp;
   const alive = hp > 0;
   return { name: String(session?.nickname || previous?.name || id), score, hp, alive, eliminated: !alive, color: session?.color || previous?.color || "#fff" };
 }
@@ -163,10 +164,30 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
 
   initDamageControl();
 
+  function readDuelSelection() {
+    const alive = getAliveOrder(round5);
+    const selectedAttacker = $("m5-duel-attacker").value || round5.turn?.currentPlayerId || alive[0] || null;
+    let selectedTarget = $("m5-duel-target").value || alive.find((id) => id !== selectedAttacker) || null;
+    if (selectedTarget === selectedAttacker) selectedTarget = alive.find((id) => id !== selectedAttacker) || null;
+    return { attackerId: selectedAttacker, targetId: selectedTarget };
+  }
+
+  function canStartDuel(attackerId, targetId) {
+    return Boolean(attackerId && targetId && attackerId !== targetId && isAlive(round5, attackerId) && isAlive(round5, targetId));
+  }
+
   $("m5-init-hp").onclick = async () => save(buildRound5FromSessions(getSessionsById?.() || {}, round5));
   $("m5-set-active-player").onclick = async () => save({ turn: { ...round5.turn, currentPlayerId: $("m5-current-player").value, currentIndex: Math.max(0, (round5.turn?.order || []).indexOf($("m5-current-player").value)) } });
-  $("m5-start-duel").onclick = async () => save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId: $("m5-duel-attacker").value, targetId: $("m5-duel-target").value, question: $("m5-question").value.trim(), buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
-  $("m5-open-buzzer").onclick = async () => save({ duel: { ...round5.duel, buzzerOpen: true, buzzedBy: null, buzzedAt: 0 } });
+  $("m5-start-duel").onclick = async () => {
+    const { attackerId, targetId } = readDuelSelection();
+    if (!canStartDuel(attackerId, targetId)) return;
+    await save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId, targetId, question: $("m5-question").value.trim(), buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
+  };
+  $("m5-open-buzzer").onclick = async () => {
+    const { attackerId, targetId } = readDuelSelection();
+    if (!canStartDuel(attackerId, targetId)) return;
+    await save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId, targetId, buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
+  };
   const openOutsiderAnswers = async (message = "Duel sans réponse, outsiders autorisés.") => save({
     phase: PHASES.OUTSIDERS_ANSWER,
     duel: { ...round5.duel, buzzerOpen: false, answerStatus: round5.duel?.buzzedBy ? "wrong" : "no_answer" },
@@ -270,12 +291,13 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
 
   function getRoleState(me) {
     const duelists = [round5.duel?.attackerId, round5.duel?.targetId].filter(Boolean);
-    const hasActiveDuel = duelists.length === 2 && round5.phase === PHASES.DUEL;
+    const hasConfiguredDuel = new Set(duelists).size === 2;
+    const hasActiveDuel = hasConfiguredDuel && round5.phase === PHASES.DUEL;
     const isDuelist = Boolean(me && duelists.includes(me));
     const alive = meAlive(me);
     const canBuzz = hasActiveDuel && round5.duel?.buzzerOpen && alive && isDuelist && !round5.duel?.buzzedBy && !buzzInFlight;
     const outsiderAllowed = round5.phase === PHASES.OUTSIDERS_ANSWER && round5.outsiders?.enabled && alive && !isDuelist;
-    return { duelists, hasActiveDuel, isDuelist, alive, canBuzz, outsiderAllowed };
+    return { duelists, hasConfiguredDuel, hasActiveDuel, isDuelist, alive, canBuzz, outsiderAllowed };
   }
 
   function renderHpList() {
@@ -312,7 +334,7 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     els.question.textContent = round5.duel?.question || "Question en attente côté admin.";
     els.result.textContent = round5.lastResult?.message || (round5.phase === PHASES.FINISHED ? "Mort subite terminée." : "Aucun résultat pour le moment.");
 
-    els.duelCard.classList.toggle("hidden", !role.hasActiveDuel && !role.isDuelist);
+    els.duelCard.classList.toggle("hidden", !role.hasConfiguredDuel && !role.isDuelist);
     els.duelCard.classList.toggle("is-duelist", role.isDuelist);
     els.duelCard.classList.toggle("is-buzzer-open", role.canBuzz);
     els.outsiderCard.classList.toggle("hidden", role.isDuelist || ![PHASES.DUEL, PHASES.OUTSIDERS_ANSWER].includes(round5.phase));
@@ -383,9 +405,14 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
 
   els.buzz.onclick = buzzDuel;
 
+  function isBuzzKey(event) {
+    const expected = getBuzzKeyCode?.() || "Space";
+    return event.code === expected || event.key === expected || (expected === "Space" && event.key === " ");
+  }
+
   document.addEventListener("keydown", async (event) => {
     if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
-    if ((event.code || event.key) !== (getBuzzKeyCode?.() || "Space")) return;
+    if (!isBuzzKey(event)) return;
     if (typeof isGuestTypingContext === "function") {
       if (isGuestTypingContext(event.target)) return;
     } else {
