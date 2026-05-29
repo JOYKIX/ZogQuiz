@@ -167,8 +167,20 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   $("m5-set-active-player").onclick = async () => save({ turn: { ...round5.turn, currentPlayerId: $("m5-current-player").value, currentIndex: Math.max(0, (round5.turn?.order || []).indexOf($("m5-current-player").value)) } });
   $("m5-start-duel").onclick = async () => save({ phase: PHASES.DUEL, duel: { ...round5.duel, attackerId: $("m5-duel-attacker").value, targetId: $("m5-duel-target").value, question: $("m5-question").value.trim(), buzzerOpen: true, buzzedBy: null, buzzedAt: 0, answerStatus: "pending" }, outsiders: { ...defaultRound5.outsiders } });
   $("m5-open-buzzer").onclick = async () => save({ duel: { ...round5.duel, buzzerOpen: true, buzzedBy: null, buzzedAt: 0 } });
-  $("m5-close-buzzer").onclick = async () => save({ duel: { ...round5.duel, buzzerOpen: false } });
-  $("m5-mark-fail").onclick = async () => save({ phase: PHASES.OUTSIDERS_ANSWER, duel: { ...round5.duel, buzzerOpen: false, answerStatus: "wrong" }, outsiders: { ...round5.outsiders, enabled: true }, lastResult: { type: "duel_failed", message: "Duel raté, outsiders autorisés.", damagedPlayers: {} } });
+  const openOutsiderAnswers = async (message = "Duel sans réponse, outsiders autorisés.") => save({
+    phase: PHASES.OUTSIDERS_ANSWER,
+    duel: { ...round5.duel, buzzerOpen: false, answerStatus: round5.duel?.buzzedBy ? "wrong" : "no_answer" },
+    outsiders: { ...round5.outsiders, enabled: true },
+    lastResult: { type: round5.duel?.buzzedBy ? "duel_failed" : "duel_no_answer", message, damagedPlayers: {} },
+  });
+  $("m5-close-buzzer").onclick = async () => {
+    if (round5.phase === PHASES.DUEL && !round5.duel?.buzzedBy) {
+      await openOutsiderAnswers();
+      return;
+    }
+    await save({ duel: { ...round5.duel, buzzerOpen: false } });
+  };
+  $("m5-mark-fail").onclick = async () => openOutsiderAnswers(round5.duel?.buzzedBy ? "Duel raté, outsiders autorisés." : "Personne n’a répondu, outsiders autorisés.");
   $("m5-reset").onclick = async () => save({ ...defaultRound5, name: "Mort Subite" });
 
   const adjustHp = async (delta) => runTransaction(ref(db, ROUND5_PATH), (curr) => {

@@ -21,8 +21,8 @@ export const CAMERA_ROLE_OPTIONS = [
   { value: "admin", label: "Cam admin" },
   { value: "participant", label: "Participant à la manche" },
   { value: "viewer", label: "Viewer / Twitch" },
-  { value: "duel-1", label: "Duel joueur 1" },
-  { value: "duel-2", label: "Duel joueur 2" },
+  { value: "duel-1", label: "Duel attaquant (manche 5)" },
+  { value: "duel-2", label: "Duel cible (manche 5)" },
   { value: "host", label: "Host / animateur" },
   { value: "custom", label: "Libellé personnalisé" },
 ];
@@ -203,15 +203,38 @@ export function getActiveParticipantIdsForRound(roundKey, roundState = {}) {
   return [];
 }
 
-export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParticipantIds = [], used = new Set(), includeAdmin = true } = {}) {
+export function getCameraRoleParticipantIds(roundKey, roundState = {}) {
+  if (roundKey === "round5") {
+    const state = roundState?.state || roundState || {};
+    const duel = roundState?.duel || state.duel || {};
+    return {
+      "duel-1": uniqueIds([duel.attackerId]),
+      "duel-2": uniqueIds([duel.targetId]),
+      participant: collectRound5Ids(roundState),
+    };
+  }
+
+  if (roundKey === "round6") {
+    return {
+      participant: uniqueIds([roundState?.participantId, roundState?.players?.participantId, roundState?.players?.participant?.id, roundState?.duel?.participantId]),
+      viewer: uniqueIds([roundState?.viewerId, roundState?.players?.viewerId, roundState?.players?.viewer?.id, roundState?.duel?.viewerId]),
+    };
+  }
+
+  return { participant: getActiveParticipantIdsForRound(roundKey, roundState) };
+}
+
+export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParticipantIds = [], roleParticipantIds = {}, used = new Set(), includeAdmin = true } = {}) {
   if (!slot?.enabled) return "";
   const activeById = new Map(activeEntries);
   if (slot.participantId) return activeById.has(slot.participantId) && !used.has(slot.participantId) ? slot.participantId : "";
   if (slot.role === "admin") return includeAdmin && activeById.has(ADMIN_CAMERA_ID) ? ADMIN_CAMERA_ID : "";
   if (slot.guestId && activeById.has(slot.guestId) && !used.has(slot.guestId)) return slot.guestId;
   if (["participant", "viewer", "duel-1", "duel-2"].includes(slot.role)) {
-    const roleIndex = slot.role === "duel-2" || slot.role === "viewer" ? 1 : 0;
-    const orderedIds = slot.role === "participant" ? activeParticipantIds : [activeParticipantIds[roleIndex]];
+    const fallbackIndex = slot.role === "duel-2" || slot.role === "viewer" ? 1 : 0;
+    const orderedIds = roleParticipantIds[slot.role]?.length
+      ? roleParticipantIds[slot.role]
+      : (slot.role === "participant" ? activeParticipantIds : [activeParticipantIds[fallbackIndex]]);
     const participantId = orderedIds.find((id) => activeById.has(id) && !used.has(id));
     if (participantId) return participantId;
   }

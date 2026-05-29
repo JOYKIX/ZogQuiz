@@ -138,6 +138,9 @@ function renderSlot(roundKey, camera, index) {
 
 function renderRound(roundKey, index) {
   const config = configs[roundKey] || normalizeCameraConfig({});
+  const round5DuelHelp = roundKey === "round5"
+    ? `<p class="muted compact-help">Manche 5 : le rôle “Duel attaquant” suit l’attaquant du duel et “Duel cible” suit la cible sélectionnée. Les mêmes deux invités gardent leur accès au buzzer de duel côté guest.</p>`
+    : "";
   return `
     <article class="camera-config-card subpanel compact-panel" data-camera-round="${roundKey}">
       <div class="panel-head compact-head">
@@ -153,6 +156,7 @@ function renderRound(roundKey, index) {
       </div>
       <p class="muted compact-help">Active la prévisualisation pour afficher dans l’overlay des rectangles noirs à la taille, position, arrondi et profondeur de chaque cam, avec son rôle / sa correspondance.</p>
       <p class="muted compact-help">Chaque cam a sa position, taille, arrondi, profondeur et correspondance. Une assignation à un participant du quiz réserve le slot à ce participant dès que sa caméra est active. Sans assignation, les invités connectés remplissent les slots dans l’ordre.</p>
+      ${round5DuelHelp}
       <div class="camera-slot-list">${config.cameras.map((camera, slotIndex) => renderSlot(roundKey, camera, slotIndex)).join("")}</div>
       <div class="row">
         <a class="btn btn-secondary" href="cam-overlay-${roundKey}.html" target="_blank" rel="noopener">Ouvrir overlay caméra</a>
