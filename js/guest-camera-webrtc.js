@@ -62,6 +62,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     unsubscribeRequests: null,
     unsubscribeRequestRemovals: null,
     heartbeat: null,
+    selectedDeviceId: "",
   };
 
   function render(status = state.status, text = "") {
@@ -69,6 +70,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     const active = status === "active" || status === "starting";
     elements.button.disabled = status === "starting";
     elements.button.textContent = active ? "Désactiver la caméra" : "Activer la caméra";
+    if (elements.deviceSelect) elements.deviceSelect.disabled = status === "starting";
     if (elements.status) {
       elements.status.className = `message camera-status ${status}`;
       elements.status.textContent = text || {
@@ -80,6 +82,32 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     }
     elements.preview.classList.toggle("hidden", !state.stream);
     if (state.stream && elements.preview.srcObject !== state.stream) elements.preview.srcObject = state.stream;
+  }
+
+  function cameraConstraints() {
+    const base = { width: { ideal: 1280 }, height: { ideal: 720 } };
+    return state.selectedDeviceId
+      ? { ...base, deviceId: { exact: state.selectedDeviceId } }
+      : { ...base, facingMode: "user" };
+  }
+
+  async function refreshDeviceList() {
+    if (!elements.deviceSelect || !navigator.mediaDevices?.enumerateDevices) return;
+    const currentValue = state.selectedDeviceId || elements.deviceSelect.value;
+    const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    const cameras = devices.filter((device) => device.kind === "videoinput");
+    elements.deviceSelect.replaceChildren();
+    cameras.forEach((device, index) => {
+      const option = document.createElement("option");
+      option.value = device.deviceId;
+      option.textContent = device.label || `Caméra ${index + 1}`;
+      elements.deviceSelect.append(option);
+    });
+    const hasCurrent = cameras.some((device) => device.deviceId === currentValue);
+    state.selectedDeviceId = hasCurrent ? currentValue : (cameras[0]?.deviceId || "");
+    elements.deviceSelect.value = state.selectedDeviceId;
+    elements.deviceSelect.hidden = cameras.length <= 1;
+    elements.deviceField?.classList.toggle("hidden", cameras.length <= 1);
   }
 
   async function writePresence() {
@@ -180,9 +208,11 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   async function start() {
     if (!getSessionId()) { render("error", "Connectez-vous avant d’activer la caméra."); return; }
     if (!navigator.mediaDevices?.getUserMedia) { render("error", "Caméra indisponible sur ce navigateur ou sans HTTPS."); return; }
+    await refreshDeviceList();
     render("starting");
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, audio: false });
+      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
+      await refreshDeviceList();
       render("active");
       await writePresence();
       await onDisconnect(ref(db, `${CAMERA_PRESENCE_PATH}/${safeKey(getSessionId())}`)).remove();
@@ -195,7 +225,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     }
   }
 
-  async function stop({ keepMessage = false } = {}) {
+  async function stop({ keepMessage = false, skipRender = false } = {}) {
     clearInterval(state.heartbeat);
     state.heartbeat = null;
     state.unsubscribeRequests?.();
@@ -206,12 +236,20 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     stopStream(state.stream);
     state.stream = null;
     await removePresence().catch(() => {});
-    render("off", keepMessage ? "Caméra désactivée." : undefined);
+    if (!skipRender) render("off", keepMessage ? "Caméra désactivée." : undefined);
   }
 
   elements.button.addEventListener("click", () => (state.stream ? stop({ keepMessage: true }) : start()));
+  elements.deviceSelect?.addEventListener("change", async () => {
+    state.selectedDeviceId = elements.deviceSelect.value;
+    if (!state.stream) return;
+    await stop({ skipRender: true });
+    await start();
+  });
+  navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn));
   window.addEventListener("beforeunload", () => { stopStream(state.stream); removePresence(); });
   render("off");
+  refreshDeviceList().catch(console.warn);
 
   return { start, stop, isActive: () => Boolean(state.stream), refreshIdentity: writePresence };
 }

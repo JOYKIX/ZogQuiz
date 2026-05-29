@@ -365,6 +365,8 @@ body.modal-open { overflow: hidden; }
 .guest-camera-panel { overflow: hidden; }
 .compact-head { align-items: center; gap: var(--space-3); }
 .guest-camera-preview { width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; object-fit: cover; background: rgba(5, 10, 24, .75); box-shadow: var(--shadow-soft); }
+.camera-device-field { display: grid; gap: .45rem; margin: .7rem 0 .5rem; color: var(--text-soft); font-weight: 800; }
+.camera-device-field select { width: 100%; }
 .camera-status.active { color: #8cf5dc; }
 .camera-status.error { color: #ff9aa2; }
 .camera-status.starting { color: #ffd166; }

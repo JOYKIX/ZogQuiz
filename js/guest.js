@@ -39,6 +39,8 @@ const guestCameraPanel = document.getElementById("guest-camera-panel");
 const guestCameraToggle = document.getElementById("guest-camera-toggle");
 const guestCameraStatus = document.getElementById("guest-camera-status");
 const guestCameraPreview = document.getElementById("guest-camera-preview");
+const guestCameraDevice = document.getElementById("guest-camera-device");
+const guestCameraDeviceField = document.getElementById("guest-camera-device-field");
 const guestSelfCameraRender = document.getElementById("guest-self-camera-render");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
@@ -766,6 +768,8 @@ guestCameraController = createGuestCameraController({
     button: guestCameraToggle,
     status: guestCameraStatus,
     preview: guestCameraPreview,
+    deviceSelect: guestCameraDevice,
+    deviceField: guestCameraDeviceField,
   },
 });
 
