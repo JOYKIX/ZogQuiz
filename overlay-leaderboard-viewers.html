@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="overlay-leaderboard.css" />
+    <title>ZogQuiz Overlay - Leaderboard viewers</title>
+  </head>
+  <body class="overlay-page" data-leaderboard-source="viewers">
+    <main class="leaderboard-overlay" aria-live="polite">
+      <section class="leaderboard-panel" aria-labelledby="leaderboard-title">
+        <p id="leaderboard-kicker" class="leaderboard-kicker">Classement Twitch</p>
+        <h1 id="leaderboard-title" class="leaderboard-title">Leaderboard viewers</h1>
+        <ol id="leaderboard-list" class="leaderboard-list"></ol>
+      </section>
+    </main>
+    <script type="module" src="js/leaderboard-overlay.js"></script>
+  </body>
+</html>

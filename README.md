@@ -18,9 +18,9 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
   - unlock manuel du buzzer,
   - marquer juste (+1) / faux (bloqué sur la question en cours).
 - Nettoyage des données de buzz (historique + blocs) à chaque changement de question.
-- Leaderboard participants sur page classement dédiée.
-- Leaderboard viewers Twitch (alimenté par bot Python) sur page classement dédiée.
-- Overlays OBS dédiés par manche (`overlay-round1` à `overlay-round4`).
+- Leaderboard participants sur page classement dédiée et overlay OBS dédié.
+- Leaderboard viewers Twitch (alimenté par bot Python) sur page classement dédiée et overlay OBS dédié.
+- Overlays OBS dédiés par manche (`overlay-round1` à `overlay-round6`) et par leaderboard.
 - Navbar des manches (1 à 5 + finale) et sous-menu manche 1 (création/modification/suppression).
 
 ## Pages
@@ -30,8 +30,11 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
 - `overlay-round1.html` : overlay OBS manche 1 (question/réponse).
 - `overlay-round2.html` : overlay OBS manche 2 (image active).
 - `overlay-round3.html` : overlay OBS manche 3 (thème/question/timer).
-- `overlay-round4.html` : overlay OBS manche 4 (grille active, indice, progression joueurs).
 - `overlay-round4.html` : overlay OBS manche 4 (blindtest : statut, piste en cours, timer).
+- `overlay-round5.html` : overlay OBS manche 5 (mort subite).
+- `overlay-round6.html` : overlay OBS manche 6 / finale.
+- `overlay-leaderboard-participants.html` : overlay OBS du leaderboard participants.
+- `overlay-leaderboard-viewers.html` : overlay OBS du leaderboard viewers Twitch.
 - `classement.html` : leaderboard participants + viewers Twitch (page séparée des manches).
 - `bot/bot.py` : bot Twitch qui lit le chat et attribue le point viewers au premier bon répondant sur la question active.
 
@@ -41,7 +44,7 @@ Servir le dossier avec un serveur statique, puis ouvrir :
 
 - `index.html` pour l'admin,
 - `buzzer.html` côté participant,
-- `overlay-roundX.html` (selon la manche) dans OBS comme source navigateur.
+- `overlay-roundX.html` (selon la manche) dans OBS comme source navigateur, ou `overlay-leaderboard-participants.html` / `overlay-leaderboard-viewers.html` pour les classements.
 
 
 ## Bot viewers Twitch
