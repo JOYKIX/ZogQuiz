@@ -53,6 +53,9 @@ const guestParticipantsCameraRender = document.getElementById("guest-participant
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
+const m2AnswerForm = document.getElementById("m2-answer-form");
+const m2AnswerInput = document.getElementById("m2-answer-input");
+const m2AnswerStatus = document.getElementById("m2-answer-status");
 
 const m3GuestStatus = document.getElementById("m3-guest-status");
 const m3GuestPlayer = document.getElementById("m3-guest-player");
@@ -93,6 +96,8 @@ let currentQuestionBlocked = false;
 let watchingRound1 = false;
 let manche2Questions = {};
 let manche2State = null;
+let manche2Answers = {};
+let lastRenderedRound2QuestionId = null;
 let round3State = null;
 let round3Themes = {};
 let sessionsById = {};
@@ -448,16 +453,88 @@ function renderByRound() {
   refreshButtonState();
 }
 
+function setRound2AnswerStatus(text = "", type = "default") {
+  if (!m2AnswerStatus) return;
+  m2AnswerStatus.textContent = text;
+  m2AnswerStatus.classList.remove("success", "error", "loading");
+  if (type !== "default") m2AnswerStatus.classList.add(type);
+}
+
+function getActiveRound2Question() {
+  return manche2State?.activeQuestionId ? manche2Questions[manche2State.activeQuestionId] : null;
+}
+
+function getCurrentRound2Answer() {
+  const questionId = manche2State?.activeQuestionId;
+  const sessionId = getCurrentSessionId();
+  if (!questionId || !sessionId) return null;
+  return manche2Answers?.[questionId]?.[sessionId] || null;
+}
+
+function renderRound2AnswerForm() {
+  if (!m2AnswerForm || !m2AnswerInput) return;
+  const questionId = manche2State?.activeQuestionId || null;
+  const activeQuestion = getActiveRound2Question();
+  const canAnswer = Boolean(questionId && activeQuestion?.imageDataUrl && isGuestConnected());
+  m2AnswerForm.classList.toggle("hidden", !canAnswer);
+  m2AnswerInput.disabled = !canAnswer;
+
+  if (!canAnswer) {
+    lastRenderedRound2QuestionId = questionId;
+    m2AnswerInput.value = "";
+    setRound2AnswerStatus(questionId ? "Connectez-vous pour répondre." : "", questionId ? "error" : "default");
+    return;
+  }
+
+  const existingAnswer = getCurrentRound2Answer();
+  const shouldRefreshInput = questionId !== lastRenderedRound2QuestionId || document.activeElement !== m2AnswerInput;
+  if (shouldRefreshInput) m2AnswerInput.value = existingAnswer?.answer || "";
+  lastRenderedRound2QuestionId = questionId;
+
+  if (existingAnswer?.answer) {
+    setRound2AnswerStatus("Réponse envoyée. Vous pouvez la modifier puis renvoyer.", "success");
+  } else {
+    setRound2AnswerStatus("Écrivez votre réponse puis envoyez-la à l’admin.");
+  }
+}
+
 function renderRound2() {
-  const activeQuestion = manche2State?.activeQuestionId ? manche2Questions[manche2State.activeQuestionId] : null;
+  const activeQuestion = getActiveRound2Question();
   if (!activeQuestion?.imageDataUrl) {
     m2Image.classList.add("hidden");
     m2Empty.classList.remove("hidden");
+    renderRound2AnswerForm();
     return;
   }
   m2Image.src = activeQuestion.imageDataUrl;
   m2Image.classList.remove("hidden");
   m2Empty.classList.add("hidden");
+  renderRound2AnswerForm();
+}
+
+async function submitRound2Answer(event) {
+  event.preventDefault();
+  const questionId = manche2State?.activeQuestionId || null;
+  const activeQuestion = getActiveRound2Question();
+  const answer = String(m2AnswerInput?.value || "").trim();
+  if (!isGuestConnected()) return setRound2AnswerStatus("Connexion invitée requise.", "error");
+  if (!questionId || !activeQuestion?.imageDataUrl) return setRound2AnswerStatus("Aucune image active pour le moment.", "error");
+  if (!answer) return setRound2AnswerStatus("Réponse obligatoire.", "error");
+
+  setRound2AnswerStatus("Envoi de la réponse...", "loading");
+  const existingAnswer = getCurrentRound2Answer();
+  const now = Date.now();
+  await set(ref(db, `rooms/manche2/answers/${questionId}/${guestAuth.accountId}`), {
+    accountId: guestAuth.accountId,
+    sessionId: guestAuth.accountId,
+    loginId: guestAuth.account?.loginId || "",
+    nickname: guestAuth.nickname,
+    questionId,
+    answer,
+    createdAt: existingAnswer?.createdAt || now,
+    updatedAt: now,
+  });
+  setRound2AnswerStatus("Réponse envoyée à l’admin.", "success");
 }
 
 function renderRound3() {
@@ -662,6 +739,8 @@ buzzBtn.addEventListener("click", async () => {
   await attemptBuzz();
 });
 
+m2AnswerForm?.addEventListener("submit", submitRound2Answer);
+
 buzzKeybindChangeBtn?.addEventListener("click", () => {
   isKeybindCaptureActive = true;
   buzzKeybindHint?.classList.remove("hidden");
@@ -709,6 +788,11 @@ onValue(ref(db, "rooms/manche2/questions"), (snap) => {
 
 onValue(ref(db, "rooms/manche2/state"), (snap) => {
   manche2State = snap.val() || {};
+  renderRound2();
+});
+
+onValue(ref(db, "rooms/manche2/answers"), (snap) => {
+  manche2Answers = snap.val() || {};
   renderRound2();
 });
 
