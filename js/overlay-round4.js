@@ -50,20 +50,26 @@ function getPromptForTrack(track) {
 
 function applyConfig() {
   if (!overlayConfig || !promptNode) return;
-  promptNode.style.color = overlayConfig.clueColor;
+  promptNode.style.color = overlayConfig.textColor;
+  promptNode.style.fontWeight = String(overlayConfig.fontWeight);
+  promptNode.style.textAlign = overlayConfig.align;
+  promptNode.style.lineHeight = String(overlayConfig.lineHeight);
+  promptNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
+  promptNode.classList.toggle("no-shadow", !overlayConfig.textShadow);
 }
 
 function runAutoFit() {
   if (!rootNode || !promptNode) return;
 
+  const config = overlayConfig || {};
   autoFitText({
     container: rootNode,
     textElement: promptNode,
-    minFontSizePx: 36,
-    maxFontSizePx: 220,
-    paddingPx: 40,
-    lineHeight: 1.04,
-    maxWidthPx: 1800,
+    minFontSizePx: config.minFontSizePx ?? 36,
+    maxFontSizePx: config.maxFontSizePx ?? 220,
+    paddingPx: config.paddingPx ?? 40,
+    lineHeight: config.lineHeight ?? 1.04,
+    maxWidthPx: config.maxWidthPx ?? 1800,
   });
 }
 

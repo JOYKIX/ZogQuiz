@@ -187,14 +187,15 @@ const overlayRound3ThemeOverlayBorderWidthInput = $("overlay-round3-theme-overla
 const overlayRound3ThemeOverlayLineHeightInput = $("overlay-round3-theme-overlay-line-height");
 const overlayRound3ThemeOverlayLetterSpacingInput = $("overlay-round3-theme-overlay-letter-spacing");
 
-const overlayRound4ClueSizeInput = $("overlay-round4-clue-size");
-const overlayRound4ClueColorInput = $("overlay-round4-clue-color");
-const overlayRound4WordSizeInput = $("overlay-round4-word-size");
-const overlayRound4CellRadiusInput = $("overlay-round4-cell-radius");
-const overlayRound4MarkerSizeInput = $("overlay-round4-marker-size");
-const overlayRound4MarkerOpacityInput = $("overlay-round4-marker-opacity");
-const overlayRound4GridMaxWidthInput = $("overlay-round4-grid-max-width");
-const overlayRound4GridGapInput = $("overlay-round4-grid-gap");
+const overlayRound4MaxFontSizeInput = $("overlay-round4-max-font-size");
+const overlayRound4MinFontSizeInput = $("overlay-round4-min-font-size");
+const overlayRound4TextColorInput = $("overlay-round4-text-color");
+const overlayRound4FontWeightInput = $("overlay-round4-font-weight");
+const overlayRound4ShadowInput = $("overlay-round4-shadow");
+const overlayRound4AlignInput = $("overlay-round4-align");
+const overlayRound4PaddingInput = $("overlay-round4-padding");
+const overlayRound4LineHeightInput = $("overlay-round4-line-height");
+const overlayRound4MaxWidthInput = $("overlay-round4-max-width");
 const m4LiveScores = $("m4-live-scores");
 
 const overlayRound5PrimarySizeInput = $("overlay-round5-primary-size");
@@ -549,9 +550,8 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound3ThemeOverlayBorderWidthInput, overlayRound3ThemeOverlayLineHeightInput, overlayRound3ThemeOverlayLetterSpacingInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3ThemeOverlay")));
 [
-  overlayRound4ClueSizeInput, overlayRound4ClueColorInput, overlayRound4WordSizeInput,
-  overlayRound4CellRadiusInput, overlayRound4MarkerSizeInput, overlayRound4MarkerOpacityInput,
-  overlayRound4GridMaxWidthInput, overlayRound4GridGapInput,
+  overlayRound4MaxFontSizeInput, overlayRound4MinFontSizeInput, overlayRound4TextColorInput, overlayRound4FontWeightInput,
+  overlayRound4ShadowInput, overlayRound4AlignInput, overlayRound4PaddingInput, overlayRound4LineHeightInput, overlayRound4MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round4")));
 [
   overlayRound5PrimarySizeInput, overlayRound5SecondarySizeInput, overlayRound5PrimaryColorInput,
@@ -1945,14 +1945,15 @@ function syncOverlayInputs() {
   if (overlayRound3ThemeOverlayLetterSpacingInput) overlayRound3ThemeOverlayLetterSpacingInput.value = String(r3ThemeOverlay.letterSpacingEm);
 
   const r4 = overlayConfigs.round4;
-  if (overlayRound4ClueSizeInput) overlayRound4ClueSizeInput.value = String(r4.clueFontSizePx);
-  if (overlayRound4ClueColorInput) overlayRound4ClueColorInput.value = r4.clueColor;
-  if (overlayRound4WordSizeInput) overlayRound4WordSizeInput.value = String(r4.wordFontSizePx);
-  if (overlayRound4CellRadiusInput) overlayRound4CellRadiusInput.value = String(r4.cellRadiusPx);
-  if (overlayRound4MarkerSizeInput) overlayRound4MarkerSizeInput.value = String(r4.markerSizePx);
-  if (overlayRound4MarkerOpacityInput) overlayRound4MarkerOpacityInput.value = String(r4.markerOpacity);
-  if (overlayRound4GridMaxWidthInput) overlayRound4GridMaxWidthInput.value = String(r4.gridMaxWidthPx);
-  if (overlayRound4GridGapInput) overlayRound4GridGapInput.value = String(r4.gridGapPx);
+  if (overlayRound4MaxFontSizeInput) overlayRound4MaxFontSizeInput.value = String(r4.maxFontSizePx);
+  if (overlayRound4MinFontSizeInput) overlayRound4MinFontSizeInput.value = String(r4.minFontSizePx);
+  if (overlayRound4TextColorInput) overlayRound4TextColorInput.value = r4.textColor;
+  if (overlayRound4FontWeightInput) overlayRound4FontWeightInput.value = String(r4.fontWeight);
+  if (overlayRound4ShadowInput) overlayRound4ShadowInput.checked = Boolean(r4.textShadow);
+  if (overlayRound4AlignInput) overlayRound4AlignInput.value = r4.align;
+  if (overlayRound4PaddingInput) overlayRound4PaddingInput.value = String(r4.paddingPx);
+  if (overlayRound4LineHeightInput) overlayRound4LineHeightInput.value = String(r4.lineHeight);
+  if (overlayRound4MaxWidthInput) overlayRound4MaxWidthInput.value = String(r4.maxWidthPx);
 
   const r5 = overlayConfigs.round5;
   if (overlayRound5PrimarySizeInput) overlayRound5PrimarySizeInput.value = String(r5.primaryFontSizePx);
@@ -2039,14 +2040,15 @@ function readOverlayConfigInputs(roundKey) {
   }
   if (roundKey === "round4") {
     return {
-      clueFontSizePx: overlayRound4ClueSizeInput?.value,
-      clueColor: overlayRound4ClueColorInput?.value,
-      wordFontSizePx: overlayRound4WordSizeInput?.value,
-      cellRadiusPx: overlayRound4CellRadiusInput?.value,
-      markerSizePx: overlayRound4MarkerSizeInput?.value,
-      markerOpacity: overlayRound4MarkerOpacityInput?.value,
-      gridMaxWidthPx: overlayRound4GridMaxWidthInput?.value,
-      gridGapPx: overlayRound4GridGapInput?.value,
+      maxFontSizePx: overlayRound4MaxFontSizeInput?.value,
+      minFontSizePx: overlayRound4MinFontSizeInput?.value,
+      textColor: overlayRound4TextColorInput?.value,
+      fontWeight: overlayRound4FontWeightInput?.value,
+      textShadow: overlayRound4ShadowInput?.checked,
+      align: overlayRound4AlignInput?.value,
+      paddingPx: overlayRound4PaddingInput?.value,
+      lineHeight: overlayRound4LineHeightInput?.value,
+      maxWidthPx: overlayRound4MaxWidthInput?.value,
     };
   }
   if (roundKey === "round5") {

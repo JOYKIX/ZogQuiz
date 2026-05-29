@@ -5,5 +5,6 @@ body { font-family: var(--font-live); color: #fff; }
 .hidden { display: none !important; }
 .overlay-root { width: 100vw; height: 100vh; display: grid; place-items: center; padding: clamp(28px, 5vw, 96px); background: transparent; }
 .m4-prompt { width: min(100%, 1800px); margin: 0; color: #fff; text-align: center; font: 950 clamp(3rem, 12vw, 14rem)/1.04 var(--font-live); letter-spacing: -0.045em; text-wrap: balance; text-shadow: 0 4px 28px rgba(0,0,0,.72), 0 1px 2px rgba(0,0,0,.9); }
+.m4-prompt.no-shadow { text-shadow: none; }
 .m4-error { position: fixed; left: clamp(16px, 3vw, 48px); right: clamp(16px, 3vw, 48px); bottom: clamp(16px, 3vw, 48px); margin: 0; color: var(--danger); font: 850 clamp(1rem, 2vw, 2rem)/1.2 var(--font-live); text-align: center; text-shadow: 0 3px 20px rgba(0,0,0,.8); }
 .m4-overlay-youtube-host { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; }
