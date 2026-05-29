@@ -220,64 +220,91 @@ export function initCameraOverlay(roundKey) {
   let presence = {};
   let retryTimer = null;
 
+  function slotName(slot, nickname) {
+    return slot?.label || nickname || "Invité";
+  }
+
+  function applyCardLayout(entry, slot) {
+    if (!entry?.card || !slot) return;
+    entry.card.style.left = `${slot.x}px`;
+    entry.card.style.top = `${slot.y}px`;
+    entry.card.style.width = `${slot.width}px`;
+    entry.card.style.height = `${slot.height}px`;
+    entry.card.style.borderRadius = `${slot.borderRadius}px`;
+    entry.card.style.zIndex = String(slot.zIndex);
+    entry.video.style.objectFit = slot.fit || "cover";
+  }
+
   function applyConfig(config) {
     currentConfig = config;
-    document.documentElement.style.setProperty("--cam-x", `${config.x}px`);
-    document.documentElement.style.setProperty("--cam-y", `${config.y}px`);
-    document.documentElement.style.setProperty("--cam-w", `${config.width}px`);
-    document.documentElement.style.setProperty("--cam-h", `${config.height}px`);
-    document.documentElement.style.setProperty("--cam-gap", `${config.gap}px`);
-    document.documentElement.style.setProperty("--cam-radius", `${config.borderRadius}px`);
     grid.classList.toggle("names-hidden", !config.showNames);
     grid.classList.toggle("disabled", !config.enabled);
     reconcile();
   }
 
-  function desiredGuests() {
-    if (!currentConfig?.enabled) return [];
+  function activePresenceEntries() {
     const now = Date.now();
     return Object.entries(presence)
       .filter(([, item]) => item?.active && now - Number(item.updatedAt || 0) < PRESENCE_STALE_MS)
-      .sort((a, b) => String(a[1].nickname || a[0]).localeCompare(String(b[1].nickname || b[0]), "fr"))
-      .map(([guestId, item], index) => ({ guestId, nickname: item.nickname || "Invité", index }));
+      .sort((a, b) => String(a[1].nickname || a[0]).localeCompare(String(b[1].nickname || b[0]), "fr"));
   }
 
-  function updateLayout() {
-    const perRow = Math.max(1, Number(currentConfig?.perRow || 1));
-    [...grid.children].forEach((card, index) => {
-      const col = index % perRow;
-      const row = Math.floor(index / perRow);
-      card.style.left = `calc(${col} * (var(--cam-w) + var(--cam-gap)))`;
-      card.style.top = `calc(${row} * (var(--cam-h) + var(--cam-gap)))`;
+  function desiredGuests() {
+    if (!currentConfig?.enabled) return [];
+    const activeEntries = activePresenceEntries();
+    const activeById = new Map(activeEntries);
+    const used = new Set();
+    const slots = currentConfig.cameras || [];
+
+    return slots.flatMap((slot, slotIndex) => {
+      if (!slot.enabled) return [];
+      let guestId = slot.guestId && activeById.has(slot.guestId) ? slot.guestId : "";
+      if (!guestId) {
+        const next = activeEntries.find(([candidateId]) => !used.has(candidateId));
+        guestId = next?.[0] || "";
+      }
+      if (!guestId) return [];
+      used.add(guestId);
+      const item = activeById.get(guestId) || {};
+      return [{ guestId, nickname: item.nickname || "Invité", slot, slotIndex }];
     });
   }
 
-  function ensureCard(guestId, nickname) {
+  function updateLayout() {
+    peers.forEach((entry) => applyCardLayout(entry, entry.slot));
+  }
+
+  function ensureCard(guestId, nickname, slot, slotIndex) {
     let entry = peers.get(guestId);
     if (entry?.card) {
-      entry.name.textContent = nickname;
+      entry.nickname = nickname;
+      entry.slot = slot;
+      entry.slotIndex = slotIndex;
+      entry.name.textContent = slotName(slot, nickname);
+      applyCardLayout(entry, slot);
       return entry;
     }
     const card = document.createElement("article");
     card.className = "camera-card connecting";
     card.dataset.guestId = guestId;
+    card.dataset.cameraSlot = String(slotIndex);
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
     const name = document.createElement("span");
     name.className = "camera-name";
-    name.textContent = nickname;
+    name.textContent = slotName(slot, nickname);
     card.append(video, name);
     grid.append(card);
-    entry = { ...(entry || {}), card, video, name, guestId, nickname };
+    entry = { ...(entry || {}), card, video, name, guestId, nickname, slot, slotIndex };
     peers.set(guestId, entry);
-    updateLayout();
+    applyCardLayout(entry, slot);
     return entry;
   }
 
-  async function connectGuest(guestId, nickname) {
-    const entry = ensureCard(guestId, nickname);
+  async function connectGuest(guestId, nickname, slot, slotIndex) {
+    const entry = ensureCard(guestId, nickname, slot, slotIndex);
     if (entry.pc && !["failed", "closed", "disconnected"].includes(entry.pc.connectionState)) return;
     closePeer(entry);
 
@@ -344,8 +371,8 @@ export function initCameraOverlay(roundKey) {
     for (const guestId of [...peers.keys()]) {
       if (!desiredIds.has(guestId)) disconnectGuest(guestId).catch(console.warn);
     }
-    desired.forEach(({ guestId, nickname }) => connectGuest(guestId, nickname).catch(console.warn));
-    if (status) status.textContent = currentConfig.enabled ? `${desired.length} caméra(s) invité(s)` : "Caméras désactivées pour cette manche";
+    desired.forEach(({ guestId, nickname, slot, slotIndex }) => connectGuest(guestId, nickname, slot, slotIndex).catch(console.warn));
+    if (status) status.textContent = currentConfig.enabled ? `${desired.length}/${currentConfig.cameraCount} caméra(s) invité(s)` : "Caméras désactivées pour cette manche";
     updateLayout();
   }
 

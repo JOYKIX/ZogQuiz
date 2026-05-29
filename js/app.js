@@ -277,6 +277,7 @@ function workspaceLabel(workspace) {
   if (workspace === "dashboard") return "Live";
   if (workspace === "players") return "Joueurs";
   if (workspace === "broadcast") return "Diffusion";
+  if (workspace === "cam-config") return "Cam config";
   return `Rondes • ${formatRound(editingRound)}`;
 }
 function formatRound(round) {

@@ -347,3 +347,35 @@ body.modal-open { overflow: hidden; }
 .toggle-line { display: inline-flex; align-items: center; gap: .55rem; }
 .toggle-line input { width: auto; }
 @media (max-width: 680px) { .camera-config-grid { grid-template-columns: 1fr; } }
+
+.camera-round-settings { align-items: end; margin-bottom: var(--space-3); }
+.compact-help { margin: 0 0 var(--space-3); }
+.camera-slot-list { display: grid; gap: var(--space-3); }
+.camera-slot-card {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  background: rgba(3, 8, 24, .24);
+  overflow: hidden;
+}
+.camera-slot-card summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+  cursor: pointer;
+  padding: .85rem 1rem;
+  color: var(--text);
+  font-weight: 800;
+}
+.camera-slot-card summary small {
+  color: var(--muted);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.precise-grid { padding: 0 1rem 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.precise-grid select { width: 100%; }
+@media (max-width: 980px) { .precise-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .precise-grid { grid-template-columns: 1fr; } }
+.camera-config-panel .camera-config-root { grid-template-columns: 1fr; }
