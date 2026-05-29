@@ -199,18 +199,19 @@ const overlayRound4LineHeightInput = $("overlay-round4-line-height");
 const overlayRound4MaxWidthInput = $("overlay-round4-max-width");
 const m4LiveScores = $("m4-live-scores");
 
-const overlayRound5PrimarySizeInput = $("overlay-round5-primary-size");
-const overlayRound5SecondarySizeInput = $("overlay-round5-secondary-size");
-const overlayRound5PrimaryColorInput = $("overlay-round5-primary-color");
-const overlayRound5SecondaryColorInput = $("overlay-round5-secondary-color");
-const overlayRound5PlayingColorInput = $("overlay-round5-playing-color");
-const overlayRound5PausedColorInput = $("overlay-round5-paused-color");
-const overlayRound5StoppedColorInput = $("overlay-round5-stopped-color");
-const overlayRound5ProgressHeightInput = $("overlay-round5-progress-height");
+const overlayRound5NameSizeInput = $("overlay-round5-name-size");
+const overlayRound5HpSizeInput = $("overlay-round5-hp-size");
+const overlayRound5TextColorInput = $("overlay-round5-text-color");
+const overlayRound5HealthColorInput = $("overlay-round5-health-color");
+const overlayRound5DangerColorInput = $("overlay-round5-danger-color");
+const overlayRound5BarHeightInput = $("overlay-round5-bar-height");
 const overlayRound5CornerRadiusInput = $("overlay-round5-corner-radius");
 const overlayRound5MaxWidthInput = $("overlay-round5-max-width");
-const overlayRound5DecorationOpacityInput = $("overlay-round5-decoration-opacity");
-const overlayRound5ProgressMaxInput = $("overlay-round5-progress-max");
+const overlayRound5ScreenPaddingInput = $("overlay-round5-screen-padding");
+const overlayRound5BarGapInput = $("overlay-round5-bar-gap");
+const overlayRound5FrameOpacityInput = $("overlay-round5-frame-opacity");
+const overlayRound5DimmedOpacityInput = $("overlay-round5-dimmed-opacity");
+const overlayRound5MaxHpInput = $("overlay-round5-max-hp");
 
 const workspaceLinks = Array.from(document.querySelectorAll(".nav-item[data-workspace]"));
 const workspacePanels = Array.from(document.querySelectorAll("[data-workspace-panel]"));
@@ -555,10 +556,11 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound4ShadowInput, overlayRound4AlignInput, overlayRound4PaddingInput, overlayRound4LineHeightInput, overlayRound4MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round4")));
 [
-  overlayRound5PrimarySizeInput, overlayRound5SecondarySizeInput, overlayRound5PrimaryColorInput,
-  overlayRound5SecondaryColorInput, overlayRound5PlayingColorInput, overlayRound5PausedColorInput,
-  overlayRound5StoppedColorInput, overlayRound5ProgressHeightInput, overlayRound5CornerRadiusInput,
-  overlayRound5MaxWidthInput, overlayRound5DecorationOpacityInput, overlayRound5ProgressMaxInput,
+  overlayRound5NameSizeInput, overlayRound5HpSizeInput, overlayRound5TextColorInput,
+  overlayRound5HealthColorInput, overlayRound5DangerColorInput, overlayRound5BarHeightInput,
+  overlayRound5CornerRadiusInput, overlayRound5MaxWidthInput, overlayRound5ScreenPaddingInput,
+  overlayRound5BarGapInput, overlayRound5FrameOpacityInput, overlayRound5DimmedOpacityInput,
+  overlayRound5MaxHpInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round5")));
 
 m3ThemeForm.addEventListener("submit", async (event) => {
@@ -1966,18 +1968,19 @@ function syncOverlayInputs() {
   if (overlayRound4MaxWidthInput) overlayRound4MaxWidthInput.value = String(r4.maxWidthPx);
 
   const r5 = overlayConfigs.round5;
-  if (overlayRound5PrimarySizeInput) overlayRound5PrimarySizeInput.value = String(r5.primaryFontSizePx);
-  if (overlayRound5SecondarySizeInput) overlayRound5SecondarySizeInput.value = String(r5.secondaryFontSizePx);
-  if (overlayRound5PrimaryColorInput) overlayRound5PrimaryColorInput.value = r5.primaryColor;
-  if (overlayRound5SecondaryColorInput) overlayRound5SecondaryColorInput.value = r5.secondaryColor;
-  if (overlayRound5PlayingColorInput) overlayRound5PlayingColorInput.value = r5.playingColor;
-  if (overlayRound5PausedColorInput) overlayRound5PausedColorInput.value = r5.pausedColor;
-  if (overlayRound5StoppedColorInput) overlayRound5StoppedColorInput.value = r5.stoppedColor;
-  if (overlayRound5ProgressHeightInput) overlayRound5ProgressHeightInput.value = String(r5.progressHeightPx);
+  if (overlayRound5NameSizeInput) overlayRound5NameSizeInput.value = String(r5.nameFontSizePx);
+  if (overlayRound5HpSizeInput) overlayRound5HpSizeInput.value = String(r5.hpFontSizePx);
+  if (overlayRound5TextColorInput) overlayRound5TextColorInput.value = r5.textColor;
+  if (overlayRound5HealthColorInput) overlayRound5HealthColorInput.value = r5.healthColor;
+  if (overlayRound5DangerColorInput) overlayRound5DangerColorInput.value = r5.dangerColor;
+  if (overlayRound5BarHeightInput) overlayRound5BarHeightInput.value = String(r5.barHeightPx);
   if (overlayRound5CornerRadiusInput) overlayRound5CornerRadiusInput.value = String(r5.cornerRadiusPx);
   if (overlayRound5MaxWidthInput) overlayRound5MaxWidthInput.value = String(r5.maxWidthPx);
-  if (overlayRound5DecorationOpacityInput) overlayRound5DecorationOpacityInput.value = String(r5.decorationOpacity);
-  if (overlayRound5ProgressMaxInput) overlayRound5ProgressMaxInput.value = String(r5.progressMaxSeconds);
+  if (overlayRound5ScreenPaddingInput) overlayRound5ScreenPaddingInput.value = String(r5.screenPaddingPx);
+  if (overlayRound5BarGapInput) overlayRound5BarGapInput.value = String(r5.barGapPx);
+  if (overlayRound5FrameOpacityInput) overlayRound5FrameOpacityInput.value = String(r5.frameOpacity);
+  if (overlayRound5DimmedOpacityInput) overlayRound5DimmedOpacityInput.value = String(r5.dimmedOpacity);
+  if (overlayRound5MaxHpInput) overlayRound5MaxHpInput.value = String(r5.maxHp);
 }
 
 function readOverlayConfigInputs(roundKey) {
@@ -2063,18 +2066,19 @@ function readOverlayConfigInputs(roundKey) {
   }
   if (roundKey === "round5") {
     return {
-      primaryFontSizePx: overlayRound5PrimarySizeInput?.value,
-      secondaryFontSizePx: overlayRound5SecondarySizeInput?.value,
-      primaryColor: overlayRound5PrimaryColorInput?.value,
-      secondaryColor: overlayRound5SecondaryColorInput?.value,
-      playingColor: overlayRound5PlayingColorInput?.value,
-      pausedColor: overlayRound5PausedColorInput?.value,
-      stoppedColor: overlayRound5StoppedColorInput?.value,
-      progressHeightPx: overlayRound5ProgressHeightInput?.value,
+      nameFontSizePx: overlayRound5NameSizeInput?.value,
+      hpFontSizePx: overlayRound5HpSizeInput?.value,
+      textColor: overlayRound5TextColorInput?.value,
+      healthColor: overlayRound5HealthColorInput?.value,
+      dangerColor: overlayRound5DangerColorInput?.value,
+      barHeightPx: overlayRound5BarHeightInput?.value,
       cornerRadiusPx: overlayRound5CornerRadiusInput?.value,
       maxWidthPx: overlayRound5MaxWidthInput?.value,
-      decorationOpacity: overlayRound5DecorationOpacityInput?.value,
-      progressMaxSeconds: overlayRound5ProgressMaxInput?.value,
+      screenPaddingPx: overlayRound5ScreenPaddingInput?.value,
+      barGapPx: overlayRound5BarGapInput?.value,
+      frameOpacity: overlayRound5FrameOpacityInput?.value,
+      dimmedOpacity: overlayRound5DimmedOpacityInput?.value,
+      maxHp: overlayRound5MaxHpInput?.value,
     };
   }
   return {};
