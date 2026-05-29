@@ -14,12 +14,16 @@ const LABELS = {
 
 const root = document.getElementById("camera-config-root");
 const status = document.getElementById("camera-config-status");
+const cameraConfigNav = document.getElementById("camera-config-nav");
+const cameraConfigTabs = Array.from(document.querySelectorAll("[data-camera-config-target]"));
+const adminCameraPanel = document.getElementById("admin-camera-config-panel");
 const configs = {};
 let presence = {};
 let participants = {};
 let isHydrating = false;
 let saveTimers = {};
 let localSaveEchoUntil = {};
+let activeCameraConfig = "admin";
 
 const adminCameraButton = document.getElementById("admin-camera-toggle");
 const adminCameraStatus = document.getElementById("admin-camera-status");
@@ -153,9 +157,34 @@ function renderRound(roundKey, index) {
   `;
 }
 
+function isRoundConfig(target) {
+  return CAMERA_ROUNDS.includes(target);
+}
+
+function updateCameraConfigTabs() {
+  cameraConfigTabs.forEach((tab) => {
+    const isActive = tab.dataset.cameraConfigTarget === activeCameraConfig;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+  adminCameraPanel?.classList.toggle("hidden", activeCameraConfig !== "admin");
+  root?.classList.toggle("hidden", !isRoundConfig(activeCameraConfig));
+}
+
 function render() {
   if (!root) return;
-  root.innerHTML = CAMERA_ROUNDS.map(renderRound).join("");
+  updateCameraConfigTabs();
+  if (!isRoundConfig(activeCameraConfig)) {
+    root.innerHTML = "";
+    return;
+  }
+  root.innerHTML = renderRound(activeCameraConfig, CAMERA_ROUNDS.indexOf(activeCameraConfig));
+}
+
+function setActiveCameraConfig(target) {
+  if (target !== "admin" && !isRoundConfig(target)) return;
+  activeCameraConfig = target;
+  render();
 }
 
 function getInput(roundKey, field, index = null) {
@@ -222,6 +251,11 @@ function saveRound(roundKey) {
 
 if (root) {
   render();
+  cameraConfigNav?.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-camera-config-target]");
+    if (!tab) return;
+    setActiveCameraConfig(tab.dataset.cameraConfigTarget);
+  });
   root.addEventListener("input", (event) => {
     const card = event.target.closest("[data-camera-round]");
     if (!card || isHydrating) return;

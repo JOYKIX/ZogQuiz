@@ -254,9 +254,9 @@ input[type="range"] { accent-color: var(--primary-2); padding: .6rem 0; backgrou
 .live-chip { color: var(--success); border-color: rgba(46,229,157,.34); background: var(--success-soft); }
 .timer { font-variant-numeric: tabular-nums; font-size: clamp(2rem, 6vw, 5rem); border-radius: var(--radius-md); color: var(--primary-2); background: rgba(35,213,255,.08); }
 
-.round-nav, .subnav { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); padding: .45rem; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.045); }
-.round-tab, .subnav-tab { padding: .75rem 1rem; border-radius: 13px; color: var(--text-soft); background: transparent; font-weight: 850; transition: var(--transition); }
-.round-tab:hover, .subnav-tab:hover, .round-tab.active, .subnav-tab.active { color: #fff; background: rgba(124,92,255,.2); box-shadow: inset 0 0 0 1px rgba(124,92,255,.32); }
+.round-nav, .subnav, .camera-config-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); padding: .45rem; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.045); }
+.round-tab, .subnav-tab, .camera-config-tab { padding: .75rem 1rem; border-radius: 13px; color: var(--text-soft); background: transparent; font-weight: 850; transition: var(--transition); }
+.round-tab:hover, .subnav-tab:hover, .camera-config-tab:hover, .round-tab.active, .subnav-tab.active, .camera-config-tab.active { color: #fff; background: rgba(124,92,255,.2); box-shadow: inset 0 0 0 1px rgba(124,92,255,.32); }
 
 .list, .leaderboard { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; }
 .list li, .leaderboard li {
@@ -359,7 +359,7 @@ body.modal-open { overflow: hidden; }
   .panel, .subpanel, .workspace-panel, .card { padding: 1rem; border-radius: 20px; }
   .btn { width: 100%; }
   .row, .toolbar, .sticky-actions, .session-actions { align-items: stretch; }
-  .round-tab, .subnav-tab { flex: 1 1 130px; }
+  .round-tab, .subnav-tab, .camera-config-tab { flex: 1 1 130px; }
 }
 
 .guest-camera-panel { overflow: hidden; }
