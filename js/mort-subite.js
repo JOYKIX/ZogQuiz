@@ -5,7 +5,6 @@ import { watchOverlayConfig } from "./overlay-config.js";
 const ROUND5_PATH = "rounds/round5";
 const DEFAULT_PHASE = "setup";
 const DEFAULT_DAMAGE = 10;
-const DAMAGE_STORAGE_KEY = "zogquiz.round5.damage.v1";
 const PHASES = {
   SETUP: "setup",
   TARGET_SELECTION: "target_selection",
@@ -58,6 +57,7 @@ const defaultRound5 = {
     answerStatus: "pending",
   },
   outsiders: { enabled: false, answers: {}, winnerId: null },
+  settings: { damage: DEFAULT_DAMAGE },
   lastResult: { type: null, message: "", damagedPlayers: {} },
   actionLog: {},
   updatedAt: 0,
@@ -71,6 +71,7 @@ const toRound5 = (value) => {
     turn: { ...defaultRound5.turn, ...(value?.turn || {}) },
     duel: { ...defaultRound5.duel, ...(value?.duel || {}) },
     outsiders: { ...defaultRound5.outsiders, ...(value?.outsiders || {}) },
+    settings: { ...defaultRound5.settings, ...(value?.settings || {}), damage: Number(value?.settings?.damage ?? value?.damage ?? DEFAULT_DAMAGE) },
     lastResult: { ...defaultRound5.lastResult, ...(value?.lastResult || {}) },
     actionLog: value?.actionLog || {},
     participants: value?.participants || {},
@@ -119,28 +120,35 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   onValue(ref(db, ROUND5_PATH), (snap) => { round5 = toRound5(snap.val()); render(); });
 
 
-  function readStoredDamage() {
-    const raw = Number(localStorage.getItem(DAMAGE_STORAGE_KEY));
+  function getRoundDamage(state = round5) {
+    const raw = Number(state?.settings?.damage ?? DEFAULT_DAMAGE);
     return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_DAMAGE;
   }
 
   function getConfiguredDamage() {
     const input = $("m5-damage");
     const value = Number(input?.value || 0);
-    return Number.isFinite(value) && value > 0 ? value : DEFAULT_DAMAGE;
+    return Number.isFinite(value) && value > 0 ? value : getRoundDamage();
+  }
+
+  function syncDamageInput() {
+    const input = $("m5-damage");
+    if (!input || document.activeElement === input) return;
+    input.value = String(getRoundDamage());
   }
 
   function initDamageControl() {
     const input = $("m5-damage");
     if (!input) return;
-    input.value = String(readStoredDamage());
-    input.addEventListener("input", () => {
-      localStorage.setItem(DAMAGE_STORAGE_KEY, String(getConfiguredDamage()));
+    input.value = String(getRoundDamage());
+    input.addEventListener("change", () => {
+      save({ settings: { ...round5.settings, damage: getConfiguredDamage() } });
     });
   }
 
   function render() {
     const r = round5;
+    syncDamageInput();
     const alive = getAliveOrder(r);
     const buzzedName = getParticipantName(r, r.duel?.buzzedBy, "");
     const buzzLabel = r.duel?.buzzedBy ? `🔔 ${buzzedName}` : (r.duel?.buzzerOpen ? "Buzzer ouvert · aucun buzz" : "Aucun buzz");
@@ -425,6 +433,8 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     event.preventDefault();
     await buzzDuel();
   });
+
+  window.addEventListener("zogquiz:guest-auth-changed", render);
 
   els.outsiderForm.onsubmit = async (event) => {
     event.preventDefault();
