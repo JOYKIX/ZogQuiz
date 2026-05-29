@@ -1,6 +1,7 @@
 import { db, ref, onValue, update } from "./firebase.js";
 import { createCameraPublisherController } from "./guest-camera-webrtc.js";
 import { ADMIN_CAMERA_ID, ADMIN_CAMERA_LABEL, CAMERA_CONFIGS_PATH, CAMERA_PRESENCE_PATH, CAMERA_ROUNDS, CAMERA_ROLE_OPTIONS, normalizeCameraConfig } from "./camera-config.js";
+import { GUEST_SESSIONS_PATH } from "./participants.js";
 
 const LABELS = {
   round1: "Manche 1",
@@ -15,6 +16,7 @@ const root = document.getElementById("camera-config-root");
 const status = document.getElementById("camera-config-status");
 const configs = {};
 let presence = {};
+let participants = {};
 let isHydrating = false;
 let saveTimers = {};
 let localSaveEchoUntil = {};
@@ -59,6 +61,23 @@ function getPresenceOptions(selectedGuestId = "") {
     .join("");
 }
 
+function getParticipantOptions(selectedParticipantId = "") {
+  const quizParticipants = Object.entries(participants)
+    .map(([participantId, item]) => ({
+      participantId,
+      nickname: item?.nickname || item?.displayName || item?.loginId || participantId,
+      active: item?.active !== false,
+    }))
+    .sort((a, b) => a.nickname.localeCompare(b.nickname, "fr"));
+  const selectedExists = quizParticipants.some((item) => item.participantId === selectedParticipantId);
+  const extra = selectedParticipantId && !selectedExists
+    ? [{ participantId: selectedParticipantId, nickname: selectedParticipantId, active: false }]
+    : [];
+  return [{ participantId: "", nickname: "Aucun participant spécifique", active: true }, ...extra, ...quizParticipants]
+    .map((item) => `<option value="${escapeHtml(item.participantId)}"${item.participantId === selectedParticipantId ? " selected" : ""}>${escapeHtml(item.nickname)}${item.participantId ? (item.active ? "" : " · inactif") : ""}</option>`)
+    .join("");
+}
+
 function roleOptions(selectedRole = "auto") {
   return CAMERA_ROLE_OPTIONS.map((option) => `<option value="${option.value}"${option.value === selectedRole ? " selected" : ""}>${option.label}</option>`).join("");
 }
@@ -82,7 +101,10 @@ function renderSlot(roundKey, camera, index) {
       </summary>
       <div class="camera-config-grid precise-grid">
         <label class="toggle-line"><input id="${fieldId(roundKey, "slotEnabled", index)}" type="checkbox" ${camera.enabled ? "checked" : ""} /> Cam active</label>
-        <label>Assignation
+        <label>Participant spécifique
+          <select id="${fieldId(roundKey, "participantId", index)}">${getParticipantOptions(camera.participantId)}</select>
+        </label>
+        <label>Caméra active précise
           <select id="${fieldId(roundKey, "guestId", index)}">${getPresenceOptions(camera.guestId)}</select>
         </label>
         <label>Rôle / correspondance
@@ -119,11 +141,10 @@ function renderRound(roundKey, index) {
       </div>
       <div class="camera-config-grid camera-round-settings">
         <label>Nombre de caméras <input id="${fieldId(roundKey, "cameraCount")}" type="number" min="0" max="12" step="1" value="${config.cameraCount}" /></label>
-        <label class="toggle-line"><input id="${fieldId(roundKey, "showNames")}" type="checkbox" ${config.showNames ? "checked" : ""} /> Afficher noms / libellés</label>
         <label class="toggle-line"><input id="${fieldId(roundKey, "preview")}" type="checkbox" ${config.preview ? "checked" : ""} /> Prévisualiser les emplacements</label>
       </div>
       <p class="muted compact-help">Active la prévisualisation pour afficher dans l’overlay des rectangles noirs à la taille, position, arrondi et profondeur de chaque cam, avec son rôle / sa correspondance.</p>
-      <p class="muted compact-help">Chaque cam a sa position, taille, arrondi, profondeur et correspondance. Sans assignation, les invités connectés remplissent les slots dans l’ordre.</p>
+      <p class="muted compact-help">Chaque cam a sa position, taille, arrondi, profondeur et correspondance. Une assignation à un participant du quiz réserve le slot à ce participant dès que sa caméra est active. Sans assignation, les invités connectés remplissent les slots dans l’ordre.</p>
       <div class="camera-slot-list">${config.cameras.map((camera, slotIndex) => renderSlot(roundKey, camera, slotIndex)).join("")}</div>
       <div class="row">
         <a class="btn btn-secondary" href="cam-overlay-${roundKey}.html" target="_blank" rel="noopener">Ouvrir overlay caméra</a>
@@ -152,6 +173,7 @@ function hydrate(roundKey, config) {
 function readSlot(roundKey, index) {
   return {
     enabled: getInput(roundKey, "slotEnabled", index)?.checked,
+    participantId: getInput(roundKey, "participantId", index)?.value,
     guestId: getInput(roundKey, "guestId", index)?.value,
     role: getInput(roundKey, "role", index)?.value,
     label: getInput(roundKey, "label", index)?.value,
@@ -171,7 +193,7 @@ function readRound(roundKey) {
     ...(configs[roundKey] || {}),
     enabled: getInput(roundKey, "enabled")?.checked,
     cameraCount,
-    showNames: getInput(roundKey, "showNames")?.checked,
+    showNames: false,
     preview: getInput(roundKey, "preview")?.checked,
     cameras: Array.from({ length: Math.max(0, Math.min(12, Math.round(cameraCount))) }, (_, index) => readSlot(roundKey, index)),
   });
@@ -215,6 +237,10 @@ if (root) {
   });
   onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
     presence = snap.val() || {};
+    if (!root.contains(document.activeElement)) render();
+  });
+  onValue(ref(db, GUEST_SESSIONS_PATH), (snap) => {
+    participants = snap.val() || {};
     if (!root.contains(document.activeElement)) render();
   });
 }

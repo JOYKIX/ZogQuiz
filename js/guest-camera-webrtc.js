@@ -253,7 +253,7 @@ export function initCameraOverlay(roundKey) {
 
   function applyConfig(config) {
     currentConfig = config;
-    grid.classList.toggle("names-hidden", !config.showNames);
+    grid.classList.toggle("names-hidden", true);
     grid.classList.toggle("disabled", !config.enabled && !config.preview);
     reconcile();
   }
@@ -415,12 +415,12 @@ export function initCameraOverlay(roundKey) {
         disconnectGuest(guestId).catch(console.warn);
       }
       renderPreviewCards();
-      grid.classList.toggle("names-hidden", false);
+      grid.classList.toggle("names-hidden", true);
       if (status) status.textContent = `${previewCards.size}/${currentConfig.cameraCount} emplacement(s) prévisualisé(s)`;
       return;
     }
     clearPreviewCards();
-    grid.classList.toggle("names-hidden", !currentConfig.showNames);
+    grid.classList.toggle("names-hidden", true);
     const desired = desiredGuests();
     const desiredIds = new Set(desired.map((item) => item.guestId));
     for (const guestId of [...peers.keys()]) {

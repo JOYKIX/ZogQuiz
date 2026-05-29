@@ -45,6 +45,7 @@ export const CAMERA_SLOT_DEFAULT = {
   role: "auto",
   label: "",
   guestId: "",
+  participantId: "",
 };
 
 export const CAMERA_DEFAULT_CONFIG = {
@@ -57,7 +58,7 @@ export const CAMERA_DEFAULT_CONFIG = {
   gap: 14,
   perRow: 3,
   borderRadius: 18,
-  showNames: true,
+  showNames: false,
   preview: false,
   cameras: [{ ...CAMERA_SLOT_DEFAULT }],
 };
@@ -125,6 +126,7 @@ export function normalizeCameraSlot(raw = {}, fallback = CAMERA_SLOT_DEFAULT) {
     role: normalizeRole(raw.role ?? fallback.role),
     label: normalizeText(raw.label ?? fallback.label, 80),
     guestId: normalizeText(raw.guestId ?? fallback.guestId, 120),
+    participantId: normalizeText(raw.participantId ?? fallback.participantId, 120),
   };
 }
 
@@ -204,6 +206,7 @@ export function getActiveParticipantIdsForRound(roundKey, roundState = {}) {
 export function resolveCameraSlotGuestId(slot, { activeEntries = [], activeParticipantIds = [], used = new Set(), includeAdmin = true } = {}) {
   if (!slot?.enabled) return "";
   const activeById = new Map(activeEntries);
+  if (slot.participantId) return activeById.has(slot.participantId) && !used.has(slot.participantId) ? slot.participantId : "";
   if (slot.role === "admin") return includeAdmin && activeById.has(ADMIN_CAMERA_ID) ? ADMIN_CAMERA_ID : "";
   if (slot.guestId && activeById.has(slot.guestId) && !used.has(slot.guestId)) return slot.guestId;
   if (["participant", "viewer", "duel-1", "duel-2"].includes(slot.role)) {
