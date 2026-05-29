@@ -35,8 +35,8 @@ export const CAMERA_ROUND_STATE_PATHS = {
 
 export const CAMERA_SLOT_DEFAULT = {
   enabled: true,
-  x: 40,
-  y: 40,
+  x: 0,
+  y: 0,
   width: 260,
   height: 146,
   borderRadius: 18,
@@ -50,8 +50,8 @@ export const CAMERA_SLOT_DEFAULT = {
 export const CAMERA_DEFAULT_CONFIG = {
   enabled: false,
   cameraCount: 1,
-  x: 40,
-  y: 40,
+  x: 0,
+  y: 0,
   width: 260,
   height: 146,
   gap: 14,
@@ -66,6 +66,13 @@ function clampInt(value, fallback, min, max) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
   return Math.max(min, Math.min(max, Math.round(numeric)));
+}
+
+function clampPx(value, fallback, min, max) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  const clamped = Math.max(min, Math.min(max, numeric));
+  return Number(clamped.toFixed(1));
 }
 
 function normalizeText(value, max = 80) {
@@ -91,16 +98,16 @@ export function getCameraSlotPreviewLabel(slot = {}, index = 0) {
 
 function defaultSlotFromLegacy(raw, index) {
   const perRow = clampInt(raw.perRow, CAMERA_DEFAULT_CONFIG.perRow, 1, 12);
-  const width = clampInt(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, 1920);
-  const height = clampInt(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, 1080);
-  const gap = clampInt(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, 300);
+  const width = clampPx(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, 1920);
+  const height = clampPx(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, 1080);
+  const gap = clampPx(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, 300);
   return {
     ...CAMERA_SLOT_DEFAULT,
-    x: clampInt(raw.x, CAMERA_DEFAULT_CONFIG.x, -4000, 4000) + (index % perRow) * (width + gap),
-    y: clampInt(raw.y, CAMERA_DEFAULT_CONFIG.y, -4000, 4000) + Math.floor(index / perRow) * (height + gap),
+    x: clampPx(clampPx(raw.x, CAMERA_DEFAULT_CONFIG.x, -4000, 4000) + (index % perRow) * (width + gap), CAMERA_DEFAULT_CONFIG.x, -4000, 4000),
+    y: clampPx(clampPx(raw.y, CAMERA_DEFAULT_CONFIG.y, -4000, 4000) + Math.floor(index / perRow) * (height + gap), CAMERA_DEFAULT_CONFIG.y, -4000, 4000),
     width,
     height,
-    borderRadius: clampInt(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
+    borderRadius: clampPx(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
     zIndex: index + 1,
   };
 }
@@ -108,11 +115,11 @@ function defaultSlotFromLegacy(raw, index) {
 export function normalizeCameraSlot(raw = {}, fallback = CAMERA_SLOT_DEFAULT) {
   return {
     enabled: Boolean(raw.enabled ?? fallback.enabled),
-    x: clampInt(raw.x, fallback.x, -4000, 4000),
-    y: clampInt(raw.y, fallback.y, -4000, 4000),
-    width: clampInt(raw.width, fallback.width, 80, 1920),
-    height: clampInt(raw.height, fallback.height, 60, 1080),
-    borderRadius: clampInt(raw.borderRadius, fallback.borderRadius, 0, 240),
+    x: clampPx(raw.x, fallback.x, -4000, 4000),
+    y: clampPx(raw.y, fallback.y, -4000, 4000),
+    width: clampPx(raw.width, fallback.width, 80, 1920),
+    height: clampPx(raw.height, fallback.height, 60, 1080),
+    borderRadius: clampPx(raw.borderRadius, fallback.borderRadius, 0, 240),
     zIndex: clampInt(raw.zIndex, fallback.zIndex, 0, 999),
     fit: normalizeFit(raw.fit ?? fallback.fit),
     role: normalizeRole(raw.role ?? fallback.role),
@@ -132,13 +139,13 @@ export function normalizeCameraConfig(raw = {}) {
   return {
     enabled: Boolean(raw.enabled),
     cameraCount,
-    x: clampInt(raw.x, CAMERA_DEFAULT_CONFIG.x, -4000, 4000),
-    y: clampInt(raw.y, CAMERA_DEFAULT_CONFIG.y, -4000, 4000),
-    width: clampInt(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, 1920),
-    height: clampInt(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, 1080),
-    gap: clampInt(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, 300),
+    x: clampPx(raw.x, CAMERA_DEFAULT_CONFIG.x, -4000, 4000),
+    y: clampPx(raw.y, CAMERA_DEFAULT_CONFIG.y, -4000, 4000),
+    width: clampPx(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, 1920),
+    height: clampPx(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, 1080),
+    gap: clampPx(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, 300),
     perRow: clampInt(raw.perRow, CAMERA_DEFAULT_CONFIG.perRow, 1, 12),
-    borderRadius: clampInt(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
+    borderRadius: clampPx(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
     showNames: Boolean(raw.showNames ?? CAMERA_DEFAULT_CONFIG.showNames),
     preview: Boolean(raw.preview ?? CAMERA_DEFAULT_CONFIG.preview),
     cameras,

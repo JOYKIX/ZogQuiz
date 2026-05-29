@@ -1,6 +1,6 @@
 :root {
-  --cam-x: 40px;
-  --cam-y: 40px;
+  --cam-x: 0px;
+  --cam-y: 0px;
   --cam-w: 260px;
   --cam-h: 146px;
   --cam-gap: 14px;

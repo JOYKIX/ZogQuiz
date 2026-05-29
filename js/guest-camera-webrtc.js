@@ -235,13 +235,18 @@ export function initCameraOverlay(roundKey) {
     return slot?.label || nickname || "Invité";
   }
 
+  function formatPx(value) {
+    const numeric = Number(value);
+    return `${Number.isFinite(numeric) ? numeric.toFixed(1) : "0.0"}px`;
+  }
+
   function applyCardLayout(entry, slot) {
     if (!entry?.card || !slot) return;
-    entry.card.style.left = `${slot.x}px`;
-    entry.card.style.top = `${slot.y}px`;
-    entry.card.style.width = `${slot.width}px`;
-    entry.card.style.height = `${slot.height}px`;
-    entry.card.style.borderRadius = `${slot.borderRadius}px`;
+    entry.card.style.left = formatPx(slot.x);
+    entry.card.style.top = formatPx(slot.y);
+    entry.card.style.width = formatPx(slot.width);
+    entry.card.style.height = formatPx(slot.height);
+    entry.card.style.borderRadius = formatPx(slot.borderRadius);
     entry.card.style.zIndex = String(slot.zIndex);
     if (entry.video) entry.video.style.objectFit = slot.fit || "cover";
   }
