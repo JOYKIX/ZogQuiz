@@ -79,6 +79,7 @@
             <button class="nav-item" data-workspace="players"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span>Participants</span></button>
             <button class="nav-item" data-workspace="rounds"><span class="material-symbols-rounded" aria-hidden="true">target</span><span>Manches</span></button>
             <button class="nav-item" data-workspace="broadcast"><span class="material-symbols-rounded" aria-hidden="true">tv</span><span>Overlay</span></button>
+            <button class="nav-item" data-workspace="cam-config"><span class="material-symbols-rounded" aria-hidden="true">videocam</span><span>Cam config</span></button>
 
             <p class="sidebar-label">Système</p>
             <a class="nav-item" href="overlay-round1.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R1</span></a>
@@ -805,6 +806,27 @@ SNK OP1"></textarea></label>
             </section>
           </section>
 
+
+          <section class="workspace-panel hidden" data-workspace-panel="cam-config">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">OBS · WebRTC</p>
+                <h2>Cam config</h2>
+              </div>
+            </div>
+            <article class="subpanel compact-panel stack camera-config-panel">
+              <div class="panel-head compact-head">
+                <div>
+                  <h3>Configuration des caméras par manche</h3>
+                  <p class="muted">Choisis le nombre de cams, leur taille, leur position et leur rôle précis pour chaque manche.</p>
+                </div>
+              </div>
+              <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants. Les manches 3, 5 et 6 peuvent par exemple avoir une cam assignée “Participant à la manche”.</p>
+              <p id="camera-config-status" class="message"></p>
+              <div id="camera-config-root" class="camera-config-root"></div>
+            </article>
+          </section>
+
           <section class="workspace-panel hidden" data-workspace-panel="broadcast">
             <div class="panel-head">
               <h2>Centre diffusion</h2>
@@ -827,17 +849,6 @@ SNK OP1"></textarea></label>
                   <a class="btn btn-secondary" href="cam-overlay-round5.html" target="_blank" rel="noopener">Cam R5</a>
                   <a class="btn btn-secondary" href="cam-overlay-round6.html" target="_blank" rel="noopener">Cam R6</a>
                 </div>
-              </article>
-              <article class="subpanel compact-panel stack camera-config-panel">
-                <div class="panel-head compact-head">
-                  <div>
-                    <p class="eyebrow">OBS · WebRTC</p>
-                    <h3>Configuration des caméras invités</h3>
-                  </div>
-                </div>
-                <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants.</p>
-                <p id="camera-config-status" class="message"></p>
-                <div id="camera-config-root" class="camera-config-root"></div>
               </article>
               <article class="subpanel compact-panel">
                 <h3>Scoreboard</h3>
