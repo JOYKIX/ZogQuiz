@@ -10,8 +10,6 @@ let overlayConfig = null;
 
 function applyOverlayConfig() {
   if (!overlayConfig) return;
-  imageNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
-  imageNode.style.maxHeight = `${overlayConfig.maxHeightPx}px`;
   imageNode.style.borderRadius = `${overlayConfig.borderRadiusPx}px`;
 }
 
