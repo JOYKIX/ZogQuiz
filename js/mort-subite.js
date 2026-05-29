@@ -35,6 +35,13 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => 
 
 const getParticipantName = (s, id, fallback = "—") => (id && s?.participants?.[id]?.name) || (id || fallback);
 const formatPhase = (phase) => PHASE_LABELS[phase] || phase || "—";
+const formatBuzzKeyLabel = (code) => {
+  if (!code || code === "Space") return "Espace";
+  if (code === "Enter") return "Entrée";
+  if (code.startsWith?.("Key")) return code.slice(3).toUpperCase();
+  if (code.startsWith?.("Digit")) return code.slice(5);
+  return code;
+};
 
 const defaultRound5 = {
   name: "Mort Subite",
@@ -200,7 +207,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById }) {
   });
 }
 
-export function initMortSubiteGuest({ getCurrentSessionId }) {
+export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTypingContext: isGuestTypingContext } = {}) {
   const root = document.getElementById("guest-round5");
   if (!root) return;
 
@@ -225,6 +232,7 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
 
   let round5 = defaultRound5;
   let lastBuzzToken = null;
+  let buzzInFlight = false;
   const meAlive = (me) => Boolean(me && isAlive(round5, me));
   const getMe = () => getCurrentSessionId?.() || null;
 
@@ -250,11 +258,12 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
 
   function getRoleState(me) {
     const duelists = [round5.duel?.attackerId, round5.duel?.targetId].filter(Boolean);
-    const isDuelist = duelists.includes(me);
+    const hasActiveDuel = duelists.length === 2 && round5.phase === PHASES.DUEL;
+    const isDuelist = Boolean(me && duelists.includes(me));
     const alive = meAlive(me);
-    const canBuzz = round5.phase === PHASES.DUEL && round5.duel?.buzzerOpen && alive && isDuelist && !round5.duel?.buzzedBy;
+    const canBuzz = hasActiveDuel && round5.duel?.buzzerOpen && alive && isDuelist && !round5.duel?.buzzedBy && !buzzInFlight;
     const outsiderAllowed = round5.phase === PHASES.OUTSIDERS_ANSWER && round5.outsiders?.enabled && alive && !isDuelist;
-    return { duelists, isDuelist, alive, canBuzz, outsiderAllowed };
+    return { duelists, hasActiveDuel, isDuelist, alive, canBuzz, outsiderAllowed };
   }
 
   function renderHpList() {
@@ -291,10 +300,12 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
     els.question.textContent = round5.duel?.question || "Question en attente côté admin.";
     els.result.textContent = round5.lastResult?.message || (round5.phase === PHASES.FINISHED ? "Mort subite terminée." : "Aucun résultat pour le moment.");
 
-    els.duelCard.classList.toggle("hidden", !role.isDuelist && round5.phase !== PHASES.DUEL);
+    els.duelCard.classList.toggle("hidden", !role.hasActiveDuel && !role.isDuelist);
+    els.duelCard.classList.toggle("is-duelist", role.isDuelist);
+    els.duelCard.classList.toggle("is-buzzer-open", role.canBuzz);
     els.outsiderCard.classList.toggle("hidden", role.isDuelist || ![PHASES.DUEL, PHASES.OUTSIDERS_ANSWER].includes(round5.phase));
     els.outsiderForm.classList.toggle("hidden", !role.outsiderAllowed || alreadyAnswered);
-    els.buzz.classList.toggle("hidden", !role.isDuelist || round5.phase !== PHASES.DUEL);
+    els.buzz.classList.toggle("hidden", !role.isDuelist || !role.hasActiveDuel);
     els.buzz.disabled = !role.canBuzz;
 
     if (!me) {
@@ -316,8 +327,12 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
     }
 
     els.duelTitle.textContent = role.isDuelist ? "Vous êtes en duel" : "Duel en cours";
-    if (role.canBuzz) {
-      els.buzzStatus.textContent = "Buzzer ouvert.";
+    if (!role.hasActiveDuel) {
+      els.buzzStatus.textContent = "Duel en attente de deux joueurs côté admin.";
+    } else if (role.canBuzz) {
+      els.buzzStatus.textContent = `Buzzer ouvert · touche ${formatBuzzKeyLabel(getBuzzKeyCode?.() || "Space")}.`;
+    } else if (buzzInFlight && role.isDuelist) {
+      els.buzzStatus.textContent = "Buzz en cours d’envoi…";
     } else if (round5.duel?.buzzedBy) {
       els.buzzStatus.textContent = `Buzz pris par ${buzzedName}.`;
     } else {
@@ -337,22 +352,35 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
 
   async function buzzDuel() {
     const me = getMe();
-    await runTransaction(ref(db, ROUND5_PATH), (curr) => {
-      const s = toRound5(curr);
-      const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
-      if (!(s.phase === PHASES.DUEL && s.duel?.buzzerOpen && duelist && isAlive(s, me) && !s.duel?.buzzedBy)) return s;
-      return { ...s, duel: { ...s.duel, buzzerOpen: false, buzzedBy: me, buzzedAt: Date.now() }, updatedAt: Date.now() };
-    });
+    const role = getRoleState(me);
+    if (!role.canBuzz) return;
+    buzzInFlight = true;
+    render();
+    try {
+      await runTransaction(ref(db, ROUND5_PATH), (curr) => {
+        const s = toRound5(curr);
+        const duelist = [s.duel?.attackerId, s.duel?.targetId].includes(me);
+        if (!(s.phase === PHASES.DUEL && s.duel?.buzzerOpen && duelist && isAlive(s, me) && !s.duel?.buzzedBy)) return s;
+        return { ...s, duel: { ...s.duel, buzzerOpen: false, buzzedBy: me, buzzedAt: Date.now() }, updatedAt: Date.now() };
+      });
+    } finally {
+      buzzInFlight = false;
+      render();
+    }
   }
 
   els.buzz.onclick = buzzDuel;
 
   document.addEventListener("keydown", async (event) => {
     if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
-    if ((event.code || event.key) !== "Space") return;
-    const target = event.target;
-    const tag = target instanceof HTMLElement ? target.tagName.toLowerCase() : "";
-    if (target?.isContentEditable || ["input", "textarea", "select"].includes(tag)) return;
+    if ((event.code || event.key) !== (getBuzzKeyCode?.() || "Space")) return;
+    if (typeof isGuestTypingContext === "function") {
+      if (isGuestTypingContext(event.target)) return;
+    } else {
+      const target = event.target;
+      const tag = target instanceof HTMLElement ? target.tagName.toLowerCase() : "";
+      if (target?.isContentEditable || ["input", "textarea", "select"].includes(tag)) return;
+    }
     const role = getRoleState(getMe());
     if (!role.canBuzz) return;
     event.preventDefault();

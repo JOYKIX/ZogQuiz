@@ -989,5 +989,9 @@ buzzKeybindCode = readStoredBuzzKeybind();
 renderBuzzKeybind();
 tryAutoReconnect();
 
-initMortSubiteGuest({ getCurrentSessionId });
+initMortSubiteGuest({
+  getCurrentSessionId,
+  getBuzzKeyCode: () => buzzKeybindCode,
+  isTypingContext,
+});
 initManche6Display({ prefix: "m6-guest" });
