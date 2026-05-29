@@ -8,26 +8,26 @@
   </head>
   <body class="overlay-page">
     <main class="m5o" aria-live="polite">
-      <h1 id="m5o-title">Mort Subite</h1>
-      <div class="grid">
-        <section>
-          <h2>Participants</h2>
-          <ul id="m5o-players"></ul>
-        </section>
-        <section>
-          <h2>Tour</h2>
-          <p id="m5o-turn">—</p>
-          <h2>Duel</h2>
-          <p id="m5o-duel">—</p>
-          <h2>Buzzé</h2>
-          <p id="m5o-buzz">—</p>
-          <h2>Phase</h2>
-          <p id="m5o-phase">—</p>
-        </section>
-      </div>
-      <section>
-        <h2>Question</h2>
-        <p id="m5o-question"></p>
+      <section class="m5o-hud" aria-label="PV des participants du duel">
+        <article id="m5o-left-fighter" class="m5o-fighter m5o-fighter-left" data-side="left">
+          <div class="m5o-fighter-meta">
+            <span id="m5o-left-name" class="m5o-fighter-name">—</span>
+            <strong id="m5o-left-hp" class="m5o-fighter-hp">0 PV</strong>
+          </div>
+          <div class="m5o-health-frame" aria-hidden="true">
+            <div id="m5o-left-bar" class="m5o-health-bar"></div>
+          </div>
+        </article>
+        <div class="m5o-versus" aria-hidden="true">VS</div>
+        <article id="m5o-right-fighter" class="m5o-fighter m5o-fighter-right" data-side="right">
+          <div class="m5o-fighter-meta">
+            <span id="m5o-right-name" class="m5o-fighter-name">—</span>
+            <strong id="m5o-right-hp" class="m5o-fighter-hp">0 PV</strong>
+          </div>
+          <div class="m5o-health-frame" aria-hidden="true">
+            <div id="m5o-right-bar" class="m5o-health-bar"></div>
+          </div>
+        </article>
       </section>
     </main>
     <script type="module" src="js/overlay-round5.js"></script>

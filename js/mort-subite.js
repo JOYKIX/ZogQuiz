@@ -1,5 +1,6 @@
 import { db, ref, onValue, update, runTransaction } from "./firebase.js";
 import { playBuzzerSound } from "./audio.js";
+import { watchOverlayConfig } from "./overlay-config.js";
 
 const ROUND5_PATH = "rounds/round5";
 const DEFAULT_PHASE = "setup";
@@ -374,17 +375,89 @@ export function initMortSubiteGuest({ getCurrentSessionId }) {
   };
 }
 
-export function initMortSubiteOverlay() { /* unchanged functional data-only rendering */
-  const title = document.getElementById("m5o-title"); if (!title) return;
-  const list = document.getElementById("m5o-players"); const turn = document.getElementById("m5o-turn"); const duel = document.getElementById("m5o-duel"); const buzz = document.getElementById("m5o-buzz"); const question = document.getElementById("m5o-question"); const phase = document.getElementById("m5o-phase");
-  onValue(ref(db, ROUND5_PATH), (s) => {
-    const st = toRound5(s.val());
-    list.innerHTML = (st.turn?.order || []).map((id) => `<li class="${isAlive(st, id) ? "" : "dead"}">${st.participants?.[id]?.name || id} <strong>${st.participants?.[id]?.hp || 0} PV</strong></li>`).join("");
-    turn.textContent = st.participants?.[st.turn?.currentPlayerId]?.name || "—";
-    duel.textContent = `${st.participants?.[st.duel?.attackerId]?.name || "—"} VS ${st.participants?.[st.duel?.targetId]?.name || "—"}`;
-    buzz.textContent = st.participants?.[st.duel?.buzzedBy]?.name || "—";
-    question.textContent = st.duel?.question || "";
-    phase.textContent = st.phase || DEFAULT_PHASE;
-    title.textContent = st.name || "Mort Subite";
+export function initMortSubiteOverlay() {
+  const leftFighter = document.getElementById("m5o-left-fighter");
+  const rightFighter = document.getElementById("m5o-right-fighter");
+  if (!leftFighter || !rightFighter) return;
+
+  const root = document.documentElement;
+  const elements = {
+    left: {
+      fighter: leftFighter,
+      name: document.getElementById("m5o-left-name"),
+      hp: document.getElementById("m5o-left-hp"),
+      bar: document.getElementById("m5o-left-bar"),
+    },
+    right: {
+      fighter: rightFighter,
+      name: document.getElementById("m5o-right-name"),
+      hp: document.getElementById("m5o-right-hp"),
+      bar: document.getElementById("m5o-right-bar"),
+    },
+  };
+
+  let roundState = defaultRound5;
+  let overlayConfig = null;
+
+  const setCssVar = (name, value) => root.style.setProperty(name, value);
+
+  function applyOverlayConfig(config) {
+    overlayConfig = config;
+    setCssVar("--m5-name-font-size", `${config.nameFontSizePx}px`);
+    setCssVar("--m5-hp-font-size", `${config.hpFontSizePx}px`);
+    setCssVar("--m5-text-color", config.textColor);
+    setCssVar("--m5-health-color", config.healthColor);
+    setCssVar("--m5-health-danger-color", config.dangerColor);
+    setCssVar("--m5-health-height", `${config.barHeightPx}px`);
+    setCssVar("--m5-health-radius", `${config.cornerRadiusPx}px`);
+    setCssVar("--m5-health-max-width", `${config.maxWidthPx}px`);
+    setCssVar("--m5-health-padding", `${config.screenPaddingPx}px`);
+    setCssVar("--m5-health-gap", `${config.barGapPx}px`);
+    setCssVar("--m5-frame-opacity", String(config.frameOpacity));
+    setCssVar("--m5-dimmed-opacity", String(config.dimmedOpacity));
+    render();
+  }
+
+  function getDuelistIds(state) {
+    const attackerId = state.duel?.attackerId;
+    const targetId = state.duel?.targetId;
+    if (attackerId || targetId) return [attackerId, targetId];
+    const alive = getAliveOrder(state);
+    return [state.turn?.currentPlayerId || alive[0] || null, alive.find((id) => id !== state.turn?.currentPlayerId) || alive[1] || null];
+  }
+
+  function getHpPercent(state, id) {
+    if (!id) return 0;
+    const participant = state.participants?.[id] || {};
+    const hp = Math.max(0, Number(participant.hp || 0));
+    const configuredMax = Number(overlayConfig?.maxHp || 0);
+    const scoreMax = Math.max(0, Number(participant.score || 0));
+    const liveMax = Math.max(...Object.values(state.participants || {}).map((p) => Number(p?.hp || 0)), 0);
+    const maxHp = configuredMax > 0 ? configuredMax : Math.max(scoreMax, liveMax, hp, 1);
+    return Math.max(0, Math.min(100, (hp / maxHp) * 100));
+  }
+
+  function renderSide(side, id) {
+    const refs = elements[side];
+    const participant = id ? roundState.participants?.[id] : null;
+    const hp = Math.max(0, Number(participant?.hp || 0));
+    const alive = id ? isAlive(roundState, id) : false;
+    refs.name.textContent = participant?.name || "—";
+    refs.hp.textContent = `${hp} PV`;
+    refs.bar.style.setProperty("--hp-percent", String(getHpPercent(roundState, id)));
+    refs.fighter.classList.toggle("is-empty", !id || !participant);
+    refs.fighter.classList.toggle("is-dead", Boolean(id && !alive));
+  }
+
+  function render() {
+    const [leftId, rightId] = getDuelistIds(roundState);
+    renderSide("left", leftId);
+    renderSide("right", rightId);
+  }
+
+  watchOverlayConfig("round5", applyOverlayConfig);
+  onValue(ref(db, ROUND5_PATH), (snap) => {
+    roundState = toRound5(snap.val());
+    render();
   });
 }
