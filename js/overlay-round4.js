@@ -2,21 +2,25 @@ import { activeTracks, watchBlindtestTracks } from "./blindtest/tracks.js";
 import { computeTargetSeconds, defaultBlindtestLiveState, watchBlindtestLive } from "./blindtest/live-sync.js";
 import { YoutubeAudioPlayer, parseYoutubeError } from "./blindtest/youtube.js";
 import { watchOverlayConfig } from "./overlay-config.js";
+import { autoFitText } from "./auto-fit-text.js";
 
-const stateNode = document.getElementById("m4-overlay-state");
-const trackNode = document.getElementById("m4-overlay-track");
-const playbackNode = document.getElementById("m4-overlay-playback");
-const timeNode = document.getElementById("m4-overlay-time");
+const rootNode = document.querySelector(".overlay-round4");
+const promptNode = document.getElementById("m4-overlay-prompt");
 const errorNode = document.getElementById("m4-overlay-error");
-const progressNode = document.getElementById("m4-overlay-progress");
-const answerNode = document.getElementById("m4-overlay-answer");
+
+const CATEGORY_PROMPTS = {
+  opening: "Quel est cet opening ?",
+  ending: "Quel est cet ending ?",
+  ost: "Quel est cette OST ?",
+  personnage: "Quel est ce personnage ?",
+};
 
 let tracks = [];
 let liveState = defaultBlindtestLiveState();
 let overlayConfig = null;
 let lastAppliedSyncVersion = -1;
-let progressIntervalId = 0;
-let lastProgressSignature = "";
+let resizeObserver = null;
+let rafId = 0;
 
 const player = new YoutubeAudioPlayer({
   hostId: "m4-overlay-youtube-host",
@@ -29,75 +33,52 @@ const player = new YoutubeAudioPlayer({
   },
 });
 
-function formatTime(seconds) {
-  const sec = Math.max(0, Math.floor(Number(seconds || 0)));
-  const m = String(Math.floor(sec / 60)).padStart(2, "0");
-  const s = String(sec % 60).padStart(2, "0");
-  return `${m}:${s}`;
-}
-
 function resolveCurrentTrack() {
   const enabled = activeTracks(tracks);
-  if (!enabled.length) return { enabled, currentTrack: null, index: -1 };
+  if (!enabled.length) return { enabled, currentTrack: null };
 
   const byId = liveState.trackId ? enabled.find((track) => track.id === String(liveState.trackId)) : null;
   const fallbackIndex = Math.max(0, Math.min(enabled.length - 1, Number(liveState.trackIndex || 0)));
   const currentTrack = byId || enabled[fallbackIndex] || null;
-  const index = currentTrack ? enabled.findIndex((track) => track.id === currentTrack.id) : -1;
-  return { enabled, currentTrack, index };
+  return { enabled, currentTrack };
+}
+
+function getPromptForTrack(track) {
+  const category = String(track?.category || "opening").toLowerCase();
+  return CATEGORY_PROMPTS[category] || CATEGORY_PROMPTS.opening;
 }
 
 function applyConfig() {
-  if (!overlayConfig) return;
-  document.querySelector(".overlay-round4").style.maxWidth = `${overlayConfig.maxWidthPx}px`;
-  stateNode.style.fontSize = `${overlayConfig.secondaryFontSizePx}px`;
-  stateNode.style.color = overlayConfig.secondaryColor;
-  playbackNode.style.fontSize = `${overlayConfig.primaryFontSizePx}px`;
-  trackNode.style.fontSize = `${overlayConfig.secondaryFontSizePx}px`;
-  trackNode.style.color = overlayConfig.primaryColor;
-  timeNode.style.fontSize = `${overlayConfig.secondaryFontSizePx}px`;
-  timeNode.style.color = overlayConfig.secondaryColor;
-  progressNode.style.height = `${overlayConfig.progressHeightPx}px`;
-  document.querySelector(".m4-progress-shell").style.borderRadius = `${overlayConfig.cornerRadiusPx}px`;
-  progressNode.style.borderRadius = `${overlayConfig.cornerRadiusPx}px`;
-  document.querySelector(".m4-progress-shell").style.backgroundColor = `rgba(255,255,255,${overlayConfig.decorationOpacity})`;
+  if (!overlayConfig || !promptNode) return;
+  promptNode.style.color = overlayConfig.clueColor;
+}
+
+function runAutoFit() {
+  if (!rootNode || !promptNode) return;
+
+  autoFitText({
+    container: rootNode,
+    textElement: promptNode,
+    minFontSizePx: 36,
+    maxFontSizePx: 220,
+    paddingPx: 40,
+    lineHeight: 1.04,
+    maxWidthPx: 1800,
+  });
+}
+
+function scheduleAutoFit() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(() => {
+    rafId = 0;
+    runAutoFit();
+  });
 }
 
 function render() {
-  const { enabled, currentTrack, index } = resolveCurrentTrack();
+  const { enabled, currentTrack } = resolveCurrentTrack();
 
-  if (!enabled.length) {
-    stateNode.textContent = "Blindtest non configuré";
-    trackNode.textContent = "Piste 0 / 0";
-    playbackNode.textContent = "Arrêt";
-    timeNode.textContent = "00:00";
-    progressNode.style.width = "0%";
-    applyConfig();
-    return;
-  }
-
-  const labels = { playing: "Lecture", paused: "Pause", stopped: "Arrêt" };
-
-  const prompts = {
-    opening: "D'où provient cet opening ?",
-    ending: "D'où provient cet ending ?",
-    ost: "D'où provient cet OST ?",
-    personnage: "Quel est ce personnage ?",
-  };
-  stateNode.textContent = prompts[currentTrack?.category || "opening"] || prompts.opening;
-  trackNode.textContent = `Piste ${index >= 0 ? index + 1 : 0} / ${enabled.length}`;
-  playbackNode.textContent = labels[liveState.playbackState] || "Arrêt";
-  timeNode.textContent = formatTime(computeTargetSeconds(liveState));
-  if (answerNode) answerNode.textContent = liveState.showAnswer ? `Réponse : ${currentTrack?.answer || "—"}` : "";
-
-  if (overlayConfig) {
-    if (liveState.playbackState === "playing") playbackNode.style.color = overlayConfig.playingColor;
-    else if (liveState.playbackState === "paused") playbackNode.style.color = overlayConfig.pausedColor;
-    else playbackNode.style.color = overlayConfig.stoppedColor;
-
-    const ratio = Math.min(1, computeTargetSeconds(liveState) / Math.max(1, overlayConfig.progressMaxSeconds));
-    progressNode.style.width = `${Math.round(ratio * 100)}%`;
-  }
+  promptNode.textContent = enabled.length ? getPromptForTrack(currentTrack) : "Quel est cet opening ?";
 
   if (errorNode && liveState.lastError) {
     errorNode.textContent = liveState.lastError;
@@ -108,30 +89,7 @@ function render() {
   }
 
   applyConfig();
-}
-
-function updateProgressOnly() {
-  if (!overlayConfig) return;
-  const ratio = Math.min(1, computeTargetSeconds(liveState) / Math.max(1, overlayConfig.progressMaxSeconds));
-  const width = `${Math.round(ratio * 100)}%`;
-  const playbackState = liveState.playbackState || "stopped";
-  const signature = `${width}|${playbackState}`;
-  if (signature === lastProgressSignature) return;
-  lastProgressSignature = signature;
-
-  progressNode.style.width = width;
-  if (playbackState === "playing") playbackNode.style.color = overlayConfig.playingColor;
-  else if (playbackState === "paused") playbackNode.style.color = overlayConfig.pausedColor;
-  else playbackNode.style.color = overlayConfig.stoppedColor;
-  timeNode.textContent = formatTime(computeTargetSeconds(liveState));
-}
-
-function startProgressTicker() {
-  if (progressIntervalId) return;
-  progressIntervalId = window.setInterval(() => {
-    if (!liveState.active || liveState.playbackState !== "playing") return;
-    updateProgressOnly();
-  }, 250);
+  scheduleAutoFit();
 }
 
 async function syncAudio() {
@@ -154,6 +112,13 @@ async function syncAudio() {
 
   player.play();
 }
+
+if (window.ResizeObserver && rootNode) {
+  resizeObserver = new ResizeObserver(() => scheduleAutoFit());
+  resizeObserver.observe(rootNode);
+}
+window.addEventListener("resize", scheduleAutoFit);
+document.fonts?.ready?.then(() => scheduleAutoFit());
 
 watchBlindtestTracks((nextTracks) => {
   tracks = nextTracks;
@@ -181,4 +146,3 @@ watchOverlayConfig("round4", (config) => {
   overlayConfig = config;
   render();
 });
-startProgressTicker();
