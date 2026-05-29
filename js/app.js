@@ -125,6 +125,7 @@ const m2LiveCurrentQuestion = $("m2-live-current-question");
 const m2LiveAnswers = $("m2-live-answers");
 const m2LivePrevBtn = $("m2-live-prev");
 const m2LiveNextBtn = $("m2-live-next");
+const m2ResetAnswersBtn = $("m2-reset-answers");
 const m2QuestionSearch = $("m2-question-search");
 const m2QuestionCount = $("m2-question-count");
 const m2EditorMode = $("m2-editor-mode");
@@ -579,6 +580,7 @@ m3PassBtn.addEventListener("click", async () => round3Advance(false));
 m3CorrectBtn.addEventListener("click", async () => round3Advance(true));
 m2LivePrevBtn?.addEventListener("click", async () => moveRound2Image(-1));
 m2LiveNextBtn?.addEventListener("click", async () => moveRound2Image(1));
+m2ResetAnswersBtn?.addEventListener("click", resetRound2Answers);
 round1PrevQuestionBtn?.addEventListener("click", async () => moveRound1Question(-1));
 round1NextQuestionBtn?.addEventListener("click", async () => moveRound1Question(1));
 
@@ -1588,6 +1590,13 @@ function updateRound1Status() {
     buzzLive.textContent = "En attente";
     buzzPriorityName.textContent = "Personne";
   }
+}
+
+async function resetRound2Answers() {
+  if (!(await showConfirm("Réinitialiser toutes les réponses écrites de la manche 2 ?", { title: "Réinitialisation manche 2" }))) return;
+  await remove(ref(db, "rooms/manche2/answers"));
+  setMessage(m2LiveStatus, "Réponses de la manche 2 réinitialisées.", "success");
+  showToast("Réponses manche 2 réinitialisées");
 }
 
 function renderRound2LiveAnswers() {
