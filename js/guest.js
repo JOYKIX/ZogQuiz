@@ -217,6 +217,17 @@ function getOrCreateClientId() {
   return next;
 }
 
+function writeStoredGuestSession(account) {
+  if (!account?.accountId) return;
+  try {
+    localStorage.setItem(LEGACY_GUEST_STORAGE_KEY, JSON.stringify({
+      accountId: account.accountId,
+      authVersion: Number(account.authVersion || 1),
+      savedAt: Date.now(),
+    }));
+  } catch {}
+}
+
 function clearStoredClientId() {
   try {
     localStorage.removeItem(GUEST_CLIENT_STORAGE_KEY);
@@ -237,6 +248,7 @@ function readLegacyStoredGuestSession() {
 }
 
 async function writeRealtimeClientSession(account) {
+  writeStoredGuestSession(account);
   const clientId = getOrCreateClientId();
   if (!clientId || !account?.accountId) return;
   await set(ref(db, `${GUEST_CLIENT_SESSIONS_PATH}/${clientId}`), {
@@ -541,16 +553,23 @@ async function restoreAccountFromClientSession(clientId) {
 
 async function tryAutoReconnect() {
   const clientId = readStoredClientId();
+  let restoreError = null;
   if (clientId) {
     const restored = await restoreAccountFromClientSession(clientId);
     if (restored.ok) return true;
-    clearStoredClientId();
-    if (restored.message) setGuestMessage(restored.message, restored.type || "error");
-    return false;
+    if (restored.message) restoreError = restored;
   }
 
   const legacyStored = readLegacyStoredGuestSession();
-  if (!legacyStored) return false;
+  if (!legacyStored) {
+    if (restoreError) {
+      clearStoredClientId();
+      setGuestMessage(restoreError.message, restoreError.type || "error");
+    } else if (clientId) {
+      clearStoredClientId();
+    }
+    return false;
+  }
 
   const accountSnap = await get(ref(db, `${GUEST_ACCOUNTS_PATH}/${legacyStored.accountId}`));
   if (!accountSnap.exists()) {
