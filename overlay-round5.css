@@ -6,8 +6,8 @@
   --m5-health-max-width: 790px;
   --m5-health-gap: 34px;
   --m5-health-padding: 44px;
-  --m5-health-color: #ffd54f;
-  --m5-health-danger-color: #ff3d57;
+  --m5-health-color: #ffe600;
+  --m5-health-danger-color: #ff7a00;
   --m5-text-color: #ffffff;
   --m5-name-font-size: 38px;
   --m5-hp-font-size: 44px;
@@ -31,8 +31,8 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 .m5o-hud {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, var(--m5-health-max-width)) auto minmax(0, var(--m5-health-max-width));
-  gap: var(--m5-health-gap);
+  grid-template-columns: repeat(2, minmax(0, var(--m5-health-max-width)));
+  gap: max(var(--m5-health-gap), 7vw);
   align-items: start;
   justify-content: center;
 }
@@ -40,18 +40,19 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 .m5o-fighter {
   min-width: 0;
   opacity: 1;
+  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.55));
   transition: opacity 180ms ease;
 }
 
 .m5o-fighter.is-empty { opacity: var(--m5-dimmed-opacity); }
-.m5o-fighter.is-dead .m5o-health-bar { filter: grayscale(0.85) brightness(0.7); }
+.m5o-fighter.is-dead .m5o-health-bar { filter: grayscale(0.65) brightness(0.72); }
 
 .m5o-fighter-meta {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 22px;
-  margin-bottom: 10px;
+  margin: 0 18px 12px;
   color: var(--m5-text-color);
   text-transform: uppercase;
 }
@@ -75,60 +76,89 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
   line-height: 0.95;
   letter-spacing: -0.06em;
   color: var(--m5-health-color);
+  text-shadow: 0 0 12px rgba(255, 122, 0, 0.78), 0 3px 12px #000;
 }
 
 .m5o-health-frame {
   position: relative;
   height: var(--m5-health-height);
   overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, var(--m5-frame-opacity));
-  border-radius: var(--m5-health-radius);
+  border: 0;
+  border-radius: 0;
+  isolation: isolate;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 45%),
-    rgba(8, 10, 18, 0.72);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0 8%, rgba(177, 188, 198, 0.9) 9% 16%, rgba(23, 28, 37, 0.94) 17% 86%, rgba(0, 0, 0, 0.96) 87% 100%);
+  clip-path: polygon(0 0, calc(100% - 38px) 0, 100% 100%, 0 100%);
   box-shadow:
-    inset 0 0 0 2px rgba(0, 0, 0, 0.42),
-    0 8px 26px rgba(0, 0, 0, 0.55),
-    0 0 30px color-mix(in srgb, var(--m5-health-color) 34%, transparent);
+    inset 0 0 0 2px rgba(255, 255, 255, var(--m5-frame-opacity)),
+    inset 0 -7px 0 rgba(0, 0, 0, 0.52),
+    0 10px 24px rgba(0, 0, 0, 0.62),
+    0 0 22px rgba(255, 122, 0, 0.34);
+}
+
+.m5o-fighter-right .m5o-health-frame {
+  clip-path: polygon(38px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.m5o-health-frame::before {
+  content: "";
+  position: absolute;
+  inset: 8px 12px 9px;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(18, 19, 22, 0.82)),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.1) 0 7px, rgba(255, 255, 255, 0) 7px 18px);
+  clip-path: inherit;
 }
 
 .m5o-health-frame::after {
   content: "";
   position: absolute;
-  inset: 6px 8px auto;
-  height: 26%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08));
+  inset: 7px 12px auto;
+  height: 32%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.18) 48%, rgba(255, 255, 255, 0));
+  filter: blur(0.2px);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .m5o-health-bar {
   position: absolute;
-  inset: 0;
+  inset: 8px auto 9px 12px;
   width: calc(var(--hp-percent, 0) * 1%);
-  border-radius: max(0px, calc(var(--m5-health-radius) - 5px));
+  max-width: calc(100% - 24px);
+  z-index: 1;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.04) 48%, rgba(0, 0, 0, 0.22)),
-    linear-gradient(90deg, var(--m5-health-danger-color) 0%, var(--m5-health-color) 42%, #75ff6b 100%);
-  box-shadow: inset 0 -10px 16px rgba(0, 0, 0, 0.2);
-  transition: width 280ms ease;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.06) 42%, rgba(0, 0, 0, 0.32) 100%),
+    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0 16px, rgba(255, 255, 255, 0) 16px 52px),
+    linear-gradient(90deg, var(--m5-health-color) 0%, #ffb000 50%, var(--m5-health-danger-color) 100%);
+  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 100%, 0 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    inset 0 -11px 13px rgba(132, 54, 0, 0.32),
+    0 0 17px rgba(255, 178, 0, 0.82),
+    0 0 34px rgba(255, 122, 0, 0.44);
+  transition: width 280ms cubic-bezier(.2, .8, .2, 1);
 }
 
-.m5o-fighter-right .m5o-health-bar { right: 0; left: auto; }
+.m5o-health-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.26), transparent 62%);
+  mix-blend-mode: screen;
+}
 
-.m5o-versus {
-  align-self: end;
-  margin-bottom: 4px;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: clamp(2rem, 4.6vw, 6rem);
-  font-weight: 1000;
-  line-height: 1;
-  letter-spacing: -0.08em;
-  text-shadow: 0 0 18px rgba(255, 213, 79, 0.42), 0 4px 24px #000;
+.m5o-fighter-right .m5o-health-bar {
+  right: 12px;
+  left: auto;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.06) 42%, rgba(0, 0, 0, 0.32) 100%),
+    repeating-linear-gradient(68deg, rgba(255, 255, 255, 0.16) 0 16px, rgba(255, 255, 255, 0) 16px 52px),
+    linear-gradient(90deg, var(--m5-health-danger-color) 0%, #ffb000 50%, var(--m5-health-color) 100%);
+  clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
 }
 
 @media (max-width: 900px) {
-  .m5o-hud { grid-template-columns: 1fr; }
-  .m5o-versus { justify-self: center; margin: -8px 0; }
+  .m5o-hud { grid-template-columns: 1fr; gap: 28px; }
 }
