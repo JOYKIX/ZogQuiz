@@ -812,6 +812,7 @@ SNK OP1"></textarea></label>
                   <div class="row">
                     <button id="m6-init" class="btn btn-secondary" type="button">Initialiser duel</button>
                     <button id="m6-launch" class="btn btn-primary" type="button">Lancer</button>
+                    <button class="btn btn-secondary m6-next-question" type="button">Question suivante</button>
                     <button id="m6-switch" class="btn btn-primary" type="button">Switch</button>
                     <button id="m6-pause" class="btn btn-secondary" type="button">Pause</button>
                     <button id="m6-reset" class="btn btn-danger" type="button">Reset</button>
@@ -836,18 +837,28 @@ SNK OP1"></textarea></label>
                     <p id="m6-admin-winner" class="highlight">Premier chrono à zéro perd la finale.</p>
                   </div>
                   <p id="m6-admin-question" class="highlight">Question en attente côté admin.</p>
+                  <p>Réponse attendue : <strong id="m6-admin-current-answer">—</strong></p>
+                  <p class="muted">Banque : <span id="m6-admin-question-count">0/0 tirées</span></p>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche6:questions">
                 <article class="subpanel compact-panel stack">
-                  <h3>Question actuelle et réponses</h3>
-                  <label>Question<textarea id="m6-question-input" rows="3" placeholder="Question posée pendant le duel"></textarea></label>
+                  <h3>Banque questions / réponses</h3>
+                  <p class="muted">Saisissez toutes les questions de la manche 6, une par ligne, au format <strong>Question | Réponse</strong>. Le bouton Question suivante tire une question au hasard parmi celles qui ne sont pas encore sorties, puis relance la pioche quand tout a été tiré.</p>
+                  <label>Questions + réponses<textarea id="m6-question-deck-input" rows="10" placeholder="Capitale de l’Australie ? | Canberra&#10;Auteur de Germinal ? | Émile Zola"></textarea></label>
                   <div class="two-col">
-                    <label>Réponse joueur 1<input id="m6-answer-participant-input" placeholder="Réponse / note admin" /></label>
-                    <label>Réponse joueur 2<input id="m6-answer-viewer-input" placeholder="Réponse / note admin" /></label>
+                    <label>Question affichée<textarea id="m6-question-input" rows="3" placeholder="Question posée pendant le duel"></textarea></label>
+                    <label>Réponse attendue<textarea id="m6-answer-input" rows="3" placeholder="Réponse de la question affichée"></textarea></label>
                   </div>
-                  <button id="m6-save-content" class="btn btn-primary" type="button">Synchroniser question / réponses</button>
+                  <div class="two-col">
+                    <label>Note joueur 1<input id="m6-answer-participant-input" placeholder="Réponse / note admin" /></label>
+                    <label>Note joueur 2<input id="m6-answer-viewer-input" placeholder="Réponse / note admin" /></label>
+                  </div>
+                  <div class="row">
+                    <button id="m6-save-content" class="btn btn-primary" type="button">Enregistrer la banque</button>
+                    <button class="btn btn-secondary m6-next-question" type="button">Question suivante</button>
+                  </div>
                 </article>
               </section>
 
