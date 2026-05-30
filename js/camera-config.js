@@ -63,6 +63,8 @@ export const CAMERA_DEFAULT_CONFIG = {
   cameras: [{ ...CAMERA_SLOT_DEFAULT }],
 };
 
+const UNLIMITED_PX = Number.POSITIVE_INFINITY;
+
 function clampInt(value, fallback, min, max) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -99,16 +101,16 @@ export function getCameraSlotPreviewLabel(slot = {}, index = 0) {
 
 function defaultSlotFromLegacy(raw, index) {
   const perRow = clampInt(raw.perRow, CAMERA_DEFAULT_CONFIG.perRow, 1, 12);
-  const width = clampPx(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, 1920);
-  const height = clampPx(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, 1080);
-  const gap = clampPx(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, 300);
+  const width = clampPx(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, UNLIMITED_PX);
+  const height = clampPx(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, UNLIMITED_PX);
+  const gap = clampPx(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, UNLIMITED_PX);
   return {
     ...CAMERA_SLOT_DEFAULT,
-    x: clampPx(clampPx(raw.x, CAMERA_DEFAULT_CONFIG.x, -4000, 4000) + (index % perRow) * (width + gap), CAMERA_DEFAULT_CONFIG.x, -4000, 4000),
-    y: clampPx(clampPx(raw.y, CAMERA_DEFAULT_CONFIG.y, -4000, 4000) + Math.floor(index / perRow) * (height + gap), CAMERA_DEFAULT_CONFIG.y, -4000, 4000),
+    x: clampPx(clampPx(raw.x, CAMERA_DEFAULT_CONFIG.x, -UNLIMITED_PX, UNLIMITED_PX) + (index % perRow) * (width + gap), CAMERA_DEFAULT_CONFIG.x, -UNLIMITED_PX, UNLIMITED_PX),
+    y: clampPx(clampPx(raw.y, CAMERA_DEFAULT_CONFIG.y, -UNLIMITED_PX, UNLIMITED_PX) + Math.floor(index / perRow) * (height + gap), CAMERA_DEFAULT_CONFIG.y, -UNLIMITED_PX, UNLIMITED_PX),
     width,
     height,
-    borderRadius: clampPx(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
+    borderRadius: clampPx(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, UNLIMITED_PX),
     zIndex: index + 1,
   };
 }
@@ -116,11 +118,11 @@ function defaultSlotFromLegacy(raw, index) {
 export function normalizeCameraSlot(raw = {}, fallback = CAMERA_SLOT_DEFAULT) {
   return {
     enabled: Boolean(raw.enabled ?? fallback.enabled),
-    x: clampPx(raw.x, fallback.x, -4000, 4000),
-    y: clampPx(raw.y, fallback.y, -4000, 4000),
-    width: clampPx(raw.width, fallback.width, 80, 1920),
-    height: clampPx(raw.height, fallback.height, 60, 1080),
-    borderRadius: clampPx(raw.borderRadius, fallback.borderRadius, 0, 240),
+    x: clampPx(raw.x, fallback.x, -UNLIMITED_PX, UNLIMITED_PX),
+    y: clampPx(raw.y, fallback.y, -UNLIMITED_PX, UNLIMITED_PX),
+    width: clampPx(raw.width, fallback.width, 80, UNLIMITED_PX),
+    height: clampPx(raw.height, fallback.height, 60, UNLIMITED_PX),
+    borderRadius: clampPx(raw.borderRadius, fallback.borderRadius, 0, UNLIMITED_PX),
     zIndex: clampInt(raw.zIndex, fallback.zIndex, 0, 999),
     fit: normalizeFit(raw.fit ?? fallback.fit),
     role: normalizeRole(raw.role ?? fallback.role),
@@ -141,13 +143,13 @@ export function normalizeCameraConfig(raw = {}) {
   return {
     enabled: Boolean(raw.enabled),
     cameraCount,
-    x: clampPx(raw.x, CAMERA_DEFAULT_CONFIG.x, -4000, 4000),
-    y: clampPx(raw.y, CAMERA_DEFAULT_CONFIG.y, -4000, 4000),
-    width: clampPx(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, 1920),
-    height: clampPx(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, 1080),
-    gap: clampPx(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, 300),
+    x: clampPx(raw.x, CAMERA_DEFAULT_CONFIG.x, -UNLIMITED_PX, UNLIMITED_PX),
+    y: clampPx(raw.y, CAMERA_DEFAULT_CONFIG.y, -UNLIMITED_PX, UNLIMITED_PX),
+    width: clampPx(raw.width, CAMERA_DEFAULT_CONFIG.width, 80, UNLIMITED_PX),
+    height: clampPx(raw.height, CAMERA_DEFAULT_CONFIG.height, 60, UNLIMITED_PX),
+    gap: clampPx(raw.gap, CAMERA_DEFAULT_CONFIG.gap, 0, UNLIMITED_PX),
     perRow: clampInt(raw.perRow, CAMERA_DEFAULT_CONFIG.perRow, 1, 12),
-    borderRadius: clampPx(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, 240),
+    borderRadius: clampPx(raw.borderRadius, CAMERA_DEFAULT_CONFIG.borderRadius, 0, UNLIMITED_PX),
     showNames: Boolean(raw.showNames ?? CAMERA_DEFAULT_CONFIG.showNames),
     preview: Boolean(raw.preview ?? CAMERA_DEFAULT_CONFIG.preview),
     cameras,

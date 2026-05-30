@@ -93,6 +93,7 @@ export const OVERLAY_DEFAULTS = {
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 const ALIGN_VALUES = new Set(["left", "center", "right"]);
 const V_ALIGN_VALUES = new Set(["top", "center", "bottom"]);
+const UNLIMITED_PX = Number.POSITIVE_INFINITY;
 
 function clampInt(value, fallback, min, max) {
   const numeric = Number(value);
@@ -122,8 +123,8 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
     const fontWeight = clampInt(raw.fontWeight ?? raw.questionFontWeight, defaults.fontWeight, 300, 900);
     const horizontalAlign = asAlign(raw.horizontalAlign ?? raw.questionAlign, defaults.horizontalAlign);
     const verticalAlign = V_ALIGN_VALUES.has(raw.verticalAlign) ? raw.verticalAlign : defaults.verticalAlign;
-    const maxFontSizePx = clampInt(raw.maxFontSizePx ?? raw.questionFontSizePx, defaults.maxFontSizePx, 36, 320);
-    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, 140);
+    const maxFontSizePx = clampInt(raw.maxFontSizePx ?? raw.questionFontSizePx, defaults.maxFontSizePx, 36, UNLIMITED_PX);
+    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, UNLIMITED_PX);
     const lineHeight = clampFloat(raw.lineHeight ?? raw.questionLineHeight, defaults.lineHeight, 1, 2);
     return {
       maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
@@ -133,17 +134,17 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       textShadow: Boolean(raw.textShadow ?? true),
       horizontalAlign,
       verticalAlign,
-      safePaddingPx: clampInt(raw.safePaddingPx ?? raw.paddingPx, defaults.safePaddingPx, 8, 220),
+      safePaddingPx: clampInt(raw.safePaddingPx ?? raw.paddingPx, defaults.safePaddingPx, 8, UNLIMITED_PX),
       lineHeight,
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2200),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, UNLIMITED_PX),
     };
   }
 
   if (roundKey === "round2") {
     return {
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, 2400),
-      maxHeightPx: clampInt(raw.maxHeightPx, defaults.maxHeightPx, 200, 1400),
-      borderRadiusPx: clampInt(raw.borderRadiusPx, defaults.borderRadiusPx, 0, 120),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, UNLIMITED_PX),
+      maxHeightPx: clampInt(raw.maxHeightPx, defaults.maxHeightPx, 200, UNLIMITED_PX),
+      borderRadiusPx: clampInt(raw.borderRadiusPx, defaults.borderRadiusPx, 0, UNLIMITED_PX),
     };
   }
 
@@ -152,37 +153,37 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       raw.questionMaxFontSizePx ?? raw.maxFontSizePx ?? raw.questionFontSizePx,
       defaults.questionMaxFontSizePx,
       20,
-      220,
+      UNLIMITED_PX,
     );
     const questionMinFontSizePx = clampInt(
       raw.questionMinFontSizePx ?? raw.minFontSizePx,
       defaults.questionMinFontSizePx,
       14,
-      140,
+      UNLIMITED_PX,
     );
     return {
-      questionFontSizePx: clampInt(raw.questionFontSizePx, defaults.questionFontSizePx, 20, 200),
+      questionFontSizePx: clampInt(raw.questionFontSizePx, defaults.questionFontSizePx, 20, UNLIMITED_PX),
       questionMaxFontSizePx: Math.max(questionMinFontSizePx, questionMaxFontSizePx),
       questionMinFontSizePx: Math.min(questionMinFontSizePx, questionMaxFontSizePx),
-      questionPaddingPx: clampInt(raw.questionPaddingPx ?? raw.paddingPx, defaults.questionPaddingPx, 0, 220),
+      questionPaddingPx: clampInt(raw.questionPaddingPx ?? raw.paddingPx, defaults.questionPaddingPx, 0, UNLIMITED_PX),
       questionLineHeight: clampFloat(raw.questionLineHeight ?? raw.lineHeight, defaults.questionLineHeight, 1, 2),
       themeColor: asColor(raw.themeColor, defaults.themeColor),
       fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 900),
       align: asAlign(raw.align, defaults.align),
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2200),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, UNLIMITED_PX),
     };
   }
 
   if (roundKey === "round3Timer") {
     return {
-      timerFontSizePx: clampInt(raw.timerFontSizePx, defaults.timerFontSizePx, 20, 260),
+      timerFontSizePx: clampInt(raw.timerFontSizePx, defaults.timerFontSizePx, 20, UNLIMITED_PX),
       timerColor: asColor(raw.timerColor, defaults.timerColor),
       timerFormat: normalizeTimerFormat(raw.timerFormat, defaults.timerFormat),
       fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 1000),
       align: asAlign(raw.align, defaults.align),
-      paddingPx: clampInt(raw.paddingPx ?? raw.questionPaddingPx, defaults.paddingPx, 0, 220),
+      paddingPx: clampInt(raw.paddingPx ?? raw.questionPaddingPx, defaults.paddingPx, 0, UNLIMITED_PX),
       lineHeight: clampFloat(raw.lineHeight, defaults.lineHeight, 0.7, 1.4),
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, 2600),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, UNLIMITED_PX),
     };
   }
 
@@ -191,27 +192,27 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       textColor: asColor(raw.textColor ?? raw.themeOverlayTextColor ?? raw.themeColor, defaults.textColor),
       backgroundColor: asColor(raw.backgroundColor ?? raw.themeOverlayBackgroundColor, defaults.backgroundColor),
       activeBorderColor: asColor(raw.activeBorderColor, defaults.activeBorderColor),
-      fontSizePx: clampInt(raw.fontSizePx ?? raw.themeFontSizePx, defaults.fontSizePx, 12, 160),
+      fontSizePx: clampInt(raw.fontSizePx ?? raw.themeFontSizePx, defaults.fontSizePx, 12, UNLIMITED_PX),
       fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 1000),
       align: asAlign(raw.align, defaults.align),
       columns: clampInt(raw.columns ?? raw.themeOverlayColumns, defaults.columns, 1, 12),
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, 2600),
-      paddingPx: clampInt(raw.paddingPx ?? raw.questionPaddingPx, defaults.paddingPx, 0, 220),
-      columnGapPx: clampInt(raw.columnGapPx ?? raw.blockGapPx, defaults.columnGapPx, 0, 160),
-      rowGapPx: clampInt(raw.rowGapPx ?? raw.blockGapPx, defaults.rowGapPx, 0, 120),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, UNLIMITED_PX),
+      paddingPx: clampInt(raw.paddingPx ?? raw.questionPaddingPx, defaults.paddingPx, 0, UNLIMITED_PX),
+      columnGapPx: clampInt(raw.columnGapPx ?? raw.blockGapPx, defaults.columnGapPx, 0, UNLIMITED_PX),
+      rowGapPx: clampInt(raw.rowGapPx ?? raw.blockGapPx, defaults.rowGapPx, 0, UNLIMITED_PX),
       itemBackgroundWidthPercent: clampInt(raw.itemBackgroundWidthPercent, defaults.itemBackgroundWidthPercent, 20, 100),
-      itemPaddingYPx: clampInt(raw.itemPaddingYPx, defaults.itemPaddingYPx, 0, 80),
-      itemPaddingXPx: clampInt(raw.itemPaddingXPx, defaults.itemPaddingXPx, 0, 120),
-      borderRadiusPx: clampInt(raw.borderRadiusPx, defaults.borderRadiusPx, 0, 80),
-      borderWidthPx: clampInt(raw.borderWidthPx, defaults.borderWidthPx, 0, 12),
+      itemPaddingYPx: clampInt(raw.itemPaddingYPx, defaults.itemPaddingYPx, 0, UNLIMITED_PX),
+      itemPaddingXPx: clampInt(raw.itemPaddingXPx, defaults.itemPaddingXPx, 0, UNLIMITED_PX),
+      borderRadiusPx: clampInt(raw.borderRadiusPx, defaults.borderRadiusPx, 0, UNLIMITED_PX),
+      borderWidthPx: clampInt(raw.borderWidthPx, defaults.borderWidthPx, 0, UNLIMITED_PX),
       lineHeight: clampFloat(raw.lineHeight, defaults.lineHeight, 0.8, 1.8),
       letterSpacingEm: clampFloat(raw.letterSpacingEm, defaults.letterSpacingEm, -0.12, 0.08),
     };
   }
 
   if (roundKey === "round4") {
-    const maxFontSizePx = clampInt(raw.maxFontSizePx, defaults.maxFontSizePx, 36, 320);
-    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, 140);
+    const maxFontSizePx = clampInt(raw.maxFontSizePx, defaults.maxFontSizePx, 36, UNLIMITED_PX);
+    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, UNLIMITED_PX);
     return {
       maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
       minFontSizePx: Math.min(minFontSizePx, maxFontSizePx),
@@ -219,24 +220,24 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 1000),
       textShadow: Boolean(raw.textShadow ?? defaults.textShadow),
       align: asAlign(raw.align, defaults.align),
-      paddingPx: clampInt(raw.paddingPx, defaults.paddingPx, 0, 220),
+      paddingPx: clampInt(raw.paddingPx, defaults.paddingPx, 0, UNLIMITED_PX),
       lineHeight: clampFloat(raw.lineHeight, defaults.lineHeight, 0.8, 1.8),
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, 2600),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, UNLIMITED_PX),
     };
   }
 
   if (roundKey === "round5") {
     return {
-      nameFontSizePx: clampInt(raw.nameFontSizePx, defaults.nameFontSizePx, 14, 120),
-      hpFontSizePx: clampInt(raw.hpFontSizePx, defaults.hpFontSizePx, 16, 150),
+      nameFontSizePx: clampInt(raw.nameFontSizePx, defaults.nameFontSizePx, 14, UNLIMITED_PX),
+      hpFontSizePx: clampInt(raw.hpFontSizePx, defaults.hpFontSizePx, 16, UNLIMITED_PX),
       textColor: asColor(raw.textColor, defaults.textColor),
       healthColor: asColor(raw.healthColor, defaults.healthColor),
       dangerColor: asColor(raw.dangerColor, defaults.dangerColor),
-      barHeightPx: clampInt(raw.barHeightPx, defaults.barHeightPx, 10, 140),
-      cornerRadiusPx: clampInt(raw.cornerRadiusPx, defaults.cornerRadiusPx, 0, 70),
-      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 260, 1400),
-      screenPaddingPx: clampInt(raw.screenPaddingPx, defaults.screenPaddingPx, 0, 180),
-      barGapPx: clampInt(raw.barGapPx, defaults.barGapPx, 0, 180),
+      barHeightPx: clampInt(raw.barHeightPx, defaults.barHeightPx, 10, UNLIMITED_PX),
+      cornerRadiusPx: clampInt(raw.cornerRadiusPx, defaults.cornerRadiusPx, 0, UNLIMITED_PX),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 260, UNLIMITED_PX),
+      screenPaddingPx: clampInt(raw.screenPaddingPx, defaults.screenPaddingPx, 0, UNLIMITED_PX),
+      barGapPx: clampInt(raw.barGapPx, defaults.barGapPx, 0, UNLIMITED_PX),
       frameOpacity: clampFloat(raw.frameOpacity, defaults.frameOpacity, 0, 1),
       dimmedOpacity: clampFloat(raw.dimmedOpacity, defaults.dimmedOpacity, 0, 1),
       maxHp: clampInt(raw.maxHp, defaults.maxHp, 0, 10000),

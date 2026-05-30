@@ -119,11 +119,11 @@ function renderSlot(roundKey, camera, index) {
           <select id="${fieldId(roundKey, "role", index)}">${roleOptions(camera.role)}</select>
         </label>
         <label>Libellé précis<input id="${fieldId(roundKey, "label", index)}" value="${escapeHtml(camera.label)}" placeholder="ex: Participants manche 3" /></label>
-        <label>Position X (px)<input id="${fieldId(roundKey, "x", index)}" type="number" min="-4000" max="4000" step="0.1" value="${formatPxValue(camera.x)}" /></label>
-        <label>Position Y (px)<input id="${fieldId(roundKey, "y", index)}" type="number" min="-4000" max="4000" step="0.1" value="${formatPxValue(camera.y)}" /></label>
-        <label>Largeur (px)<input id="${fieldId(roundKey, "width", index)}" type="number" min="80" max="1920" step="0.1" value="${formatPxValue(camera.width)}" /></label>
-        <label>Hauteur (px)<input id="${fieldId(roundKey, "height", index)}" type="number" min="60" max="1080" step="0.1" value="${formatPxValue(camera.height)}" /></label>
-        <label>Arrondi (px)<input id="${fieldId(roundKey, "borderRadius", index)}" type="number" min="0" max="240" step="0.1" value="${formatPxValue(camera.borderRadius)}" /></label>
+        <label>Position X (px)<input id="${fieldId(roundKey, "x", index)}" type="number" step="0.1" value="${formatPxValue(camera.x)}" /></label>
+        <label>Position Y (px)<input id="${fieldId(roundKey, "y", index)}" type="number" step="0.1" value="${formatPxValue(camera.y)}" /></label>
+        <label>Largeur (px)<input id="${fieldId(roundKey, "width", index)}" type="number" min="80" step="0.1" value="${formatPxValue(camera.width)}" /></label>
+        <label>Hauteur (px)<input id="${fieldId(roundKey, "height", index)}" type="number" min="60" step="0.1" value="${formatPxValue(camera.height)}" /></label>
+        <label>Arrondi (px)<input id="${fieldId(roundKey, "borderRadius", index)}" type="number" min="0" step="0.1" value="${formatPxValue(camera.borderRadius)}" /></label>
         <label>Profondeur Z <input id="${fieldId(roundKey, "zIndex", index)}" type="number" min="0" max="999" step="1" value="${camera.zIndex}" /></label>
         <label>Recadrage
           <select id="${fieldId(roundKey, "fit", index)}">
