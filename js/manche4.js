@@ -699,6 +699,7 @@ export function initManche4Guest(options = {}) {
   let liveState = defaultBlindtestLiveState();
   let audioUnlocked = false;
   let lastAppliedSyncVersion = -1;
+  let lastRenderedAnswerTrackKey = "";
 
   function setGuestHint(text, type = "default") {
     if (!audioHint) return;
@@ -716,7 +717,17 @@ export function initManche4Guest(options = {}) {
       trackLabelNode.textContent = "Piste : aucune musique configurée";
       playbackLabelNode.textContent = "État : Arrêt";
       statusLabelNode.textContent = "Aucune musique blindtest disponible.";
+      if (answerRevealNode) answerRevealNode.textContent = "";
+      if (answerSubmit) answerSubmit.disabled = true;
+      if (answerInput) answerInput.disabled = true;
       return;
+    }
+
+    const answerTrackKey = currentTrack?.id || String(liveState.trackId || liveState.trackIndex || "");
+    if (answerTrackKey !== lastRenderedAnswerTrackKey) {
+      lastRenderedAnswerTrackKey = answerTrackKey;
+      if (answerInput) answerInput.value = "";
+      setAnswerStatus("");
     }
 
     trackLabelNode.textContent = currentTrack ? `Piste : ${index + 1} / ${enabledTracks.length}` : "Piste : —";
@@ -724,11 +735,23 @@ export function initManche4Guest(options = {}) {
     if (answerRevealNode) answerRevealNode.textContent = liveState.showAnswer ? `Réponse : ${currentTrack?.answer || "—"}` : "";
 
     const sessionId = getSessionId();
+    const nickname = String(getNickname() || "").trim();
     const proposals = normalizeParticipantProposals(liveState.participantAnswers?.[sessionId] || {});
     const reachedLimit = proposals.length >= 2;
-    if (answerSubmit) answerSubmit.disabled = reachedLimit || !liveState.active || !currentTrack;
-    if (answerInput) answerInput.disabled = reachedLimit || !liveState.active || !currentTrack;
-    if (reachedLimit) setAnswerStatus("Deux propositions envoyées pour ce morceau.", "success");
+    const canAnswer = Boolean(sessionId && nickname && liveState.active && currentTrack && !reachedLimit);
+    if (answerSubmit) answerSubmit.disabled = !canAnswer;
+    if (answerInput) answerInput.disabled = !canAnswer;
+    if (!sessionId || !nickname) {
+      setAnswerStatus("Connectez-vous pour envoyer vos propositions.", "error");
+    } else if (reachedLimit) {
+      setAnswerStatus("Deux propositions envoyées pour ce morceau.", "success");
+    } else if (proposals.length === 1) {
+      setAnswerStatus("Première proposition envoyée. Il vous reste une proposition.", "success");
+    } else if (liveState.active && currentTrack) {
+      setAnswerStatus("Vous pouvez envoyer jusqu’à deux propositions pour ce morceau.");
+    } else {
+      setAnswerStatus("");
+    }
 
     if (!liveState.active) {
       statusLabelNode.textContent = "En attente du lancement admin.";
@@ -750,26 +773,35 @@ export function initManche4Guest(options = {}) {
     }
   });
 
+  async function syncGuestAudioToLiveState({ force = false } = {}) {
+    if (!audioUnlocked) {
+      if (liveState.active) setGuestHint("En attente d’activation audio par l’utilisateur.");
+      return;
+    }
+
+    if (!force && liveState.syncVersion === lastAppliedSyncVersion) return;
+    lastAppliedSyncVersion = liveState.syncVersion;
+
+    const track = resolveGuestPlaybackTrack(findTrackByIdOrIndex(activeTracks(tracks), liveState), liveState);
+    await syncYoutubePlayerToLiveState(player, track, liveState, {
+      allowPlay: true,
+      onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),
+    });
+  }
+
   audioUnlockBtn?.addEventListener("click", async () => {
     try {
       await player.ensureReady();
       audioUnlocked = true;
       setGuestHint("Audio activé. Vous recevrez la piste live automatiquement.", "success");
       renderGuestState();
-
-      if (liveState.active) {
-        const track = resolveGuestPlaybackTrack(findTrackByIdOrIndex(activeTracks(tracks), liveState), liveState);
-        await syncYoutubePlayerToLiveState(player, track, liveState, {
-          allowPlay: true,
-          onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),
-        });
-      }
+      await syncGuestAudioToLiveState({ force: true });
     } catch {
       setGuestHint("Impossible d’activer l’audio. Vérifiez votre navigateur.", "error");
     }
   });
 
-
+  window.addEventListener("zogquiz:guest-auth-changed", renderGuestState);
 
   function setAnswerStatus(text, type = "default") {
     if (!answerStatus) return;
@@ -814,28 +846,16 @@ export function initManche4Guest(options = {}) {
     if (answerInput) answerInput.value = "";
     setAnswerStatus(nextProposals.length >= 2 ? "Deuxième proposition envoyée." : "Première proposition envoyée. Il vous reste une proposition.", "success");
   }
-  watchBlindtestTracks((nextTracks) => {
+  watchBlindtestTracks(async (nextTracks) => {
     tracks = nextTracks;
     renderGuestState();
+    await syncGuestAudioToLiveState({ force: true });
   });
 
   watchBlindtestLive(async (nextLiveState) => {
     liveState = nextLiveState;
     renderGuestState();
-
-    if (nextLiveState.syncVersion === lastAppliedSyncVersion) return;
-    lastAppliedSyncVersion = nextLiveState.syncVersion;
-
-    if (!audioUnlocked) {
-      setGuestHint("En attente d’activation audio par l’utilisateur.");
-      return;
-    }
-
-    const track = resolveGuestPlaybackTrack(findTrackByIdOrIndex(activeTracks(tracks), nextLiveState), nextLiveState);
-    await syncYoutubePlayerToLiveState(player, track, nextLiveState, {
-      allowPlay: true,
-      onAutoplayBlocked: () => setGuestHint("Lecture bloquée. Recliquez sur Activer l’audio.", "error"),
-    });
+    await syncGuestAudioToLiveState({ force: true });
   });
 
   return {

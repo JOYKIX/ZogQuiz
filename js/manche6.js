@@ -162,22 +162,23 @@ function createRenderer({ prefix }) {
 
   function render(state) {
     if (!els.phase) return;
-    const timers = snapshotTimers(state);
-    const winner = state.winner || detectWinner(state, timers);
-    const activeName = state.players?.[state.activePlayer]?.name || "—";
-    els.phase.textContent = state.phase === "finished" || winner ? "Terminé" : state.phase === "ready" ? "Prêt" : "Préparation";
-    els.status.textContent = state.status === "running" ? `Timer actif : ${activeName}` : state.status === "paused" ? "Pause" : "En attente";
-    els.question.textContent = state.currentQuestion || "Question en attente côté admin.";
-    els.playerParticipant.innerHTML = `${escapeHtml(state.players.participant.name)}<small>${Number(state.players.participant.score || 0)} pt · survivant M5</small>`;
-    els.playerViewer.innerHTML = `${escapeHtml(state.players.viewer.name)}<small>${Number(state.players.viewer.score || 0)} pt · top viewer</small>`;
-    els.timerParticipant.textContent = formatTime(timers.participant.remainingMs);
-    els.timerViewer.textContent = formatTime(timers.viewer.remainingMs);
-    els.answerParticipant.textContent = state.answers?.participant || "—";
-    els.answerViewer.textContent = state.answers?.viewer || "—";
-    els.winner.textContent = winner ? (winner === "draw" ? "Égalité" : `Vainqueur : ${state.players?.[winner]?.name || winner}`) : "Premier chrono à zéro perd la finale.";
+    const normalizedState = normalizeRound6(state);
+    const timers = snapshotTimers(normalizedState);
+    const winner = normalizedState.winner || detectWinner(normalizedState, timers);
+    const activeName = normalizedState.players?.[normalizedState.activePlayer]?.name || "—";
+    els.phase.textContent = normalizedState.phase === "finished" || winner ? "Terminé" : normalizedState.phase === "ready" ? "Prêt" : "Préparation";
+    if (els.status) els.status.textContent = normalizedState.status === "running" ? `Timer actif : ${activeName}` : normalizedState.status === "paused" ? "Pause" : "En attente";
+    if (els.question) els.question.textContent = normalizedState.currentQuestion || "Question en attente côté admin.";
+    if (els.playerParticipant) els.playerParticipant.innerHTML = `${escapeHtml(normalizedState.players.participant.name)}<small>${Number(normalizedState.players.participant.score || 0)} pt · survivant M5</small>`;
+    if (els.playerViewer) els.playerViewer.innerHTML = `${escapeHtml(normalizedState.players.viewer.name)}<small>${Number(normalizedState.players.viewer.score || 0)} pt · top viewer</small>`;
+    if (els.timerParticipant) els.timerParticipant.textContent = formatTime(timers.participant.remainingMs);
+    if (els.timerViewer) els.timerViewer.textContent = formatTime(timers.viewer.remainingMs);
+    if (els.answerParticipant) els.answerParticipant.textContent = normalizedState.answers?.participant || "—";
+    if (els.answerViewer) els.answerViewer.textContent = normalizedState.answers?.viewer || "—";
+    if (els.winner) els.winner.textContent = winner ? (winner === "draw" ? "Égalité" : `Vainqueur : ${normalizedState.players?.[winner]?.name || winner}`) : "Premier chrono à zéro perd la finale.";
     ["participant", "viewer"].forEach((key) => {
       const card = $(`card-${key}`);
-      card?.classList.toggle("is-active", state.activePlayer === key && state.status === "running" && !winner);
+      card?.classList.toggle("is-active", normalizedState.activePlayer === key && normalizedState.status === "running" && !winner);
       card?.classList.toggle("is-out", Number(timers[key].remainingMs || 0) <= 0);
     });
   }

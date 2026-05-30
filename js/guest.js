@@ -28,6 +28,7 @@ const guestDisplayNameForm = document.getElementById("guest-display-name-form");
 const guestMessage = document.getElementById("guest-message");
 const guestSessionMeta = document.getElementById("guest-session-meta");
 const guestTitle = document.getElementById("guest-title");
+const guestCurrentRoundLabel = document.querySelector(".guest-current-round");
 const guestLogoutBtn = document.getElementById("guest-logout");
 const buzzerPanel = document.getElementById("buzzer-panel");
 const buzzBtn = document.getElementById("buzz-btn");
@@ -596,17 +597,56 @@ async function tryAutoReconnect() {
 }
 
 function normalizeLiveRoundKey(round) {
-  if (round === "round1") return "manche1";
-  if (round === "round2") return "manche2";
-  if (round === "round3") return "manche3";
-  if (round === "round4") return "manche4";
-  if (round === "round5") return "manche5";
-  if (round === "round6" || round === "finale") return "manche6";
-  return round || "manche1";
+  const raw = String(round || "manche1").trim().toLowerCase();
+  const compact = raw.replace(/[\s_-]+/g, "");
+  const aliases = {
+    "1": "manche1",
+    m1: "manche1",
+    r1: "manche1",
+    round1: "manche1",
+    manche1: "manche1",
+    "2": "manche2",
+    m2: "manche2",
+    r2: "manche2",
+    round2: "manche2",
+    manche2: "manche2",
+    "3": "manche3",
+    m3: "manche3",
+    r3: "manche3",
+    round3: "manche3",
+    manche3: "manche3",
+    "4": "manche4",
+    m4: "manche4",
+    r4: "manche4",
+    round4: "manche4",
+    manche4: "manche4",
+    blindtest: "manche4",
+    "5": "manche5",
+    m5: "manche5",
+    r5: "manche5",
+    round5: "manche5",
+    manche5: "manche5",
+    mortsubite: "manche5",
+    "6": "manche6",
+    m6: "manche6",
+    r6: "manche6",
+    round6: "manche6",
+    manche6: "manche6",
+    finale: "manche6",
+    final: "manche6",
+  };
+  return aliases[compact] || raw || "manche1";
+}
+
+function formatGuestRoundLabel(round) {
+  const normalized = normalizeLiveRoundKey(round);
+  if (normalized === "manche6") return "Manche 6";
+  return normalized.replace("manche", "Manche ");
 }
 
 function renderByRound() {
   const normalizedLiveRound = normalizeLiveRoundKey(liveRound);
+  if (guestCurrentRoundLabel) guestCurrentRoundLabel.textContent = formatGuestRoundLabel(normalizedLiveRound);
   const isRound2 = normalizedLiveRound === "manche2";
   const isRound3 = normalizedLiveRound === "manche3";
   const isRound4 = normalizedLiveRound === "manche4";

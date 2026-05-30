@@ -589,6 +589,7 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
   let buzzInFlight = false;
 
   const getMe = () => getCurrentSessionId?.() || null;
+  const isGuestRoundVisible = () => !root.classList.contains("hidden");
 
   function getRoleState(sessionId = getMe()) {
     const duelists = [round5.duel.attackerId, round5.duel.targetId].filter(Boolean);
@@ -637,7 +638,7 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     els.buzz.classList.toggle("hidden", !role.isDuelist || !role.hasActiveDuel);
     els.buzz.disabled = !role.canBuzz;
 
-    els.outsiderCard.classList.toggle("hidden", role.isDuelist || ![PHASES.DUEL, PHASES.OUTSIDERS_ANSWER].includes(round5.phase));
+    els.outsiderCard.classList.toggle("hidden", !me || role.isDuelist || ![PHASES.DUEL, PHASES.OUTSIDERS_ANSWER].includes(round5.phase));
     els.outsiderForm.classList.toggle("hidden", !role.outsiderAllowed || alreadyAnswered);
 
     if (!me) {
@@ -710,6 +711,7 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
 
   els.buzz.onclick = buzzDuel;
   document.addEventListener("keydown", async (event) => {
+    if (!isGuestRoundVisible()) return;
     if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
     if (!isBuzzKey(event)) return;
     if (typeof isGuestTypingContext === "function") {
