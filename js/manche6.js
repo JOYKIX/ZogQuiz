@@ -32,6 +32,10 @@ const defaultRound6 = {
   },
   timerStartedAt: null,
   currentQuestion: "",
+  currentAnswer: "",
+  currentQuestionId: null,
+  questionDeck: [],
+  questionDrawnIds: [],
   answers: {
     participant: "",
     viewer: "",
@@ -57,7 +61,61 @@ function normalizeRound6(value) {
       viewer: { ...defaultPlayer("viewer"), ...(value?.players?.viewer || {}) },
     },
     timers,
+    currentAnswer: value?.currentAnswer ?? value?.answer ?? "",
+    currentQuestionId: value?.currentQuestionId ?? null,
+    questionDeck: normalizeQuestionDeck(value?.questionDeck),
+    questionDrawnIds: Array.isArray(value?.questionDrawnIds) ? value.questionDrawnIds.map((id) => String(id)) : [],
     answers: { ...defaultRound6.answers, ...(value?.answers || {}) },
+  };
+}
+
+function normalizeQuestionDeck(deck) {
+  if (!Array.isArray(deck)) return [];
+  return deck
+    .map((item, index) => {
+      const question = String(item?.question ?? "").trim();
+      const answer = String(item?.answer ?? "").trim();
+      if (!question && !answer) return null;
+      const fallbackId = `${question}::${answer}::${index}`;
+      return { id: String(item?.id || fallbackId), question, answer };
+    })
+    .filter(Boolean);
+}
+
+function parseQuestionDeck(value, previousDeck = []) {
+  const previousByContent = new Map(normalizeQuestionDeck(previousDeck).map((item) => [`${item.question}\n${item.answer}`, item.id]));
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+      const separatorMatch = trimmed.match(/\s(?:\||=>|;|—|-)\s/);
+      const separatorIndex = separatorMatch ? trimmed.indexOf(separatorMatch[0]) : -1;
+      const question = separatorIndex >= 0 ? trimmed.slice(0, separatorIndex).trim() : trimmed;
+      const answer = separatorIndex >= 0 ? trimmed.slice(separatorIndex + separatorMatch[0].length).trim() : "";
+      const id = previousByContent.get(`${question}\n${answer}`) || `q${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+      return { id, question, answer };
+    })
+    .filter((item) => item?.question);
+}
+
+function serializeQuestionDeck(deck) {
+  return normalizeQuestionDeck(deck)
+    .map(({ question, answer }) => answer ? `${question} | ${answer}` : question)
+    .join("\n");
+}
+
+function pickRandomQuestion(state) {
+  const deck = normalizeQuestionDeck(state?.questionDeck);
+  if (!deck.length) return null;
+  const drawn = new Set((Array.isArray(state?.questionDrawnIds) ? state.questionDrawnIds : []).map((id) => String(id)));
+  let available = deck.filter((item) => !drawn.has(item.id));
+  const shouldResetDraw = available.length === 0;
+  if (shouldResetDraw) available = deck;
+  const picked = available[Math.floor(Math.random() * available.length)];
+  return {
+    picked,
+    questionDrawnIds: shouldResetDraw ? [picked.id] : [...drawn, picked.id],
   };
 }
 
@@ -137,6 +195,10 @@ function buildInitialState({ round5, viewers, durationSeconds, currentState }) {
     },
     activePlayer: currentState?.activePlayer || "participant",
     currentQuestion: currentState?.currentQuestion || "",
+    currentAnswer: currentState?.currentAnswer || "",
+    currentQuestionId: currentState?.currentQuestionId || null,
+    questionDeck: normalizeQuestionDeck(currentState?.questionDeck),
+    questionDrawnIds: Array.isArray(currentState?.questionDrawnIds) ? currentState.questionDrawnIds : [],
     answers: currentState?.answers || { participant: "", viewer: "" },
     phase: "ready",
     status: "idle",
@@ -157,6 +219,8 @@ function createRenderer({ prefix }) {
     timerViewer: $("timer-viewer"),
     answerParticipant: $("answer-participant"),
     answerViewer: $("answer-viewer"),
+    currentAnswer: $("current-answer"),
+    questionCount: $("question-count"),
     winner: $("winner"),
   };
 
@@ -173,8 +237,14 @@ function createRenderer({ prefix }) {
     if (els.playerViewer) els.playerViewer.innerHTML = `${escapeHtml(normalizedState.players.viewer.name)}<small>${Number(normalizedState.players.viewer.score || 0)} pt · top viewer</small>`;
     if (els.timerParticipant) els.timerParticipant.textContent = formatTime(timers.participant.remainingMs);
     if (els.timerViewer) els.timerViewer.textContent = formatTime(timers.viewer.remainingMs);
+    const currentAnswer = normalizedState.currentAnswer || "—";
     if (els.answerParticipant) els.answerParticipant.textContent = normalizedState.answers?.participant || "—";
     if (els.answerViewer) els.answerViewer.textContent = normalizedState.answers?.viewer || "—";
+    if (els.currentAnswer) els.currentAnswer.textContent = currentAnswer;
+    if (els.questionCount) {
+      const drawnCount = Math.min(normalizedState.questionDrawnIds.length, normalizedState.questionDeck.length);
+      els.questionCount.textContent = `${drawnCount}/${normalizedState.questionDeck.length} tirées`;
+    }
     if (els.winner) els.winner.textContent = winner ? (winner === "draw" ? "Égalité" : `Vainqueur : ${normalizedState.players?.[winner]?.name || winner}`) : "Premier chrono à zéro perd la finale.";
     ["participant", "viewer"].forEach((key) => {
       const card = $(`card-${key}`);
@@ -197,6 +267,8 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
 
   const durationInput = $("m6-duration");
   const questionInput = $("m6-question-input");
+  const answerInput = $("m6-answer-input");
+  const questionDeckInput = $("m6-question-deck-input");
   const participantAnswerInput = $("m6-answer-participant-input");
   const viewerAnswerInput = $("m6-answer-viewer-input");
 
@@ -204,6 +276,8 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
     renderer.render(state);
     if (durationInput && state.status === "idle") durationInput.value = String(Math.round(Number(state.durationMs || DEFAULT_DURATION_MS) / 1000));
     if (questionInput && document.activeElement !== questionInput) questionInput.value = state.currentQuestion || "";
+    if (answerInput && document.activeElement !== answerInput) answerInput.value = state.currentAnswer || "";
+    if (questionDeckInput && document.activeElement !== questionDeckInput) questionDeckInput.value = serializeQuestionDeck(state.questionDeck);
     if (participantAnswerInput && document.activeElement !== participantAnswerInput) participantAnswerInput.value = state.answers?.participant || "";
     if (viewerAnswerInput && document.activeElement !== viewerAnswerInput) viewerAnswerInput.value = state.answers?.viewer || "";
   }
@@ -283,9 +357,41 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
     showToast?.("Manche 6 réinitialisée");
   });
 
+  document.querySelectorAll(".m6-next-question").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const deckFromInput = parseQuestionDeck(questionDeckInput?.value || "", state.questionDeck);
+      await runTransaction(ref(db, ROUND6_PATH), (curr) => {
+        const s = normalizeRound6(curr);
+        const questionDeck = deckFromInput.length ? deckFromInput : s.questionDeck;
+        const filteredDrawnIds = s.questionDrawnIds.filter((id) => questionDeck.some((question) => question.id === id));
+        const draw = pickRandomQuestion({ ...s, questionDeck, questionDrawnIds: filteredDrawnIds });
+        if (!draw) return { ...s, questionDeck, questionDrawnIds: filteredDrawnIds, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" };
+        return {
+          ...s,
+          questionDeck,
+          currentQuestion: draw.picked.question,
+          currentAnswer: draw.picked.answer,
+          currentQuestionId: draw.picked.id,
+          questionDrawnIds: draw.questionDrawnIds,
+          answers: { participant: "", viewer: "" },
+          phase: s.phase === "setup" ? "ready" : s.phase,
+          updatedAt: Date.now(),
+          updatedBy: getCurrentAdminId?.() || "admin",
+        };
+      });
+    });
+  });
+
   $("m6-save-content")?.addEventListener("click", async () => {
+    const questionDeck = parseQuestionDeck(questionDeckInput?.value || "", state.questionDeck);
+    const currentQuestion = questionInput?.value.trim() || "";
+    const currentAnswer = answerInput?.value.trim() || "";
     await savePatch({
-      currentQuestion: questionInput?.value.trim() || "",
+      currentQuestion,
+      currentAnswer,
+      currentQuestionId: currentQuestion ? state.currentQuestionId : null,
+      questionDeck,
+      questionDrawnIds: state.questionDrawnIds.filter((id) => questionDeck.some((question) => question.id === id)),
       answers: {
         participant: participantAnswerInput?.value.trim() || "",
         viewer: viewerAnswerInput?.value.trim() || "",
