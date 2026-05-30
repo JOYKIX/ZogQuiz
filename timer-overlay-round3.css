@@ -1,6 +1,110 @@
-:root { color-scheme: dark; --font-live: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --gold: #ffda6b; }
+:root {
+  color-scheme: dark;
+  --font-live: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --gold: #ffda6b;
+}
+
 * { box-sizing: border-box; }
-html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent !important; }
-body { font-family: var(--font-live); color: #fff; }
-.timer-overlay-root { width: 100vw; height: 100vh; display: grid; place-items: center; padding: clamp(12px, 4vw, 80px); background: transparent; text-align: center; }
-.m3-timer-overlay-value { width: min(100%, 2200px); margin: 0; color: var(--gold); font-weight: 950; line-height: .9; letter-spacing: -.075em; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 5px 30px rgba(0,0,0,.82), 0 1px 2px rgba(0,0,0,.95), 0 0 38px rgba(255,218,107,.44); }
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+body {
+  font-family: var(--font-live);
+  color: #fff;
+}
+
+.timer-overlay-root {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 4vw, 80px);
+  background: transparent;
+  text-align: center;
+}
+
+.m3-segmented-timer {
+  --timer-color: var(--gold);
+  --timer-size: clamp(220px, 42vmin, 520px);
+  --timer-font-size: 72px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(var(--timer-size), 100%);
+  aspect-ratio: 1;
+  isolation: isolate;
+  filter: drop-shadow(0 18px 38px rgba(0, 0, 0, .46));
+}
+
+.m3-segmented-timer::before {
+  content: "";
+  position: absolute;
+  inset: 16%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(7, 19, 31, .62) 0%, rgba(7, 19, 31, .24) 58%, transparent 72%);
+  background:
+    radial-gradient(circle, rgba(7, 19, 31, .62) 0%, rgba(7, 19, 31, .24) 58%, transparent 72%),
+    radial-gradient(circle, color-mix(in srgb, var(--timer-color) 20%, transparent), transparent 64%);
+  box-shadow: inset 0 0 28px rgba(255, 255, 255, .08);
+  box-shadow:
+    inset 0 0 28px rgba(255, 255, 255, .08),
+    0 0 42px color-mix(in srgb, var(--timer-color) 28%, transparent);
+  z-index: -1;
+}
+
+.m3-timer-segments-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.m3-timer-segment {
+  fill: none;
+  stroke: rgba(255, 255, 255, .2);
+  stroke: color-mix(in srgb, var(--timer-color) 22%, rgba(255, 255, 255, .08));
+  stroke-width: 5.4;
+  stroke-linecap: round;
+  opacity: .24;
+  transition: opacity .24s ease, stroke .24s ease, filter .24s ease;
+}
+
+.m3-timer-segment.is-active {
+  stroke: var(--timer-color);
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, .34));
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, .48))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--timer-color) 62%, transparent));
+}
+
+.m3-timer-segment.is-inactive {
+  opacity: .16;
+}
+
+.m3-timer-overlay-value {
+  width: min(62%, 820px);
+  margin: 0;
+  color: var(--timer-color, var(--gold));
+  font-size: var(--timer-font-size);
+  font-weight: 950;
+  line-height: .9;
+  letter-spacing: -.075em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow:
+    0 5px 30px rgba(0, 0, 0, .82),
+    0 1px 2px rgba(0, 0, 0, .95);
+  text-shadow:
+    0 5px 30px rgba(0, 0, 0, .82),
+    0 1px 2px rgba(0, 0, 0, .95),
+    0 0 38px color-mix(in srgb, var(--timer-color) 44%, transparent);
+}
