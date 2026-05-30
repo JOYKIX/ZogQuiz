@@ -287,12 +287,7 @@ tr:hover td { background: rgba(255,255,255,.04); }
 .guest-player-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: clamp(1rem, 2vw, 1.35rem); border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(15, 22, 45, .92), rgba(9, 13, 28, .82)); }
 .guest-player-heading { min-width: 0; }
 .guest-player-heading h1 { margin-bottom: .35rem; font-size: clamp(1.8rem, 3.6vw, 3.4rem); }
-.guest-current-round::before { content: "Manche 1"; }
-.guest-player-console:has(#guest-round2:not(.hidden)) .guest-current-round::before { content: "Manche 2"; }
-.guest-player-console:has(#guest-round3:not(.hidden)) .guest-current-round::before { content: "Manche 3"; }
-.guest-player-console:has(#guest-round4:not(.hidden)) .guest-current-round::before { content: "Manche 4"; }
-.guest-player-console:has(#guest-round5:not(.hidden)) .guest-current-round::before { content: "Manche 5"; }
-.guest-player-console:has(#guest-round6:not(.hidden)) .guest-current-round::before { content: "Manche 6"; }
+.guest-current-round { display: inline-block; min-height: 1em; }
 .guest-player-heading .eyebrow, .guest-player-heading .status-chip { margin-bottom: .25rem; }
 .guest-session-actions { display: flex; justify-content: flex-end; align-items: center; }
 .guest-session-actions .btn { min-height: 40px; padding-inline: .95rem; border-color: rgba(255,84,112,.36); }
@@ -307,6 +302,7 @@ tr:hover td { background: rgba(255,255,255,.04); }
 .guest-choice-area, .guest-answer-form { width: min(100%, 760px); margin-inline: auto; }
 .guest-answer-form { padding: clamp(1rem, 2vw, 1.35rem); border: 1px solid rgba(35,213,255,.22); border-radius: var(--radius-lg); background: rgba(3, 8, 24, .32); }
 .guest-answer-form textarea { min-height: 110px; resize: vertical; }
+.guest-answer-form :disabled { opacity: .62; cursor: not-allowed; }
 .guest-image-card { min-height: clamp(260px, 48vh, 540px); display: grid; place-items: center; text-align: center; }
 .guest-image { max-height: min(56vh, 560px); width: auto; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
 .guest-empty { color: var(--muted); font-size: clamp(1.4rem, 4vw, 3rem); font-weight: 900; }
