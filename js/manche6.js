@@ -82,27 +82,8 @@ function normalizeQuestionDeck(deck) {
     .filter(Boolean);
 }
 
-function parseQuestionDeck(value, previousDeck = []) {
-  const previousByContent = new Map(normalizeQuestionDeck(previousDeck).map((item) => [`${item.question}\n${item.answer}`, item.id]));
-  return String(value || "")
-    .split(/\r?\n/)
-    .map((line, index) => {
-      const trimmed = line.trim();
-      if (!trimmed) return null;
-      const separatorMatch = trimmed.match(/\s(?:\||=>|;|—|-)\s/);
-      const separatorIndex = separatorMatch ? trimmed.indexOf(separatorMatch[0]) : -1;
-      const question = separatorIndex >= 0 ? trimmed.slice(0, separatorIndex).trim() : trimmed;
-      const answer = separatorIndex >= 0 ? trimmed.slice(separatorIndex + separatorMatch[0].length).trim() : "";
-      const id = previousByContent.get(`${question}\n${answer}`) || `q${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`;
-      return { id, question, answer };
-    })
-    .filter((item) => item?.question);
-}
-
-function serializeQuestionDeck(deck) {
-  return normalizeQuestionDeck(deck)
-    .map(({ question, answer }) => answer ? `${question} | ${answer}` : question)
-    .join("\n");
+function createQuestionId() {
+  return `q${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function pickRandomQuestion(state) {
@@ -268,16 +249,111 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   const durationInput = $("m6-duration");
   const questionInput = $("m6-question-input");
   const answerInput = $("m6-answer-input");
-  const questionDeckInput = $("m6-question-deck-input");
+  const newQuestionInput = $("m6-new-question-input");
+  const newAnswerInput = $("m6-new-answer-input");
+  const questionDeckList = $("m6-question-deck-list");
+  const questionDeckEmpty = $("m6-question-deck-empty");
   const participantAnswerInput = $("m6-answer-participant-input");
   const viewerAnswerInput = $("m6-answer-viewer-input");
+
+  function isQuestionDeckEditorActive() {
+    return Boolean(questionDeckList?.contains(document.activeElement));
+  }
+
+  function getQuestionStatus(question) {
+    if (question.id === state.currentQuestionId) return "Affichée";
+    if (state.questionDrawnIds.includes(question.id)) return "Déjà tirée";
+    return "Disponible";
+  }
+
+  function renderQuestionDeckEditor() {
+    if (!questionDeckList || isQuestionDeckEditorActive()) return;
+    const deck = normalizeQuestionDeck(state.questionDeck);
+    questionDeckList.innerHTML = "";
+    questionDeckEmpty?.classList.toggle("hidden", deck.length > 0);
+    deck.forEach((question, index) => {
+      const item = document.createElement("article");
+      item.className = "m6-question-item";
+      item.dataset.questionId = question.id;
+
+      const head = document.createElement("div");
+      head.className = "m6-question-item-head";
+      const title = document.createElement("strong");
+      title.textContent = `Question ${index + 1}`;
+      const status = document.createElement("span");
+      status.className = "m6-question-status";
+      status.textContent = getQuestionStatus(question);
+      head.append(title, status);
+
+      const questionLabel = document.createElement("label");
+      questionLabel.textContent = "Question";
+      const questionField = document.createElement("textarea");
+      questionField.className = "m6-deck-question-input";
+      questionField.rows = 2;
+      questionField.value = question.question;
+      questionField.placeholder = "Question";
+      questionLabel.append(questionField);
+
+      const answerLabel = document.createElement("label");
+      answerLabel.textContent = "Réponse";
+      const answerField = document.createElement("textarea");
+      answerField.className = "m6-deck-answer-input";
+      answerField.rows = 2;
+      answerField.value = question.answer;
+      answerField.placeholder = "Réponse attendue";
+      answerLabel.append(answerField);
+
+      const actions = document.createElement("div");
+      actions.className = "row";
+      const saveButton = document.createElement("button");
+      saveButton.className = "btn btn-primary m6-save-question";
+      saveButton.type = "button";
+      saveButton.textContent = "Enregistrer";
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "btn btn-danger m6-delete-question";
+      deleteButton.type = "button";
+      deleteButton.textContent = "Supprimer";
+      actions.append(saveButton, deleteButton);
+
+      item.append(head, questionLabel, answerLabel, actions);
+      questionDeckList.append(item);
+    });
+  }
+
+  function collectQuestionDeckFromEditor() {
+    if (!questionDeckList) return normalizeQuestionDeck(state.questionDeck);
+    return [...questionDeckList.querySelectorAll(".m6-question-item")]
+      .map((item) => {
+        const question = item.querySelector(".m6-deck-question-input")?.value.trim() || "";
+        const answer = item.querySelector(".m6-deck-answer-input")?.value.trim() || "";
+        if (!question && !answer) return null;
+        return { id: item.dataset.questionId || createQuestionId(), question, answer };
+      })
+      .filter((item) => item?.question);
+  }
+
+  function sanitizeDrawnIds(questionDeck) {
+    const availableIds = new Set(questionDeck.map((question) => question.id));
+    return state.questionDrawnIds.filter((id) => availableIds.has(id));
+  }
+
+  async function saveQuestionDeck(questionDeck, extraPatch = {}) {
+    const normalizedDeck = normalizeQuestionDeck(questionDeck);
+    const currentDeckQuestion = normalizedDeck.find((question) => question.id === state.currentQuestionId);
+    await savePatch({
+      questionDeck: normalizedDeck,
+      questionDrawnIds: sanitizeDrawnIds(normalizedDeck),
+      ...(currentDeckQuestion ? { currentQuestion: currentDeckQuestion.question, currentAnswer: currentDeckQuestion.answer } : {}),
+      ...extraPatch,
+    });
+  }
 
   function render() {
     renderer.render(state);
     if (durationInput && state.status === "idle") durationInput.value = String(Math.round(Number(state.durationMs || DEFAULT_DURATION_MS) / 1000));
     if (questionInput && document.activeElement !== questionInput) questionInput.value = state.currentQuestion || "";
     if (answerInput && document.activeElement !== answerInput) answerInput.value = state.currentAnswer || "";
-    if (questionDeckInput && document.activeElement !== questionDeckInput) questionDeckInput.value = serializeQuestionDeck(state.questionDeck);
+    renderQuestionDeckEditor();
     if (participantAnswerInput && document.activeElement !== participantAnswerInput) participantAnswerInput.value = state.answers?.participant || "";
     if (viewerAnswerInput && document.activeElement !== viewerAnswerInput) viewerAnswerInput.value = state.answers?.viewer || "";
   }
@@ -357,12 +433,49 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
     showToast?.("Manche 6 réinitialisée");
   });
 
+  $("m6-add-question")?.addEventListener("click", async () => {
+    const question = newQuestionInput?.value.trim() || "";
+    const answer = newAnswerInput?.value.trim() || "";
+    if (!question || !answer) {
+      showToast?.("Ajoutez une question et sa réponse avant d’enregistrer.", "error");
+      return;
+    }
+    const questionDeck = [...collectQuestionDeckFromEditor(), { id: createQuestionId(), question, answer }];
+    await saveQuestionDeck(questionDeck);
+    if (newQuestionInput) newQuestionInput.value = "";
+    if (newAnswerInput) newAnswerInput.value = "";
+    showToast?.("Question ajoutée à la banque");
+  });
+
+  questionDeckList?.addEventListener("click", async (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    const item = button.closest(".m6-question-item");
+    if (!item) return;
+    button.blur();
+    const questionDeck = collectQuestionDeckFromEditor();
+    if (button.classList.contains("m6-delete-question")) {
+      const deletedId = item.dataset.questionId;
+      const nextDeck = questionDeck.filter((question) => question.id !== deletedId);
+      const extraPatch = deletedId === state.currentQuestionId
+        ? { currentQuestion: "", currentAnswer: "", currentQuestionId: null }
+        : {};
+      await saveQuestionDeck(nextDeck, extraPatch);
+      showToast?.("Question supprimée");
+      return;
+    }
+    if (button.classList.contains("m6-save-question")) {
+      await saveQuestionDeck(questionDeck);
+      showToast?.("Question enregistrée");
+    }
+  });
+
   document.querySelectorAll(".m6-next-question").forEach((button) => {
     button.addEventListener("click", async () => {
-      const deckFromInput = parseQuestionDeck(questionDeckInput?.value || "", state.questionDeck);
+      const deckFromEditor = collectQuestionDeckFromEditor();
       await runTransaction(ref(db, ROUND6_PATH), (curr) => {
         const s = normalizeRound6(curr);
-        const questionDeck = deckFromInput.length ? deckFromInput : s.questionDeck;
+        const questionDeck = deckFromEditor.length ? deckFromEditor : s.questionDeck;
         const filteredDrawnIds = s.questionDrawnIds.filter((id) => questionDeck.some((question) => question.id === id));
         const draw = pickRandomQuestion({ ...s, questionDeck, questionDrawnIds: filteredDrawnIds });
         if (!draw) return { ...s, questionDeck, questionDrawnIds: filteredDrawnIds, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" };
@@ -383,20 +496,19 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   });
 
   $("m6-save-content")?.addEventListener("click", async () => {
-    const questionDeck = parseQuestionDeck(questionDeckInput?.value || "", state.questionDeck);
+    const questionDeck = collectQuestionDeckFromEditor();
     const currentQuestion = questionInput?.value.trim() || "";
     const currentAnswer = answerInput?.value.trim() || "";
-    await savePatch({
+    await saveQuestionDeck(questionDeck, {
       currentQuestion,
       currentAnswer,
       currentQuestionId: currentQuestion ? state.currentQuestionId : null,
-      questionDeck,
-      questionDrawnIds: state.questionDrawnIds.filter((id) => questionDeck.some((question) => question.id === id)),
       answers: {
         participant: participantAnswerInput?.value.trim() || "",
         viewer: viewerAnswerInput?.value.trim() || "",
       },
     });
+    showToast?.("Banque de questions enregistrée");
   });
 }
 
