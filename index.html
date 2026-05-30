@@ -845,8 +845,21 @@ SNK OP1"></textarea></label>
               <section class="round-section hidden" data-round-section-panel="manche6:questions">
                 <article class="subpanel compact-panel stack">
                   <h3>Banque questions / réponses</h3>
-                  <p class="muted">Saisissez toutes les questions de la manche 6, une par ligne, au format <strong>Question | Réponse</strong>. Le bouton Question suivante tire une question au hasard parmi celles qui ne sont pas encore sorties, puis relance la pioche quand tout a été tiré.</p>
-                  <label>Questions + réponses<textarea id="m6-question-deck-input" rows="10" placeholder="Capitale de l’Australie ? | Canberra&#10;Auteur de Germinal ? | Émile Zola"></textarea></label>
+                  <p class="muted">Ajoutez chaque question de la manche 6 individuellement avec sa réponse. Vous pouvez relire, modifier ou supprimer chaque entrée avant le duel. Le bouton Question suivante tire aléatoirement parmi les questions non sorties, puis relance la pioche quand toute la banque a été utilisée.</p>
+                  <div class="m6-question-builder">
+                    <label>Nouvelle question<textarea id="m6-new-question-input" rows="3" placeholder="Capitale de l’Australie ?"></textarea></label>
+                    <label>Réponse attendue<textarea id="m6-new-answer-input" rows="3" placeholder="Canberra"></textarea></label>
+                    <button id="m6-add-question" class="btn btn-primary" type="button">Ajouter à la banque</button>
+                  </div>
+                  <div class="m6-question-list-head">
+                    <div>
+                      <h4>Questions enregistrées</h4>
+                      <p class="muted">Modifiez une question ou sa réponse directement dans la liste, puis enregistrez.</p>
+                    </div>
+                    <button id="m6-save-content" class="btn btn-secondary" type="button">Enregistrer toutes les modifications</button>
+                  </div>
+                  <div id="m6-question-deck-list" class="m6-question-deck-list" aria-live="polite"></div>
+                  <p id="m6-question-deck-empty" class="empty-state">Aucune question enregistrée pour la manche 6.</p>
                   <div class="two-col">
                     <label>Question affichée<textarea id="m6-question-input" rows="3" placeholder="Question posée pendant le duel"></textarea></label>
                     <label>Réponse attendue<textarea id="m6-answer-input" rows="3" placeholder="Réponse de la question affichée"></textarea></label>
@@ -856,8 +869,7 @@ SNK OP1"></textarea></label>
                     <label>Note joueur 2<input id="m6-answer-viewer-input" placeholder="Réponse / note admin" /></label>
                   </div>
                   <div class="row">
-                    <button id="m6-save-content" class="btn btn-primary" type="button">Enregistrer la banque</button>
-                    <button class="btn btn-secondary m6-next-question" type="button">Question suivante</button>
+                    <button class="btn btn-primary m6-next-question" type="button">Question suivante aléatoire</button>
                   </div>
                 </article>
               </section>

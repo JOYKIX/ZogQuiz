@@ -328,6 +328,16 @@ tr:hover td { background: rgba(255,255,255,.04); }
 .m6-player-card h3, .m6-player-card h2 { display: grid; gap: .3rem; }
 .m6-player-card small { color: var(--muted); font: 700 .78rem/1 var(--font-sans); letter-spacing: .04em; }
 .m6-timer { display: block; margin: .7rem 0; color: var(--primary-2); font: 900 clamp(2.4rem, 7vw, 5.5rem)/1 var(--font-display); font-variant-numeric: tabular-nums; text-shadow: 0 0 28px rgba(35,213,255,.32); }
+.m6-question-builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; padding: var(--space-4); border: 1px solid rgba(35,213,255,.2); border-radius: var(--radius-lg); background: rgba(35,213,255,.06); }
+.m6-question-builder .btn { min-height: 46px; }
+.m6-question-list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.m6-question-list-head h4 { margin: 0; }
+.m6-question-deck-list { display: grid; gap: var(--space-3); }
+.m6-question-item { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) auto; gap: var(--space-3); align-items: end; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: rgba(255,255,255,.045); }
+.m6-question-item-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.m6-question-status { padding: .28rem .65rem; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; color: var(--text-soft); background: rgba(255,255,255,.055); font-size: .78rem; font-weight: 800; }
+.m6-question-item textarea { min-height: 72px; resize: vertical; }
+.m6-question-item .row { justify-content: flex-end; align-self: stretch; align-content: end; }
 .m4-youtube-host { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .m2-thumb { max-height: 360px; border-radius: var(--radius-md); object-fit: contain; border: 1px solid var(--line); }
 .answer-item { display: grid; gap: .35rem; align-items: start; }
@@ -355,6 +365,8 @@ body.modal-open { overflow: hidden; }
   .nav-item { width: max-content; white-space: nowrap; }
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .auth-layout { grid-template-columns: 1fr; }
+  .m6-question-builder, .m6-question-item { grid-template-columns: 1fr; }
+  .m6-question-list-head { align-items: stretch; flex-direction: column; }
 }
 @media (max-width: 760px) {
   .app-shell, .guest-shell { padding: .85rem; }
