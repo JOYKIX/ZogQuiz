@@ -808,22 +808,6 @@ export function initGuestCameraWall({
     presence = snap.val() || {};
     reconcile();
   });
-  onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
-    guestSessions = snap.val() || {};
-    updateAnswerOverlays();
-  });
-  if (roundKey === "round2") {
-    onValue(ref(db, "rooms/manche2/answers"), (snap) => {
-      roundAnswers.round2 = snap.val() || {};
-      updateAnswerOverlays();
-    });
-  }
-  if (roundKey === "round3") {
-    onValue(ref(db, "rooms/manche3/answers"), (snap) => {
-      roundAnswers.round3 = snap.val() || {};
-      updateAnswerOverlays();
-    });
-  }
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
   });
