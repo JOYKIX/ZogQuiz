@@ -28,7 +28,7 @@
         </div>
         <div class="session-actions">
           <a href="guest.html" class="btn btn-secondary" target="_blank" rel="noopener">Vue invité</a>
-          <button class="btn btn-primary quick-nav" data-workspace-target="broadcast">Overlay Live</button>
+          <button class="btn btn-primary quick-nav" data-workspace-target="broadcast">Overlay</button>
           <span id="admin-email" class="status-chip">Hors ligne</span>
           <button id="logout" class="btn btn-danger hidden">Déconnexion</button>
         </div>
@@ -36,9 +36,7 @@
 
       <section id="auth-section" class="auth-layout">
         <article class="auth-intro card">
-          <p class="eyebrow">Accès admin</p>
-          <h2>Bienvenue dans le cockpit ZogQuiz</h2>
-          <p>Connectez-vous pour piloter l'expérience live, les questions, les scores et la diffusion en direct.</p>
+          <h2>Admin</h2>
         </article>
 
         <article class="auth-card card">
@@ -74,14 +72,14 @@
         <aside class="app-sidebar" aria-label="Navigation principale">
         <div class="sidebar">
           <div class="sidebar-scroll">
-            <p class="sidebar-label">Dashboard</p>
+            <p class="sidebar-label">Menu</p>
             <button class="nav-item active" data-workspace="dashboard"><span class="material-symbols-rounded" aria-hidden="true">dashboard</span><span>Live</span></button>
             <button class="nav-item" data-workspace="players"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span>Participants</span></button>
             <button class="nav-item" data-workspace="rounds"><span class="material-symbols-rounded" aria-hidden="true">target</span><span>Manches</span></button>
             <button class="nav-item" data-workspace="broadcast"><span class="material-symbols-rounded" aria-hidden="true">tv</span><span>Overlay</span></button>
             <button class="nav-item" data-workspace="cam-config"><span class="material-symbols-rounded" aria-hidden="true">videocam</span><span>Cam config</span></button>
 
-            <p class="sidebar-label">Système</p>
+            <p class="sidebar-label">Liens</p>
             <a class="nav-item" href="overlay-round1.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R1</span></a>
             <a class="nav-item" href="overlay-round2.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R2</span></a>
             <a class="nav-item" href="overlay-round3.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">view_in_ar</span><span>Overlay R3</span></a>
@@ -98,7 +96,7 @@
           <div class="content-stack">
             <div class="context-bar">
             <p id="breadcrumb" class="muted">Vue live</p>
-            <span class="status-chip live-chip">En direct</span>
+            <span class="status-chip live-chip">Live</span>
           </div>
 
             <div class="app-workspace">
@@ -106,9 +104,9 @@
             <div class="panel-head split">
               <h2>Live</h2>
               <div class="row compact">
-                <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Ouvrir une manche</button>
-                <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Ouvrir overlays</button>
-                <button class="btn btn-secondary quick-nav" data-workspace-target="players">Voir joueurs</button>
+                <button class="btn btn-secondary quick-nav" data-workspace-target="rounds">Manches</button>
+                <button class="btn btn-secondary quick-nav" data-workspace-target="broadcast">Overlays</button>
+                <button class="btn btn-secondary quick-nav" data-workspace-target="players">Joueurs</button>
               </div>
             </div>
 
@@ -140,19 +138,19 @@
               <ul id="quick-leaderboard" class="leaderboard"></ul>
             </article>
             <article class="subpanel compact-panel">
-              <h3>Live viewers Twitch</h3>
-              <p id="viewer-live-status" class="message">Aucune question viewers active.</p>
+              <h3>Viewers</h3>
+              <p id="viewer-live-status" class="message">Aucune question active.</p>
               <div class="two-col">
                 <div>
                   <p class="muted">Gagnants</p>
                   <ul id="viewer-live-winners" class="list compact-list"><li class="empty-state">Aucun gagnant.</li></ul>
                 </div>
                 <div>
-                  <p class="muted">Tentatives utiles</p>
+                  <p class="muted">Tentatives</p>
                   <ul id="viewer-live-attempts" class="list compact-list"><li class="empty-state">Aucune tentative.</li></ul>
                 </div>
               </div>
-              <p class="muted">Flux chat (20 derniers)</p>
+              <p class="muted">Chat</p>
               <ul id="viewer-chat-feed" class="list compact-list"><li class="empty-state">Aucun message Twitch reçu.</li></ul>
             </article>
 
@@ -160,11 +158,11 @@
 
           <section class="workspace-panel hidden" data-workspace-panel="players">
             <div class="panel-head">
-              <h2>Joueurs et accès invités</h2>
+              <h2>Participants</h2>
             </div>
             <div class="two-col">
               <article class="subpanel stack compact-panel">
-                <h3>Comptes invités</h3>
+                <h3>Invités</h3>
                 <form id="guest-account-form" class="stack">
                   <label>ID de connexion
                     <input id="guest-login-id" type="text" required maxlength="40" autocomplete="off" placeholder="ex: joueur_01" />
@@ -172,7 +170,7 @@
                   <label>Mot de passe
                     <input id="guest-password" type="password" required minlength="6" autocomplete="new-password" placeholder="6 caractères minimum" />
                   </label>
-                  <label>Fichier buzzer (optionnel)
+                  <label>Buzzer perso
                     <input id="guest-buzzer-sound" type="text" autocomplete="off" placeholder="ex: buzzer1.mp3" list="buzzer-presets" />
                   </label>
                   <button type="submit" class="btn btn-primary">Créer le compte</button>
@@ -183,7 +181,6 @@
 
               <article class="subpanel compact-panel">
                 <h3>Participants</h3>
-                <p class="muted">Buzzer perso: indiquez un fichier comme <code>buzzer1.mp3</code>. Laisser vide = <code>buzzer.mp3</code> (défaut).</p>
                 <datalist id="buzzer-presets">
                   <option value="buzzer1.mp3"></option>
                   <option value="buzzer2.mp3"></option>
@@ -202,15 +199,15 @@
 
           <section class="workspace-panel hidden" data-workspace-panel="rounds">
             <div class="panel-head">
-              <h2>Contrôle des manches</h2>
+              <h2>Manches</h2>
             </div>
             <article class="subpanel compact-panel">
               <div class="row">
-                <p class="muted">Manche admin : <strong id="editing-round-status">Manche 1</strong></p>
-                <p class="muted">Manche live : <strong id="live-round-status">Manche 1</strong></p>
+                <p class="muted">Admin : <strong id="editing-round-status">Manche 1</strong></p>
+                <p class="muted">Live : <strong id="live-round-status">Manche 1</strong></p>
               </div>
               <div class="sticky-actions">
-                <button id="push-live-round" class="btn btn-primary">Envoyer en direct</button>
+                <button id="push-live-round" class="btn btn-primary">Envoyer live</button>
               </div>
             </article>
 
@@ -219,14 +216,14 @@
               <button class="round-tab" data-round="manche2" aria-selected="false">Manche 2</button>
               <button class="round-tab" data-round="manche3" aria-selected="false">Manche 3</button>
               <button class="round-tab" data-round="manche4" aria-selected="false">Manche 4</button>
-              
+
               <button class="round-tab" data-round="manche5" aria-selected="false">Manche 5</button>
               <button class="round-tab" data-round="manche6" aria-selected="false">Manche 6</button>
             </nav>
 
             <section class="round-shell" data-round-panel="manche1">
               <nav class="subnav" aria-label="Sous navigation manche 1">
-                <button class="subnav-tab active" data-round="manche1" data-round-section="live">En direct</button>
+                <button class="subnav-tab active" data-round="manche1" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="questions">Contenu</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overview">État</button>
@@ -236,7 +233,7 @@
               <section class="round-section" data-round-section-panel="manche1:overview">
                 <div class="two-col">
                   <article class="subpanel compact-panel">
-                    <h3>État manche 1</h3>
+                    <h3>État M1</h3>
                     <p id="round-status" class="message"></p>
                     <p id="active-question" class="muted">Aucune question active.</p>
                     <p id="buzz-live" class="highlight">Aucun buzz.</p>
@@ -251,7 +248,7 @@
               <section class="round-section hidden" data-round-section-panel="manche1:questions">
                 <div class="two-col">
                   <form id="participant-question-form" class="subpanel stack compact-panel">
-                    <h3>Questions participants</h3>
+                    <h3>Participants</h3>
                     <label>Question
                       <textarea id="participant-question" rows="3" required placeholder="Question"></textarea>
                     </label>
@@ -262,11 +259,11 @@
                   </form>
 
                   <form id="viewer-question-form" class="subpanel stack compact-panel viewer-panel">
-                    <h3>Créer une question viewers</h3>
-                    <label>Prompt viewers
+                    <h3>Question viewers</h3>
+                    <label>Question viewers
                       <textarea id="viewer-question" rows="3" required placeholder="Question envoyée au chat Twitch"></textarea>
                     </label>
-                    <label>Réponses acceptées (une ligne = un alias)
+                    <label>Réponses acceptées
                       <textarea id="viewer-answer" rows="5" required placeholder="L'Attaque des Titans
 Attack on Titan
 SNK"></textarea>
@@ -276,18 +273,18 @@ SNK"></textarea>
                       <label>Timer (s)<input id="viewer-timer" type="number" min="0" value="30" /></label>
                     </div>
                     <label class="row"><input id="viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
-                    <label class="row"><input id="viewer-allow-multi" type="checkbox" /><span>Autoriser plusieurs gagnants</span></label>
+                    <label class="row"><input id="viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
                 </div>
 
                 <div class="two-col">
                   <article class="subpanel compact-panel">
-                    <h3>Liste participants</h3>
+                    <h3>Participants</h3>
                     <ul id="participant-questions-list" class="list"></ul>
                   </article>
                   <article class="subpanel compact-panel">
-                    <h3>Liste des questions viewers</h3>
+                    <h3>Questions viewers</h3>
                     <ul id="viewer-questions-list" class="list"></ul>
                   </article>
                 </div>
@@ -295,7 +292,7 @@ SNK"></textarea>
 
               <section class="round-section hidden" data-round-section-panel="manche1:participants">
                 <article class="subpanel compact-panel">
-                  <h3>Classement manche 1</h3>
+                  <h3>Classement M1</h3>
                   <ul id="m1-participants-list" class="leaderboard"></ul>
                 </article>
               </section>
@@ -303,10 +300,10 @@ SNK"></textarea>
               <section class="round-section hidden" data-round-section-panel="manche1:live">
                 <div class="two-col">
                   <article class="subpanel stack compact-panel">
-                    <h3>Régie live · Manche 1</h3>
+                    <h3>Live M1</h3>
                     <p id="active-question-live" class="highlight">Aucune question active.</p>
                     <div class="live-buzz-card" role="status" aria-live="polite">
-                      <p class="muted">Premier buzz</p>
+                      <p class="muted">Buzz</p>
                       <p id="buzz-priority-name" class="live-buzz-name">Personne</p>
                       <div class="row">
                         <button id="buzz-plus" class="btn btn-primary" disabled>+1 point</button>
@@ -314,18 +311,18 @@ SNK"></textarea>
                       </div>
                     </div>
                     <div class="round1-question-nav" aria-label="Navigation des questions manche 1">
-                      <button id="round1-prev-question" class="btn btn-secondary">Question précédente</button>
-                      <button id="round1-next-question" class="btn btn-secondary">Question suivante</button>
+                      <button id="round1-prev-question" class="btn btn-secondary">Précédente</button>
+                      <button id="round1-next-question" class="btn btn-secondary">Suivante</button>
                     </div>
                     <div class="sticky-actions">
                       <button id="toggle-answer" class="btn btn-secondary">Afficher la réponse</button>
-                      <button id="unlock-buzzer" class="btn btn-secondary">Réouvrir le buzzer</button>
-                      <button id="mark-correct" class="btn btn-primary">Bonne réponse (+1)</button>
-                      <button id="mark-wrong" class="btn btn-danger">Mauvaise réponse</button>
+                      <button id="unlock-buzzer" class="btn btn-secondary">Réouvrir buzzer</button>
+                      <button id="mark-correct" class="btn btn-primary">Correct (+1)</button>
+                      <button id="mark-wrong" class="btn btn-danger">Faux</button>
                     </div>
                   </article>
                   <article class="subpanel compact-panel">
-                    <h3>Scores live</h3>
+                    <h3>Scores</h3>
                     <ul id="m1-live-scores" class="leaderboard"></ul>
                   </article>
                 </div>
@@ -333,7 +330,7 @@ SNK"></textarea>
 
               <section class="round-section hidden" data-round-section-panel="manche1:overlay">
                 <article class="subpanel stack compact-panel">
-                  <h3>Overlay manche 1</h3>
+                  <h3>Overlay M1</h3>
                   <label>Taille max du texte (px)
                     <input id="overlay-round1-max-font-size" type="number" min="36" step="1" value="180" />
                   </label>
@@ -362,8 +359,8 @@ SNK"></textarea>
                     <input id="overlay-round1-max-width" type="number" min="400" step="10" value="1600" />
                   </label>
                   <div class="row">
-                    <a class="btn btn-secondary" href="overlay-round1.html" target="_blank" rel="noopener">Ouvrir overlay manche 1</a>
-                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
+                    <a class="btn btn-secondary" href="overlay-round1.html" target="_blank" rel="noopener">Overlay M1</a>
+                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
                   </div>
                 </article>
               </section>
@@ -371,7 +368,7 @@ SNK"></textarea>
 
             <section class="round-shell hidden" data-round-panel="manche2">
               <nav class="subnav" aria-label="Sous navigation manche 2">
-                <button class="subnav-tab active" data-round="manche2" data-round-section="live">En direct</button>
+                <button class="subnav-tab active" data-round="manche2" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="questions">Contenu</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="overview">État</button>
@@ -380,7 +377,7 @@ SNK"></textarea>
 
               <section class="round-section" data-round-section-panel="manche2:overview">
                 <article class="subpanel compact-panel">
-                  <h3>Statut manche 2</h3>
+                  <h3>État M2</h3>
                   <p id="m2-overview-status" class="message"></p>
                 </article>
               </section>
@@ -388,10 +385,10 @@ SNK"></textarea>
               <section class="round-section hidden" data-round-section-panel="manche2:questions">
                 <div class="question-manager">
                   <form id="m2-question-form" class="subpanel stack compact-panel question-editor">
-                    <div class="panel-header"><h3>Éditeur de question manche 2</h3><p id="m2-editor-mode" class="muted">Mode création</p></div>
+                    <div class="panel-header"><h3>Question M2</h3><p id="m2-editor-mode" class="muted"></p></div>
                     <label>Image
                       <input id="m2-image" type="file" accept="image/*" />
-                      <span class="muted">En édition, choisissez un fichier uniquement pour remplacer l’image actuelle.</span>
+
                     </label>
                     <label>Œuvre
                       <input id="m2-work" required maxlength="120" />
@@ -399,36 +396,36 @@ SNK"></textarea>
                     <label>Lieu
                       <input id="m2-location" required maxlength="180" />
                     </label>
-                    <label>Question (optionnel)
+                    <label>Question
                       <input id="m2-question-text" maxlength="240" placeholder="Ex: Où se trouve cette œuvre ?" />
                     </label>
-                    <div class="row"><button type="button" id="m2-new-question" class="btn btn-secondary">Nouvelle question</button><button type="submit" id="m2-save-question" class="btn btn-primary">Enregistrer</button></div>
+                    <div class="row"><button type="button" id="m2-new-question" class="btn btn-secondary">Nouvelle</button><button type="submit" id="m2-save-question" class="btn btn-primary">Enregistrer</button></div>
                   </form>
                   <article class="subpanel compact-panel question-list-panel">
-                    <div class="panel-header"><h3>Banque d’images</h3><p id="m2-question-count" class="muted">0 question</p></div>
+                    <div class="panel-header"><h3>Images</h3><p id="m2-question-count" class="muted">0 question</p></div>
                     <input id="m2-question-search" type="search" placeholder="Rechercher une question..." />
                     <ul id="m2-questions-list" class="list question-list scroll-area"></ul>
                   </article>
                 </div>
                 <div class="two-col">
                   <form id="m2-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
-                    <h3>Créer une question viewers (Manche 2)</h3>
-                    <p id="m2-viewer-live-label" class="message">Aucune question viewers active.</p>
-                    <label>Prompt viewers<input id="m2-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce monument ?" /></label>
+                    <h3>Question viewers</h3>
+                    <p id="m2-viewer-live-label" class="message">Aucune question active.</p>
+                    <label>Question viewers<input id="m2-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce monument ?" /></label>
                     <label>Réponses acceptées<textarea id="m2-viewer-aliases" rows="4" required placeholder="Tour Eiffel
 La Tour Eiffel"></textarea></label>
                     <div class="row compact"><label>Points<input id="m2-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m2-viewer-timer" type="number" min="0" value="30" /></label></div>
                     <label class="row"><input id="m2-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m2-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
-                    <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
-                  <article class="subpanel compact-panel"><h3>Liste des questions viewers</h3><ul id="m2-viewer-questions-list" class="list"></ul></article>
+                  <article class="subpanel compact-panel"><h3>Questions viewers</h3><ul id="m2-viewer-questions-list" class="list"></ul></article>
                 </div>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:participants">
                 <article class="subpanel compact-panel">
-                  <h3>Classement manche 2</h3>
+                  <h3>Classement M2</h3>
                   <ul id="m2-participants-list" class="leaderboard"></ul>
                 </article>
               </section>
@@ -436,7 +433,7 @@ La Tour Eiffel"></textarea></label>
               <section class="round-section hidden" data-round-section-panel="manche2:live">
                 <div class="two-col">
                   <article class="subpanel compact-panel stack">
-                    <h3>Régie live · Images</h3>
+                    <h3>Live M2</h3>
                     <p id="m2-live-status" class="message"></p>
                     <img id="m2-live-current-image" class="m2-thumb hidden" alt="Image en cours manche 2" />
                     <p><strong>Image :</strong> <span id="m2-live-current-title">—</span></p>
@@ -448,13 +445,13 @@ La Tour Eiffel"></textarea></label>
                     </div>
                   </article>
                   <article class="subpanel compact-panel">
-                    <h3>Scores live</h3>
+                    <h3>Scores</h3>
                     <ul id="m2-live-scores" class="leaderboard"></ul>
                   </article>
                   <article class="subpanel compact-panel">
                     <div class="panel-header">
-                      <h3>Réponses écrites</h3>
-                      <button id="m2-reset-answers" class="btn btn-danger" type="button">Réinitialiser les réponses</button>
+                      <h3>Réponses</h3>
+                      <button id="m2-reset-answers" class="btn btn-danger" type="button">Reset réponses</button>
                     </div>
                     <ul id="m2-live-answers" class="list compact-list"></ul>
                   </article>
@@ -463,13 +460,13 @@ La Tour Eiffel"></textarea></label>
 
               <section class="round-section hidden" data-round-section-panel="manche2:overlay">
                 <article class="subpanel compact-panel stack">
-                  <h3>Overlay manche 2</h3>
+                  <h3>Overlay M2</h3>
                   <label>Largeur max image (px)<input id="overlay-round2-max-width" type="number" min="200" step="10" value="1400" /></label>
                   <label>Hauteur max image (px)<input id="overlay-round2-max-height" type="number" min="200" step="10" value="820" /></label>
                   <label>Arrondi image (px)<input id="overlay-round2-radius" type="number" min="0" step="1" value="0" /></label>
                   <div class="row">
-                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
-                    <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Ouvrir overlay manche 2</a>
+                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
+                    <a class="btn btn-secondary" href="overlay-round2.html" target="_blank" rel="noopener">Overlay M2</a>
                   </div>
                 </article>
               </section>
@@ -477,7 +474,7 @@ La Tour Eiffel"></textarea></label>
 
             <section class="round-shell hidden" data-round-panel="manche3">
               <nav class="subnav" aria-label="Sous navigation manche 3">
-                <button class="subnav-tab active" data-round="manche3" data-round-section="live">En direct</button>
+                <button class="subnav-tab active" data-round="manche3" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="participants">Contenu</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="questions">Participants</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="overview">État</button>
@@ -507,7 +504,7 @@ La Tour Eiffel"></textarea></label>
                     <label>Nouveau thème
                       <input id="m3-theme-name" required maxlength="80" placeholder="ex: Cinéma" />
                     </label>
-                    <button type="submit" class="btn btn-primary">Ajouter le thème</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
                   <ul id="m3-theme-list" class="list"></ul>
                 </article>
@@ -516,33 +513,33 @@ La Tour Eiffel"></textarea></label>
               <section class="round-section hidden" data-round-section-panel="manche3:questions">
                 <div class="two-col">
                   <article class="subpanel stack compact-panel panel">
-                    <h3 class="panel-title">Questions du tour</h3>
+                    <h3 class="panel-title">Questions</h3>
                     <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
-                    <p id="m3-current-question" class="highlight">En attente du choix du thème</p>
+                    <p id="m3-current-question" class="highlight">En attente</p>
                     <div class="toolbar">
                       <button class="btn btn-secondary m3-pass-legacy">Passer</button>
-                      <button class="btn btn-primary m3-correct-legacy">Bonne réponse</button>
-                      <button class="btn btn-secondary m3-next-legacy">Question suivante</button>
+                      <button class="btn btn-primary m3-correct-legacy">Correct</button>
+                      <button class="btn btn-secondary m3-next-legacy">Suivante</button>
                     </div>
                   </article>
                   <form id="m3-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
-                    <h3>Créer une question viewers (Manche 3)</h3>
-                    <p id="m3-viewer-live-label" class="message">Aucune question viewers active.</p>
-                    <label>Prompt viewers<input id="m3-viewer-prompt" required maxlength="240" /></label>
+                    <h3>Question viewers</h3>
+                    <p id="m3-viewer-live-label" class="message">Aucune question active.</p>
+                    <label>Question viewers<input id="m3-viewer-prompt" required maxlength="240" /></label>
                     <label>Réponses acceptées<textarea id="m3-viewer-aliases" rows="4" required></textarea></label>
                     <div class="row compact"><label>Points<input id="m3-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m3-viewer-timer" type="number" min="0" value="30" /></label></div>
                     <label class="row"><input id="m3-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m3-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
-                    <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
                 </div>
-                <article class="subpanel compact-panel"><h3>Liste des questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
+                <article class="subpanel compact-panel"><h3>Questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:live">
                 <div class="two-col">
                   <article class="subpanel stack compact-panel panel">
-                    <h3 class="panel-title">Régie live · Manche 3</h3>
+                    <h3 class="panel-title">Live M3</h3>
                     <p class="muted">Joueur : <strong id="m3-live-player">Aucun</strong></p>
                     <p class="muted">Thème : <strong id="m3-live-theme">Aucun</strong></p>
                     <p class="highlight" id="m3-live-question">En attente</p>
@@ -556,12 +553,12 @@ La Tour Eiffel"></textarea></label>
                     </div>
                     <div class="toolbar">
                       <button id="m3-pass" class="btn btn-secondary">Passer</button>
-                      <button id="m3-correct" class="btn btn-primary">Bonne réponse</button>
-                      <button id="m3-next" class="btn btn-secondary">Question suivante</button>
+                      <button id="m3-correct" class="btn btn-primary">Correct</button>
+                      <button id="m3-next" class="btn btn-secondary">Suivante</button>
                     </div>
                   </article>
                   <article class="subpanel compact-panel">
-                    <h3>Scores live</h3>
+                    <h3>Scores</h3>
                     <ul id="m3-live-scores" class="leaderboard"></ul>
                   </article>
                 </div>
@@ -569,15 +566,15 @@ La Tour Eiffel"></textarea></label>
 
               <section class="round-section hidden" data-round-section-panel="manche3:overlay">
                 <article class="subpanel stack compact-panel panel">
-                  <h3 class="panel-title">Overlay manche 3</h3>
+                  <h3 class="panel-title">Overlay M3</h3>
                   <div class="row">
-                    <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Ouvrir overlay manche 3</a>
-                    <a class="btn btn-secondary" href="theme-orverlay.html" target="_blank" rel="noopener">Ouvrir overlay thèmes</a>
-                    <a class="btn btn-secondary" href="timer-overlay-round3.html" target="_blank" rel="noopener">Ouvrir timer manche 3</a>
-                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
+                    <a class="btn btn-secondary" href="overlay-round3.html" target="_blank" rel="noopener">Overlay M3</a>
+                    <a class="btn btn-secondary" href="theme-orverlay.html" target="_blank" rel="noopener">Thèmes M3</a>
+                    <a class="btn btn-secondary" href="timer-overlay-round3.html" target="_blank" rel="noopener">Timer M3</a>
+                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
                   </div>
                   <div class="stack overlay-settings-block">
-                    <h4>Overlay manche 3 (thème actif)</h4>
+                    <h4>Thème actif</h4>
                     <label>Taille max texte (px)<input id="overlay-round3-question-size" type="number" min="20" value="74" /></label>
                     <label>Taille min texte (px)<input id="overlay-round3-question-min-size" type="number" min="14" value="24" /></label>
                     <label>Couleur texte<input id="overlay-round3-theme-color" type="color" value="#cfe6ff" /></label>
@@ -588,7 +585,7 @@ La Tour Eiffel"></textarea></label>
                     <label>Largeur max texte (px)<input id="overlay-round3-max-width" type="number" min="400" value="1600" /></label>
                   </div>
                   <div class="stack overlay-settings-block">
-                    <h4>Timer manche 3</h4>
+                    <h4>Timer M3</h4>
                     <label>Taille chrono (px)<input id="overlay-round3-timer-size" type="number" min="20" value="72" /></label>
                     <label>Couleur chrono<input id="overlay-round3-timer-color" type="color" value="#8cf5dc" /></label>
                     <label>Format chrono<select id="overlay-round3-timer-format"><option value="minutes-seconds" selected>Minutes + secondes (1:30)</option><option value="seconds">Secondes seules (90)</option></select></label>
@@ -625,7 +622,7 @@ La Tour Eiffel"></textarea></label>
 
             <section class="round-shell hidden" data-round-panel="manche4">
               <nav class="subnav" aria-label="Sous navigation manche 4">
-                <button class="subnav-tab active" data-round="manche4" data-round-section="live">En direct</button>
+                <button class="subnav-tab active" data-round="manche4" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="questions">Contenu</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="overview">État</button>
@@ -634,15 +631,15 @@ La Tour Eiffel"></textarea></label>
 
               <section class="round-section" data-round-section-panel="manche4:overview">
                 <article class="subpanel compact-panel stack">
-                  <h3>Vue d’ensemble manche 4 · Blindtest</h3>
-                  <p class="muted">Retrouvez tous les contrôles live dans l’onglet “En direct”.</p>
+                  <h3>Blindtest</h3>
+
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:questions">
                 <article class="subpanel compact-panel stack">
-                  <h3>Catalogue des pistes YouTube</h3>
+                  <h3>Pistes</h3>
                   <form id="m4-track-form" class="stack">
-                    <h4 id="m4-track-form-title">Ajouter une piste</h4>
+                    <h4 id="m4-track-form-title">Ajouter</h4>
                     <label>Titre
                       <input id="m4-track-title-input" required placeholder="Titre de la musique" />
                     </label>
@@ -660,51 +657,49 @@ La Tour Eiffel"></textarea></label>
                         <option value="personnage">Personnage</option>
                       </select>
                     </label>
-                    <label>Lien vidéo révélation (optionnel)
+                    <label>Vidéo réponse
                       <input id="m4-track-reveal-url-input" placeholder="Deuxième lien YouTube pour la réponse" />
                     </label>
-                    <label>Aliases (séparés par virgule)
+                    <label>Aliases
                       <input id="m4-track-aliases-input" placeholder="alias 1, alias 2" />
                     </label>
                     <label class="row">
                       <input id="m4-track-active-input" type="checkbox" checked />
-                      <span>Activer cette piste</span>
+                      <span>Activer</span>
                     </label>
                     <div class="row">
-                      <button id="m4-track-submit" type="submit" class="btn btn-primary">Ajouter la piste</button>
-                      <button id="m4-track-cancel-edit" type="button" class="btn btn-secondary hidden">Annuler l’édition</button>
+                      <button id="m4-track-submit" type="submit" class="btn btn-primary">Ajouter</button>
+                      <button id="m4-track-cancel-edit" type="button" class="btn btn-secondary hidden">Annuler</button>
                     </div>
                   </form>
                   <ul id="m4-track-list" class="leaderboard"></ul>
                 </article>
                 <article class="subpanel compact-panel stack viewer-panel">
-                  <h3>Créer une question viewers (Manche 4)</h3>
-                  <p id="m4-viewer-live-label" class="message">Aucune question viewers active.</p>
+                  <h3>Question viewers</h3>
+                  <p id="m4-viewer-live-label" class="message">Aucune question active.</p>
                   <form id="m4-viewer-question-form" class="stack">
-                    <label>Prompt viewers<input id="m4-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce titre ?" /></label>
+                    <label>Question viewers<input id="m4-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce titre ?" /></label>
                     <label>Réponses acceptées<textarea id="m4-viewer-aliases" rows="5" required placeholder="Guren no Yumiya
 SNK OP1"></textarea></label>
                     <div class="row compact"><label>Points<input id="m4-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m4-viewer-timer" type="number" min="0" value="25" /></label></div>
                     <label class="row"><input id="m4-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m4-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
-                    <button type="submit" class="btn btn-primary">Ajouter question viewers</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
                   <ul id="m4-viewer-questions-list" class="list"></ul>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:participants">
                 <article class="subpanel compact-panel stack">
-                  <h3>Réponses participants (blindtest)</h3>
-                  <label class="row"><input id="m4-stop-on-answer" type="checkbox" /><span>Couper la musique dès qu’un participant répond</span></label>
-                  <p class="muted">Option désactivée par défaut.</p>
-                  <p class="muted">Les réponses sont aussi visibles dans l’onglet “En direct”.</p>
+                  <h3>Réponses</h3>
+                  <label class="row"><input id="m4-stop-on-answer" type="checkbox" /><span>Stop sur réponse</span></label>
                   <ul id="m4-participants-answers" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:live">
                 <div class="two-col">
                   <article class="subpanel compact-panel stack">
-                    <h3>Régie live · Audio</h3>
+                    <h3>Live M4</h3>
                     <p class="muted">Piste actuelle : <strong id="m4-current-track">Aucune piste active</strong></p>
                     <p class="muted">Titre : <strong id="m4-current-track-title">—</strong></p>
                     <p class="muted">URL YouTube : <strong id="m4-current-track-youtube">—</strong></p>
@@ -714,35 +709,34 @@ SNK OP1"></textarea></label>
                     <p id="m4-admin-message" class="message">En attente.</p>
                     <div id="m4-admin-youtube-host" class="m4-youtube-host" aria-hidden="true"></div>
                     <div class="row">
-                      <button id="m4-start-round" class="btn btn-primary">Démarrer la manche 4</button>
+                      <button id="m4-start-round" class="btn btn-primary">Démarrer M4</button>
                     </div>
                     <div class="row">
-                      <button id="m4-play" class="btn btn-primary">Lancer la musique</button>
+                      <button id="m4-play" class="btn btn-primary">Lancer</button>
                       <button id="m4-pause" class="btn btn-secondary"><span class="material-symbols-rounded" aria-hidden="true">pause</span><span>Pause</span></button>
                       <button id="m4-resume" class="btn btn-secondary"><span class="material-symbols-rounded" aria-hidden="true">play_arrow</span><span>Reprendre</span></button>
                       <button id="m4-stop" class="btn btn-secondary"><span class="material-symbols-rounded" aria-hidden="true">stop</span><span>Stop</span></button>
                       <button id="m4-replay" class="btn btn-secondary">Rejouer</button>
-                      <button id="m4-reset-answers" class="btn btn-secondary">Reset réponses live</button>
+                      <button id="m4-reset-answers" class="btn btn-secondary">Reset réponses</button>
                       <button id="m4-show-answer" class="btn btn-secondary">Afficher la réponse</button>
-                      <button id="m4-prev" class="btn btn-secondary">Musique précédente</button>
-                      <button id="m4-next" class="btn btn-secondary">Musique suivante</button>
+                      <button id="m4-prev" class="btn btn-secondary">Précédente</button>
+                      <button id="m4-next" class="btn btn-secondary">Suivante</button>
                     </div>
                   </article>
                   <article class="subpanel compact-panel">
-                    <h3>Scores live</h3>
+                    <h3>Scores</h3>
                     <ul id="m4-live-scores" class="leaderboard"></ul>
-                    <h3>Réponses en direct</h3>
+                    <h3>Réponses</h3>
                     <ul id="m4-participants-answers-live" class="list compact-list"><li class="empty-state">Aucune réponse reçue.</li></ul>
                   </article>
                 </div>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:overlay">
                 <article class="subpanel compact-panel stack">
-                  <h3>Overlay manche 4</h3>
-                  <p class="muted">Affichage stream sans spoiler (état, statut lecture, piste, progression).</p>
+                  <h3>Overlay M4</h3>
                   <div class="row">
-                    <a class="btn btn-secondary" href="overlay-round4.html" target="_blank" rel="noopener">Ouvrir overlay manche 4</a>
-                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Ouvrir guest</a>
+                    <a class="btn btn-secondary" href="overlay-round4.html" target="_blank" rel="noopener">Overlay M4</a>
+                    <a class="btn btn-secondary" href="guest.html" target="_blank" rel="noopener">Guest</a>
                   </div>
                   <label>Taille max du prompt (px)<input id="overlay-round4-max-font-size" type="number" min="36" value="220" /></label>
                   <label>Taille min du prompt (px)<input id="overlay-round4-min-font-size" type="number" min="14" value="36" /></label>
@@ -762,18 +756,17 @@ SNK OP1"></textarea></label>
                 <button class="subnav-tab active" data-round="manche5" data-round-section="overview">Vue d’ensemble</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="questions">Questions</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="participants">Participants</button>
-                <button class="subnav-tab" data-round="manche5" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
               </nav>
 
-                            <section class="round-section" data-round-section-panel="manche5:overview"><article class="subpanel compact-panel"><h3>Mort Subite · Contrôle central</h3><div id="m5-admin" class="stack"><p id="m5-status" class="message"></p><p id="m5-buzz-live" class="highlight">Aucun buzz.</p><label>Dégâts par bonne réponse <input id="m5-damage" type="number" min="1" value="10" /></label><div class="row"><button id="m5-init-hp" class="btn btn-primary" type="button">Initialiser depuis scores</button><button id="m5-reset" class="btn btn-danger" type="button">Reset manche 5</button></div><div class="row"><label>Joueur actif<select id="m5-current-player"></select></label><button id="m5-set-active-player" class="btn btn-secondary" type="button">Modifier joueur actif</button></div><div class="row"><label>PV joueur<select id="m5-hp-player"></select></label><label>Montant<input id="m5-hp-amount" type="number" min="1" value="1" /></label><button id="m5-hp-plus" class="btn btn-primary" type="button">+PV</button><button id="m5-hp-minus" class="btn btn-danger" type="button">-PV</button></div><h4>Duel</h4><label>Question<input id="m5-question" /></label><div class="row"><label>Attaquant<select id="m5-duel-attacker"></select></label><label>Cible<select id="m5-duel-target"></select></label></div><div class="row"><button id="m5-start-duel" class="btn btn-primary" type="button">Démarrer duel</button><button id="m5-open-buzzer" class="btn btn-secondary" type="button">Ouvrir buzzer</button><button id="m5-close-buzzer" class="btn btn-secondary" type="button">Fermer / personne ne répond</button></div><div class="row"><button id="m5-mark-correct" class="btn btn-primary" type="button">Valider bonne réponse duel</button><button id="m5-mark-fail" class="btn btn-secondary" type="button">Ouvrir réponse des autres</button></div><div class="row"><label>Winner outsider<select id="m5-outsider-winner"></select></label><button id="m5-outsider-correct" class="btn btn-secondary" type="button">Valider outsider correct</button><button id="m5-next-turn" class="btn btn-primary" type="button">Tour suivant</button></div><h4>Participants</h4><ul id="m5-participants-live" class="list compact-list"></ul><h4>Réponses outsiders</h4><ul id="m5-outsider-live" class="list compact-list"></ul></div></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:questions"><article class="subpanel compact-panel"><h3>Console Mort Subite</h3><p class="muted">Toute la régie est centralisée dans l’onglet En direct de la Manche 5.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:participants"><article class="subpanel compact-panel"><p class="empty-state">Gestion incluse dans configuration Mort Subite.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche5:live"><article class="subpanel compact-panel"><p class="empty-state">Pilotage live inclus dans onglet Questions.</p></article></section>
+                            <section class="round-section" data-round-section-panel="manche5:overview"><article class="subpanel compact-panel"><h3>Mort Subite</h3><div id="m5-admin" class="stack"><p id="m5-status" class="message"></p><p id="m5-buzz-live" class="highlight">Aucun buzz.</p><label>Dégâts par bonne réponse <input id="m5-damage" type="number" min="1" value="10" /></label><div class="row"><button id="m5-init-hp" class="btn btn-primary" type="button">Initialiser depuis scores</button><button id="m5-reset" class="btn btn-danger" type="button">Reset manche 5</button></div><div class="row"><label>Joueur actif<select id="m5-current-player"></select></label><button id="m5-set-active-player" class="btn btn-secondary" type="button">Modifier joueur actif</button></div><div class="row"><label>PV joueur<select id="m5-hp-player"></select></label><label>Montant<input id="m5-hp-amount" type="number" min="1" value="1" /></label><button id="m5-hp-plus" class="btn btn-primary" type="button">+PV</button><button id="m5-hp-minus" class="btn btn-danger" type="button">-PV</button></div><h4>Duel</h4><label>Question<input id="m5-question" /></label><div class="row"><label>Attaquant<select id="m5-duel-attacker"></select></label><label>Cible<select id="m5-duel-target"></select></label></div><div class="row"><button id="m5-start-duel" class="btn btn-primary" type="button">Démarrer duel</button><button id="m5-open-buzzer" class="btn btn-secondary" type="button">Ouvrir buzzer</button><button id="m5-close-buzzer" class="btn btn-secondary" type="button">Fermer / personne ne répond</button></div><div class="row"><button id="m5-mark-correct" class="btn btn-primary" type="button">Valider bonne réponse duel</button><button id="m5-mark-fail" class="btn btn-secondary" type="button">Ouvrir réponse des autres</button></div><div class="row"><label>Winner outsider<select id="m5-outsider-winner"></select></label><button id="m5-outsider-correct" class="btn btn-secondary" type="button">Valider outsider correct</button><button id="m5-next-turn" class="btn btn-primary" type="button">Tour suivant</button></div><h4>Participants</h4><ul id="m5-participants-live" class="list compact-list"></ul><h4>Réponses outsiders</h4><ul id="m5-outsider-live" class="list compact-list"></ul></div></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:questions"><article class="subpanel compact-panel"><h3>Console</h3></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:participants"><article class="subpanel compact-panel"></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:live"><article class="subpanel compact-panel"></article></section>
               <section class="round-section hidden" data-round-section-panel="manche5:overlay">
                 <article class="subpanel compact-panel stack">
-                  <h3>Overlay manche 5 · PV duel</h3>
-                  <p class="muted">Affichage OBS limité aux PV des deux participants du duel, façon barres de vie gauche/droite.</p>
+                  <h3>Overlay M5</h3>
                   <a class="btn btn-secondary" href="overlay-round5.html" target="_blank" rel="noopener">Ouvrir overlay Mort Subite</a>
                   <label>Taille noms (px)<input id="overlay-round5-name-size" type="number" min="14" value="38" /></label>
                   <label>Taille PV (px)<input id="overlay-round5-hp-size" type="number" min="16" value="44" /></label>
@@ -796,7 +789,7 @@ SNK OP1"></textarea></label>
                 <button class="subnav-tab active" data-round="manche6" data-round-section="overview">Vue d’ensemble</button>
                 <button class="subnav-tab" data-round="manche6" data-round-section="questions">Question / réponses</button>
                 <button class="subnav-tab" data-round="manche6" data-round-section="participants">Duel</button>
-                <button class="subnav-tab" data-round="manche6" data-round-section="live">En direct</button>
+                <button class="subnav-tab" data-round="manche6" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche6" data-round-section="overlay">Overlay</button>
               </nav>
 
@@ -804,15 +797,15 @@ SNK OP1"></textarea></label>
                 <article id="m6-admin" class="subpanel compact-panel stack m6-panel">
                   <div class="split">
                     <div>
-                      <h3>Manche 6 · Duel final</h3>
-                      <p class="muted">Survivant de la mort subite contre top viewer. Les chronos sont pilotés depuis l’état Firebase centralisé.</p>
+                      <h3>Duel final</h3>
+                      <p class="muted">M5 vs viewer</p>
                     </div>
                     <label>Durée des chronos (secondes)<input id="m6-duration" type="number" min="1" value="60" /></label>
                   </div>
                   <div class="row">
                     <button id="m6-init" class="btn btn-secondary" type="button">Initialiser duel</button>
                     <button id="m6-launch" class="btn btn-primary" type="button">Lancer</button>
-                    <button class="btn btn-secondary m6-next-question" type="button">Question suivante</button>
+                    <button class="btn btn-secondary m6-next-question" type="button">Suivante</button>
                     <button id="m6-switch" class="btn btn-primary" type="button">Switch</button>
                     <button id="m6-pause" class="btn btn-secondary" type="button">Pause</button>
                     <button id="m6-reset" class="btn btn-danger" type="button">Stop / reset</button>
@@ -834,9 +827,9 @@ SNK OP1"></textarea></label>
                   <div class="m6-live-meta">
                     <p>Phase : <strong id="m6-admin-phase">Préparation</strong></p>
                     <p>État : <strong id="m6-admin-status">En attente</strong></p>
-                    <p id="m6-admin-winner" class="highlight">Premier chrono à zéro perd la finale.</p>
+                    <p id="m6-admin-winner" class="highlight">Chrono à zéro = défaite.</p>
                   </div>
-                  <p id="m6-admin-question" class="highlight">Question en attente côté admin.</p>
+                  <p id="m6-admin-question" class="highlight">Question en attente.</p>
                   <p>Réponse attendue : <strong id="m6-admin-current-answer">—</strong></p>
                   <p class="muted">Banque : <span id="m6-admin-question-count">0/0 tirées</span></p>
                 </article>
@@ -844,19 +837,17 @@ SNK OP1"></textarea></label>
 
               <section class="round-section hidden" data-round-section-panel="manche6:questions">
                 <article class="subpanel compact-panel stack">
-                  <h3>Banque questions / réponses</h3>
-                  <p class="muted">Ajoutez chaque question de la manche 6 individuellement avec sa réponse. La banque est stockée en base de données séparément de l’état de la manche : elle reste disponible après un stop/reset. Le bouton Question suivante tire aléatoirement parmi les questions disponibles, puis relance la pioche quand toute la banque a été utilisée.</p>
+                  <h3>Banque Q/R</h3>
                   <div class="m6-question-builder">
-                    <label>Nouvelle question<textarea id="m6-new-question-input" rows="3" placeholder="Capitale de l’Australie ?"></textarea></label>
+                    <label>Nouvelle<textarea id="m6-new-question-input" rows="3" placeholder="Capitale de l’Australie ?"></textarea></label>
                     <label>Réponse attendue<textarea id="m6-new-answer-input" rows="3" placeholder="Canberra"></textarea></label>
                     <button id="m6-add-question" class="btn btn-primary" type="button">Ajouter à la banque</button>
                   </div>
                   <div class="m6-question-list-head">
                     <div>
-                      <h4>Questions enregistrées</h4>
-                      <p class="muted">Modifiez une question ou sa réponse directement dans la liste, puis enregistrez.</p>
-                    </div>
-                    <button id="m6-save-content" class="btn btn-secondary" type="button">Enregistrer toutes les modifications</button>
+                      <h4>Questions</h4>
+                      </div>
+                    <button id="m6-save-content" class="btn btn-secondary" type="button">Enregistrer</button>
                   </div>
                   <div id="m6-question-deck-list" class="m6-question-deck-list" aria-live="polite"></div>
                   <p id="m6-question-deck-empty" class="empty-state">Aucune question enregistrée pour la manche 6.</p>
@@ -869,19 +860,19 @@ SNK OP1"></textarea></label>
                     <label>Note joueur 2<input id="m6-answer-viewer-input" placeholder="Réponse / note admin" /></label>
                   </div>
                   <div class="row">
-                    <button class="btn btn-primary m6-next-question" type="button">Question suivante aléatoire</button>
+                    <button class="btn btn-primary m6-next-question" type="button">Suivante aléatoire</button>
                   </div>
                 </article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche6:participants">
                 <article class="subpanel compact-panel">
-                  <h3>Composition automatique</h3>
-                  <p class="muted">Le bouton Initialiser duel récupère le survivant de la manche 5 et le meilleur viewer du leaderboard Twitch.</p>
+                  <h3>Composition</h3>
+
                 </article>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche6:live"><article class="subpanel compact-panel"><p class="empty-state">Pilotage live inclus dans Vue d’ensemble.</p></article></section>
-              <section class="round-section hidden" data-round-section-panel="manche6:overlay"><article class="subpanel compact-panel"><a class="btn btn-secondary" href="overlay-round6.html" target="_blank" rel="noopener">Ouvrir overlay Manche 6</a></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche6:live"><article class="subpanel compact-panel"></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche6:overlay"><article class="subpanel compact-panel"><a class="btn btn-secondary" href="overlay-round6.html" target="_blank" rel="noopener">Overlay M6</a></article></section>
             </section>
           </section>
 
@@ -889,18 +880,15 @@ SNK OP1"></textarea></label>
           <section class="workspace-panel hidden" data-workspace-panel="cam-config">
             <div class="panel-head">
               <div>
-                <p class="eyebrow">OBS · WebRTC</p>
                 <h2>Cam config</h2>
               </div>
             </div>
             <article class="subpanel compact-panel stack camera-config-panel">
               <div class="panel-head compact-head">
                 <div>
-                  <h3>Configuration des caméras par manche</h3>
-                  <p class="muted">Choisis le nombre de cams, leur taille, leur position et leur rôle précis pour chaque manche.</p>
-                </div>
+                  <h3>Caméras</h3>
+                  </div>
               </div>
-              <p class="muted">Réglages sauvegardés dans Firebase et appliqués instantanément aux overlays caméra indépendants. Les slots “Participant à la manche” suivent maintenant automatiquement le compte actif de la manche (ex : joueur actif en manche 3), au lieu de prendre une caméra au hasard.</p>
               <nav class="camera-config-nav" id="camera-config-nav" aria-label="Sélection de la configuration caméra">
                 <button class="camera-config-tab active" type="button" data-camera-config-target="admin" aria-selected="true">Cam Admin</button>
                 <button class="camera-config-tab" type="button" data-camera-config-target="round1" aria-selected="false">Manche 1</button>
@@ -914,15 +902,14 @@ SNK OP1"></textarea></label>
                 <div class="panel-head compact-head">
                   <div>
                     <p class="eyebrow">Cam admin</p>
-                    <h3>Webcam administrateur</h3>
+                    <h3>Webcam admin</h3>
                   </div>
-                  <button id="admin-camera-toggle" class="btn btn-secondary" type="button">Activer la caméra admin</button>
+                  <button id="admin-camera-toggle" class="btn btn-secondary" type="button">Activer cam</button>
                 </div>
-                <p class="muted">Cette caméra peut être placée dans les overlays via le rôle “Cam admin” et apparaît aussi dans la vue des invités.</p>
                 <label id="admin-camera-device-field" class="camera-device-field hidden">Caméra
                   <select id="admin-camera-device"></select>
                 </label>
-                <p id="admin-camera-status" class="message camera-status off">Caméra désactivée.</p>
+                <p id="admin-camera-status" class="message camera-status off">Cam désactivée.</p>
                 <video id="admin-camera-preview" class="guest-camera-preview hidden" autoplay muted playsinline></video>
               </section>
               <p id="camera-config-status" class="message"></p>
@@ -933,10 +920,8 @@ SNK OP1"></textarea></label>
           <section class="workspace-panel hidden broadcast-panel" data-workspace-panel="broadcast">
             <div class="panel-head broadcast-head">
               <div>
-                <p class="eyebrow">Régie live</p>
-                <h2>Centre diffusion</h2>
-                <p class="muted">Tous les liens utiles sont triés par usage : affichages principaux, manches, caméras, scoreboards et outils invités.</p>
-              </div>
+                <h2>Diffusion</h2>
+                </div>
               <a class="btn btn-primary" href="classement.html" target="_blank" rel="noopener">Ouvrir le classement</a>
             </div>
 
@@ -944,27 +929,27 @@ SNK OP1"></textarea></label>
               <article class="subpanel compact-panel broadcast-card broadcast-card-featured">
                 <div class="broadcast-card-head">
                   <div>
-                    <p class="eyebrow">À lancer en premier</p>
-                    <h3>Écrans principaux</h3>
+                    <p class="eyebrow">Principaux</p>
+                    <h3>Écrans</h3>
                   </div>
                   <span class="badge">4 liens</span>
                 </div>
                 <div class="broadcast-link-grid broadcast-link-grid-featured">
                   <a class="broadcast-link" href="classement.html" target="_blank" rel="noopener">
-                    <span class="broadcast-link-title">Classement régie</span>
-                    <span class="broadcast-link-desc">Scoreboard complet administrateur</span>
+                    <span class="broadcast-link-title">Classement</span>
+                    <span class="broadcast-link-desc">Admin</span>
                   </a>
                   <a class="broadcast-link" href="overlay-leaderboard-participants.html" target="_blank" rel="noopener">
-                    <span class="broadcast-link-title">Overlay classement participants</span>
-                    <span class="broadcast-link-desc">Classement joueurs pour OBS</span>
+                    <span class="broadcast-link-title">Classement participants</span>
+                    <span class="broadcast-link-desc">Joueurs</span>
                   </a>
                   <a class="broadcast-link" href="overlay-leaderboard-viewers.html" target="_blank" rel="noopener">
-                    <span class="broadcast-link-title">Overlay classement viewers</span>
-                    <span class="broadcast-link-desc">Classement spectateurs pour OBS</span>
+                    <span class="broadcast-link-title">Classement viewers</span>
+                    <span class="broadcast-link-desc">Viewers</span>
                   </a>
                   <a class="broadcast-link" href="guest.html" target="_blank" rel="noopener">
                     <span class="broadcast-link-title">Vue invité</span>
-                    <span class="broadcast-link-desc">Interface joueur / guest</span>
+                    <span class="broadcast-link-desc">Guest</span>
                   </a>
                 </div>
               </article>
@@ -972,7 +957,7 @@ SNK OP1"></textarea></label>
               <article class="subpanel compact-panel broadcast-card scoreboard-card-live">
                 <div class="broadcast-card-head">
                   <div>
-                    <p class="eyebrow">Aperçu live</p>
+                    <p class="eyebrow">Live</p>
                     <h3>Scoreboard</h3>
                   </div>
                   <a class="btn btn-secondary btn-small" href="classement.html" target="_blank" rel="noopener">Ouvrir</a>
@@ -984,19 +969,19 @@ SNK OP1"></textarea></label>
                 <div class="broadcast-card-head">
                   <div>
                     <p class="eyebrow">Overlays OBS</p>
-                    <h3>Manches de jeu</h3>
+                    <h3>Manches</h3>
                   </div>
                   <span class="badge">7 overlays</span>
                 </div>
                 <div class="broadcast-round-list">
-                  <a class="broadcast-round-link" href="overlay-round1.html" target="_blank" rel="noopener"><strong>Manche 1</strong><span>Overlay questions / réponses</span></a>
+                  <a class="broadcast-round-link" href="overlay-round1.html" target="_blank" rel="noopener"><strong>Manche 1</strong><span>Questions</span></a>
                   <a class="broadcast-round-link" href="overlay-round2.html" target="_blank" rel="noopener"><strong>Manche 2</strong><span>Overlay image</span></a>
-                  <a class="broadcast-round-link" href="overlay-round3.html" target="_blank" rel="noopener"><strong>Manche 3</strong><span>Overlay thème + question</span></a>
-                  <a class="broadcast-round-link" href="timer-overlay-round3.html" target="_blank" rel="noopener"><strong>Timer M3</strong><span>Chronomètre manche 3</span></a>
-                  <a class="broadcast-round-link" href="theme-orverlay.html" target="_blank" rel="noopener"><strong>Thèmes M3</strong><span>Overlay des 12 thèmes</span></a>
-                  <a class="broadcast-round-link" href="overlay-round4.html" target="_blank" rel="noopener"><strong>Manche 4</strong><span>Overlay question blindtest</span></a>
-                  <a class="broadcast-round-link" href="overlay-round5.html" target="_blank" rel="noopener"><strong>Manche 5</strong><span>Overlay Mort Subite</span></a>
-                  <a class="broadcast-round-link" href="overlay-round6.html" target="_blank" rel="noopener"><strong>Manche 6</strong><span>Overlay duel final</span></a>
+                  <a class="broadcast-round-link" href="overlay-round3.html" target="_blank" rel="noopener"><strong>Manche 3</strong><span>Thème + question</span></a>
+                  <a class="broadcast-round-link" href="timer-overlay-round3.html" target="_blank" rel="noopener"><strong>Timer M3</strong><span>Timer M3</span></a>
+                  <a class="broadcast-round-link" href="theme-orverlay.html" target="_blank" rel="noopener"><strong>Thèmes M3</strong><span>Thèmes</span></a>
+                  <a class="broadcast-round-link" href="overlay-round4.html" target="_blank" rel="noopener"><strong>Manche 4</strong><span>Blindtest</span></a>
+                  <a class="broadcast-round-link" href="overlay-round5.html" target="_blank" rel="noopener"><strong>Manche 5</strong><span>Mort Subite</span></a>
+                  <a class="broadcast-round-link" href="overlay-round6.html" target="_blank" rel="noopener"><strong>Manche 6</strong><span>Duel final</span></a>
                 </div>
               </article>
 
@@ -1004,7 +989,7 @@ SNK OP1"></textarea></label>
                 <div class="broadcast-card-head">
                   <div>
                     <p class="eyebrow">Caméras OBS</p>
-                    <h3>Overlays caméra par manche</h3>
+                    <h3>Caméras</h3>
                   </div>
                   <span class="badge">6 caméras</span>
                 </div>
@@ -1022,17 +1007,17 @@ SNK OP1"></textarea></label>
                 <div class="broadcast-card-head">
                   <div>
                     <p class="eyebrow">Invités</p>
-                    <h3>Accès joueurs</h3>
+                    <h3>Invités</h3>
                   </div>
                 </div>
                 <div class="broadcast-link-grid">
                   <a class="broadcast-link" href="guest.html" target="_blank" rel="noopener">
                     <span class="broadcast-link-title">Vue invité</span>
-                    <span class="broadcast-link-desc">Connexion et contrôles participants</span>
+                    <span class="broadcast-link-desc">Participants</span>
                   </a>
                   <a class="broadcast-link" href="buzzer.html" target="_blank" rel="noopener">
                     <span class="broadcast-link-title">Buzzer</span>
-                    <span class="broadcast-link-desc">Page buzzer rapide</span>
+                    <span class="broadcast-link-desc">Buzzer</span>
                   </a>
                 </div>
               </article>
@@ -1041,17 +1026,17 @@ SNK OP1"></textarea></label>
                 <div class="broadcast-card-head">
                   <div>
                     <p class="eyebrow">Scoreboards OBS</p>
-                    <h3>Classements publics</h3>
+                    <h3>Classements</h3>
                   </div>
                 </div>
                 <div class="broadcast-link-grid">
                   <a class="broadcast-link" href="overlay-leaderboard-participants.html" target="_blank" rel="noopener">
                     <span class="broadcast-link-title">Participants</span>
-                    <span class="broadcast-link-desc">Overlay dédié aux joueurs</span>
+                    <span class="broadcast-link-desc">Joueurs</span>
                   </a>
                   <a class="broadcast-link" href="overlay-leaderboard-viewers.html" target="_blank" rel="noopener">
                     <span class="broadcast-link-title">Viewers</span>
-                    <span class="broadcast-link-desc">Overlay dédié aux spectateurs</span>
+                    <span class="broadcast-link-desc">Viewers</span>
                   </a>
                 </div>
               </article>

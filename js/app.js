@@ -1525,7 +1525,7 @@ function renderRound2Questions() {
 function selectRound2Question(questionId) {
   selectedManche2QuestionId = questionId;
   const item = questionId ? manche2Questions?.[questionId] : null;
-  if (m2EditorMode) m2EditorMode.textContent = item ? `Édition • Q${item.order || "?"} • image remplaçable` : "Mode création";
+  if (m2EditorMode) m2EditorMode.textContent = item ? `Édition • Q${item.order || "?"}` : "";
   if (m2WorkInput) m2WorkInput.value = item?.work || "";
   if (m2LocationInput) m2LocationInput.value = item?.location || "";
   if (m2QuestionTextInput) m2QuestionTextInput.value = item?.questionText || "";
@@ -1726,7 +1726,7 @@ function renderRound3Themes() {
   const entries = Object.entries(manche3Themes || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
   m3ThemeList.innerHTML = "";
   if (!entries.length) {
-    m3ThemeList.innerHTML = "<li class='empty-state'>Ajoutez un thème.</li>";
+    m3ThemeList.innerHTML = "<li class='empty-state'>Aucun thème.</li>";
     return;
   }
 
