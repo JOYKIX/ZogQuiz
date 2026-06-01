@@ -1045,6 +1045,7 @@ async function resetCompleteQuiz() {
       currentAnswer: "",
       currentQuestionId: null,
       questionDeck: [],
+      questionBank: [],
       questionDrawnIds: [],
       answers: { participant: "", viewer: "" },
       winner: null,

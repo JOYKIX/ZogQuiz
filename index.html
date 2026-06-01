@@ -815,7 +815,7 @@ SNK OP1"></textarea></label>
                     <button class="btn btn-secondary m6-next-question" type="button">Question suivante</button>
                     <button id="m6-switch" class="btn btn-primary" type="button">Switch</button>
                     <button id="m6-pause" class="btn btn-secondary" type="button">Pause</button>
-                    <button id="m6-reset" class="btn btn-danger" type="button">Reset</button>
+                    <button id="m6-reset" class="btn btn-danger" type="button">Stop / reset</button>
                   </div>
                   <div class="m6-duel-grid">
                     <article id="m6-admin-card-participant" class="m6-player-card">
@@ -845,7 +845,7 @@ SNK OP1"></textarea></label>
               <section class="round-section hidden" data-round-section-panel="manche6:questions">
                 <article class="subpanel compact-panel stack">
                   <h3>Banque questions / réponses</h3>
-                  <p class="muted">Ajoutez chaque question de la manche 6 individuellement avec sa réponse. Vous pouvez relire, modifier ou supprimer chaque entrée avant le duel. Le bouton Question suivante tire aléatoirement parmi les questions non sorties, puis relance la pioche quand toute la banque a été utilisée.</p>
+                  <p class="muted">Ajoutez chaque question de la manche 6 individuellement avec sa réponse. La banque est stockée en base de données séparément de l’état de la manche : elle reste disponible après un stop/reset. Le bouton Question suivante tire aléatoirement parmi les questions disponibles, puis relance la pioche quand toute la banque a été utilisée.</p>
                   <div class="m6-question-builder">
                     <label>Nouvelle question<textarea id="m6-new-question-input" rows="3" placeholder="Capitale de l’Australie ?"></textarea></label>
                     <label>Réponse attendue<textarea id="m6-new-answer-input" rows="3" placeholder="Canberra"></textarea></label>
