@@ -248,7 +248,7 @@ function createRenderer({ prefix }) {
       const { deck, drawnIds } = getQuestionAvailability(normalizedState);
       els.questionCount.textContent = `${drawnIds.length}/${deck.length} tirées`;
     }
-    if (els.winner) els.winner.textContent = winner ? (winner === "draw" ? "Égalité" : `Vainqueur : ${normalizedState.players?.[winner]?.name || winner}`) : "Premier chrono à zéro perd la finale.";
+    if (els.winner) els.winner.textContent = winner ? (winner === "draw" ? "Égalité" : `Vainqueur : ${normalizedState.players?.[winner]?.name || winner}`) : "Chrono à zéro = défaite.";
     ["participant", "viewer"].forEach((key) => {
       const card = $(`card-${key}`);
       card?.classList.toggle("is-active", normalizedState.activePlayer === key && normalizedState.status === "running" && !winner);

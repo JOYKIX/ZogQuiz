@@ -164,7 +164,7 @@ function renderLivePanels(state) {
 
   const sessionKey = computeSessionKey(state.liveState);
   if (!sessionKey) {
-    status.textContent = "Aucune question viewers active.";
+    status.textContent = "Aucune question active.";
     winnersNode.innerHTML = "<li class='empty-state'>Aucun gagnant.</li>";
     attemptsNode.innerHTML = "<li class='empty-state'>Aucune tentative.</li>";
     return;
@@ -192,7 +192,7 @@ function renderQuestionList(round, cfg, state, options) {
   const entries = Object.entries(state.questions[round] || {}).sort((a, b) => Number(a[1].createdAt || 0) - Number(b[1].createdAt || 0));
   list.innerHTML = "";
   if (!entries.length) {
-    list.innerHTML = "<li class='empty-state'>Aucune question viewers.</li>";
+    list.innerHTML = "<li class='empty-state'>Aucune question.</li>";
   }
 
   entries.forEach(([id, question], index) => {
@@ -311,7 +311,7 @@ function renderQuestionList(round, cfg, state, options) {
       liveLabel.textContent = `Question viewers active (${formatRoundLabel(round)})${timerLabel}`;
       liveLabel.classList.add("success");
     } else {
-      liveLabel.textContent = "Aucune question viewers active.";
+      liveLabel.textContent = "Aucune question active.";
       liveLabel.classList.remove("success");
     }
   }

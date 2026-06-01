@@ -138,28 +138,22 @@ function renderSlot(roundKey, camera, index) {
 
 function renderRound(roundKey, index) {
   const config = configs[roundKey] || normalizeCameraConfig({});
-  const round5DuelHelp = roundKey === "round5"
-    ? `<p class="muted compact-help">Manche 5 : le rôle “Duel attaquant” suit l’attaquant du duel et “Duel cible” suit la cible sélectionnée. Les mêmes deux invités gardent leur accès au buzzer de duel côté guest.</p>`
-    : "";
   return `
     <article class="camera-config-card subpanel compact-panel" data-camera-round="${roundKey}">
       <div class="panel-head compact-head">
         <div>
           <p class="eyebrow">${LABELS[roundKey]}</p>
-          <h3>Config cam par manche ${index + 1}</h3>
+          <h3>Cam M${index + 1}</h3>
         </div>
         <label class="toggle-line"><input id="${fieldId(roundKey, "enabled")}" type="checkbox" ${config.enabled ? "checked" : ""} /> Afficher</label>
       </div>
       <div class="camera-config-grid camera-round-settings">
-        <label>Nombre de caméras <input id="${fieldId(roundKey, "cameraCount")}" type="number" min="0" max="12" step="1" value="${config.cameraCount}" /></label>
-        <label class="toggle-line"><input id="${fieldId(roundKey, "preview")}" type="checkbox" ${config.preview ? "checked" : ""} /> Prévisualiser les emplacements</label>
+        <label>Cams <input id="${fieldId(roundKey, "cameraCount")}" type="number" min="0" max="12" step="1" value="${config.cameraCount}" /></label>
+        <label class="toggle-line"><input id="${fieldId(roundKey, "preview")}" type="checkbox" ${config.preview ? "checked" : ""} /> Preview</label>
       </div>
-      <p class="muted compact-help">Active la prévisualisation pour afficher dans l’overlay des rectangles noirs à la taille, position, arrondi et profondeur de chaque cam, avec son rôle / sa correspondance.</p>
-      <p class="muted compact-help">Chaque cam a sa position, taille, arrondi, profondeur et correspondance. Une assignation à un participant du quiz réserve le slot à ce participant dès que sa caméra est active. Sans assignation, les invités connectés remplissent les slots dans l’ordre.</p>
-      ${round5DuelHelp}
       <div class="camera-slot-list">${config.cameras.map((camera, slotIndex) => renderSlot(roundKey, camera, slotIndex)).join("")}</div>
       <div class="row">
-        <a class="btn btn-secondary" href="cam-overlay-${roundKey}.html" target="_blank" rel="noopener">Ouvrir overlay caméra</a>
+        <a class="btn btn-secondary" href="cam-overlay-${roundKey}.html" target="_blank" rel="noopener">Overlay caméra</a>
       </div>
     </article>
   `;
@@ -247,7 +241,7 @@ function saveRound(roundKey) {
         configs[roundKey] = next;
         localSaveEchoUntil[roundKey] = Date.now() + 1200;
         await update(ref(db, `${CAMERA_CONFIGS_PATH}/${roundKey}`), { ...next, updatedAt: Date.now(), updatedBy: "admin" });
-        setStatus("Configuration caméras sauvegardée en temps réel.", "success");
+        setStatus("Caméras sauvegardées.", "success");
         if (previousCount !== next.cameraCount) render();
         resolve();
       } catch (error) {
