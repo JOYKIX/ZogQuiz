@@ -1,6 +1,7 @@
 import { db, ref, onValue, set, update, runTransaction } from "./firebase.js";
 
 const ROUND6_PATH = "rooms/manche6/state";
+const ROUND6_QUESTIONS_PATH = "rooms/manche6/questionBank";
 const ROUND5_PATH = "rounds/round5";
 const VIEWERS_PATH = "rooms/manche1/viewerLeaderboard";
 const DEFAULT_DURATION_MS = 60_000;
@@ -35,6 +36,7 @@ const defaultRound6 = {
   currentAnswer: "",
   currentQuestionId: null,
   questionDeck: [],
+  questionBank: [],
   questionDrawnIds: [],
   answers: {
     participant: "",
@@ -64,14 +66,16 @@ function normalizeRound6(value) {
     currentAnswer: value?.currentAnswer ?? value?.answer ?? "",
     currentQuestionId: value?.currentQuestionId ?? null,
     questionDeck: normalizeQuestionDeck(value?.questionDeck),
+    questionBank: normalizeQuestionDeck(value?.questionBank || value?.questionDeck),
     questionDrawnIds: Array.isArray(value?.questionDrawnIds) ? value.questionDrawnIds.map((id) => String(id)) : [],
     answers: { ...defaultRound6.answers, ...(value?.answers || {}) },
   };
 }
 
 function normalizeQuestionDeck(deck) {
-  if (!Array.isArray(deck)) return [];
-  return deck
+  const entries = Array.isArray(deck) ? deck : Object.values(deck || {});
+  if (!entries.length) return [];
+  return entries
     .map((item, index) => {
       const question = String(item?.question ?? "").trim();
       const answer = String(item?.answer ?? "").trim();
@@ -86,10 +90,27 @@ function createQuestionId() {
   return `q${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function pickRandomQuestion(state) {
-  const deck = normalizeQuestionDeck(state?.questionDeck);
+function getQuestionBank(state, fallbackDeck = []) {
+  const savedBank = normalizeQuestionDeck(state?.questionBank);
+  if (savedBank.length) return savedBank;
+  const fallbackBank = normalizeQuestionDeck(fallbackDeck);
+  if (fallbackBank.length) return fallbackBank;
+  return normalizeQuestionDeck(state?.questionDeck);
+}
+
+function getQuestionAvailability(state, fallbackDeck = []) {
+  const deck = getQuestionBank(state, fallbackDeck);
+  const deckIds = new Set(deck.map((question) => question.id));
+  const drawnIds = (Array.isArray(state?.questionDrawnIds) ? state.questionDrawnIds : [])
+    .map((id) => String(id))
+    .filter((id) => deckIds.has(id));
+  return { deck, drawnIds };
+}
+
+function pickRandomQuestion(state, fallbackDeck = []) {
+  const { deck, drawnIds } = getQuestionAvailability(state, fallbackDeck);
   if (!deck.length) return null;
-  const drawn = new Set((Array.isArray(state?.questionDrawnIds) ? state.questionDrawnIds : []).map((id) => String(id)));
+  const drawn = new Set(drawnIds);
   let available = deck.filter((item) => !drawn.has(item.id));
   const shouldResetDraw = available.length === 0;
   if (shouldResetDraw) available = deck;
@@ -161,7 +182,7 @@ function getTopViewer(viewers) {
   };
 }
 
-function buildInitialState({ round5, viewers, durationSeconds, currentState }) {
+function buildInitialState({ round5, viewers, durationSeconds, currentState, questionBank = [] }) {
   const durationMs = Math.max(1, Number(durationSeconds || 60)) * 1000;
   return {
     ...defaultRound6,
@@ -178,8 +199,9 @@ function buildInitialState({ round5, viewers, durationSeconds, currentState }) {
     currentQuestion: currentState?.currentQuestion || "",
     currentAnswer: currentState?.currentAnswer || "",
     currentQuestionId: currentState?.currentQuestionId || null,
-    questionDeck: normalizeQuestionDeck(currentState?.questionDeck),
-    questionDrawnIds: Array.isArray(currentState?.questionDrawnIds) ? currentState.questionDrawnIds : [],
+    questionDeck: getQuestionBank(currentState, questionBank),
+    questionBank: getQuestionBank(currentState, questionBank),
+    questionDrawnIds: [],
     answers: currentState?.answers || { participant: "", viewer: "" },
     phase: "ready",
     status: "idle",
@@ -223,8 +245,8 @@ function createRenderer({ prefix }) {
     if (els.answerViewer) els.answerViewer.textContent = normalizedState.answers?.viewer || "—";
     if (els.currentAnswer) els.currentAnswer.textContent = currentAnswer;
     if (els.questionCount) {
-      const drawnCount = Math.min(normalizedState.questionDrawnIds.length, normalizedState.questionDeck.length);
-      els.questionCount.textContent = `${drawnCount}/${normalizedState.questionDeck.length} tirées`;
+      const { deck, drawnIds } = getQuestionAvailability(normalizedState);
+      els.questionCount.textContent = `${drawnIds.length}/${deck.length} tirées`;
     }
     if (els.winner) els.winner.textContent = winner ? (winner === "draw" ? "Égalité" : `Vainqueur : ${normalizedState.players?.[winner]?.name || winner}`) : "Premier chrono à zéro perd la finale.";
     ["participant", "viewer"].forEach((key) => {
@@ -241,6 +263,8 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   if (!document.getElementById("m6-admin")) return;
   const $ = (id) => document.getElementById(id);
   let state = defaultRound6;
+  let questionBank = [];
+  let questionBankLoaded = false;
   let round5 = null;
   let viewers = {};
   let ticker = null;
@@ -261,14 +285,15 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   }
 
   function getQuestionStatus(question) {
+    const { drawnIds } = getQuestionAvailability(state, questionBank);
     if (question.id === state.currentQuestionId) return "Affichée";
-    if (state.questionDrawnIds.includes(question.id)) return "Déjà tirée";
+    if (drawnIds.includes(question.id)) return "Déjà tirée";
     return "Disponible";
   }
 
   function renderQuestionDeckEditor() {
     if (!questionDeckList || isQuestionDeckEditorActive()) return;
-    const deck = normalizeQuestionDeck(state.questionDeck);
+    const deck = getQuestionBank(state, questionBank);
     questionDeckList.innerHTML = "";
     questionDeckEmpty?.classList.toggle("hidden", deck.length > 0);
     deck.forEach((question, index) => {
@@ -321,7 +346,7 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   }
 
   function collectQuestionDeckFromEditor() {
-    if (!questionDeckList) return normalizeQuestionDeck(state.questionDeck);
+    if (!questionDeckList) return getQuestionBank(state, questionBank);
     return [...questionDeckList.querySelectorAll(".m6-question-item")]
       .map((item) => {
         const question = item.querySelector(".m6-deck-question-input")?.value.trim() || "";
@@ -332,16 +357,20 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
       .filter((item) => item?.question);
   }
 
-  function sanitizeDrawnIds(questionDeck) {
+  function sanitizeDrawnIds(questionDeck, drawnIds = state.questionDrawnIds) {
     const availableIds = new Set(questionDeck.map((question) => question.id));
-    return state.questionDrawnIds.filter((id) => availableIds.has(id));
+    return drawnIds.filter((id) => availableIds.has(id));
   }
 
   async function saveQuestionDeck(questionDeck, extraPatch = {}) {
     const normalizedDeck = normalizeQuestionDeck(questionDeck);
+    questionBank = normalizedDeck;
+    questionBankLoaded = true;
     const currentDeckQuestion = normalizedDeck.find((question) => question.id === state.currentQuestionId);
+    await set(ref(db, ROUND6_QUESTIONS_PATH), normalizedDeck);
     await savePatch({
       questionDeck: normalizedDeck,
+      questionBank: normalizedDeck,
       questionDrawnIds: sanitizeDrawnIds(normalizedDeck),
       ...(currentDeckQuestion ? { currentQuestion: currentDeckQuestion.question, currentAnswer: currentDeckQuestion.answer } : {}),
       ...extraPatch,
@@ -380,8 +409,34 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
 
   onValue(ref(db, ROUND6_PATH), (snap) => {
     state = normalizeRound6(snap.val());
+    if (questionBankLoaded) {
+      state.questionDeck = questionBank;
+      state.questionBank = questionBank;
+    } else if (state.questionDeck.length) {
+      questionBank = state.questionDeck;
+      questionBankLoaded = true;
+      set(ref(db, ROUND6_QUESTIONS_PATH), questionBank);
+    }
     render();
     startTicker();
+  });
+  onValue(ref(db, ROUND6_QUESTIONS_PATH), (snap) => {
+    questionBank = normalizeQuestionDeck(snap.val());
+    questionBankLoaded = true;
+    const nextDrawnIds = sanitizeDrawnIds(questionBank);
+    const needsStateSync = JSON.stringify(state.questionBank || state.questionDeck || []) !== JSON.stringify(questionBank)
+      || JSON.stringify(state.questionDrawnIds || []) !== JSON.stringify(nextDrawnIds);
+    state = normalizeRound6({ ...state, questionDeck: questionBank, questionBank, questionDrawnIds: nextDrawnIds });
+    if (needsStateSync) {
+      update(ref(db, ROUND6_PATH), {
+        questionDeck: questionBank,
+        questionBank,
+        questionDrawnIds: nextDrawnIds,
+        updatedAt: Date.now(),
+        updatedBy: getCurrentAdminId?.() || "admin",
+      });
+    }
+    render();
   });
   onValue(ref(db, ROUND5_PATH), (snap) => { round5 = snap.val() || {}; });
   onValue(ref(db, VIEWERS_PATH), (snap) => { viewers = snap.val() || {}; });
@@ -391,7 +446,7 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   }
 
   $("m6-init")?.addEventListener("click", async () => {
-    const initial = buildInitialState({ round5, viewers, durationSeconds: Number(durationInput?.value || 60), currentState: state });
+    const initial = buildInitialState({ round5, viewers, durationSeconds: Number(durationInput?.value || 60), currentState: state, questionBank });
     await set(ref(db, ROUND6_PATH), { ...initial, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
     showToast?.("Manche 6 initialisée");
   });
@@ -429,8 +484,22 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
 
   $("m6-reset")?.addEventListener("click", async () => {
     const durationMs = Math.max(1, Number(durationInput?.value || 60)) * 1000;
-    await set(ref(db, ROUND6_PATH), { ...defaultRound6, durationMs, timers: { participant: { remainingMs: durationMs }, viewer: { remainingMs: durationMs } }, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
-    showToast?.("Manche 6 réinitialisée");
+    const editorQuestionBank = collectQuestionDeckFromEditor();
+    const savedQuestionBank = editorQuestionBank.length ? editorQuestionBank : getQuestionBank(state, questionBank);
+    await set(ref(db, ROUND6_QUESTIONS_PATH), savedQuestionBank);
+    questionBank = savedQuestionBank;
+    questionBankLoaded = true;
+    await set(ref(db, ROUND6_PATH), {
+      ...defaultRound6,
+      durationMs,
+      timers: { participant: { remainingMs: durationMs }, viewer: { remainingMs: durationMs } },
+      questionDeck: savedQuestionBank,
+      questionBank: savedQuestionBank,
+      questionDrawnIds: [],
+      updatedAt: Date.now(),
+      updatedBy: getCurrentAdminId?.() || "admin",
+    });
+    showToast?.("Manche 6 stoppée : questions remises disponibles");
   });
 
   $("m6-add-question")?.addEventListener("click", async () => {
@@ -473,15 +542,20 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   document.querySelectorAll(".m6-next-question").forEach((button) => {
     button.addEventListener("click", async () => {
       const deckFromEditor = collectQuestionDeckFromEditor();
+      const deckToDrawFrom = deckFromEditor.length ? deckFromEditor : getQuestionBank(state, questionBank);
+      questionBank = deckToDrawFrom;
+      questionBankLoaded = true;
+      await set(ref(db, ROUND6_QUESTIONS_PATH), deckToDrawFrom);
       await runTransaction(ref(db, ROUND6_PATH), (curr) => {
         const s = normalizeRound6(curr);
-        const questionDeck = deckFromEditor.length ? deckFromEditor : s.questionDeck;
+        const questionDeck = deckToDrawFrom.length ? deckToDrawFrom : getQuestionBank(s, questionBank);
         const filteredDrawnIds = s.questionDrawnIds.filter((id) => questionDeck.some((question) => question.id === id));
-        const draw = pickRandomQuestion({ ...s, questionDeck, questionDrawnIds: filteredDrawnIds });
-        if (!draw) return { ...s, questionDeck, questionDrawnIds: filteredDrawnIds, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" };
+        const draw = pickRandomQuestion({ ...s, questionDeck, questionBank: questionDeck, questionDrawnIds: filteredDrawnIds }, questionDeck);
+        if (!draw) return { ...s, questionDeck, questionBank: questionDeck, questionDrawnIds: filteredDrawnIds, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" };
         return {
           ...s,
           questionDeck,
+          questionBank: questionDeck,
           currentQuestion: draw.picked.question,
           currentAnswer: draw.picked.answer,
           currentQuestionId: draw.picked.id,

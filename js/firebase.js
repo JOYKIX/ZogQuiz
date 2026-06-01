@@ -171,6 +171,7 @@ export async function ensureRoundsSeed(uid) {
       currentAnswer: "",
       currentQuestionId: null,
       questionDeck: [],
+      questionBank: [],
       questionDrawnIds: [],
       answers: { participant: "", viewer: "" },
       winner: null,
