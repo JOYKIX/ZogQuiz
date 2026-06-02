@@ -1,6 +1,5 @@
 import { db, ref, onValue } from "./firebase.js";
 import { watchOverlayConfig } from "./overlay-config.js";
-import { autoFitText } from "./auto-fit-text.js";
 import { formatTimer } from "./timer-format.js";
 
 const ROUND3_DURATION_MS = 90_000;
@@ -18,7 +17,6 @@ const segmentsNode = document.getElementById("m3-timer-segments");
 let state = null;
 let overlayConfig = null;
 let ticker = 0;
-let rafId = 0;
 let roundDurationMs = ROUND3_DURATION_MS;
 let renderedSegmentCount = 0;
 
@@ -129,31 +127,10 @@ function applyOverlayConfig() {
   rootNode.style.justifyItems = overlayConfig.align === "left" ? "start" : overlayConfig.align === "right" ? "end" : "center";
   timerShellNode.style.setProperty("--timer-color", overlayConfig.timerColor);
   timerShellNode.style.setProperty("--timer-size", `${shellSizePx}px`);
-  timerShellNode.style.setProperty("--timer-font-size", `${overlayConfig.timerFontSizePx}px`);
+  timerShellNode.style.setProperty("--timer-font-size", `clamp(2rem, 16vmin, ${overlayConfig.timerFontSizePx}px)`);
   timerNode.style.color = overlayConfig.timerColor;
   timerNode.style.fontWeight = String(overlayConfig.fontWeight);
   timerNode.style.textAlign = overlayConfig.align;
-}
-
-function runAutoFit() {
-  if (!overlayConfig || !timerShellNode || !timerNode) return;
-  autoFitText({
-    container: timerShellNode,
-    textElement: timerNode,
-    minFontSizePx: 20,
-    maxFontSizePx: overlayConfig.timerFontSizePx,
-    paddingPx: Math.max(12, overlayConfig.timerFontSizePx * 0.3),
-    lineHeight: overlayConfig.lineHeight,
-    maxWidthPx: overlayConfig.maxWidthPx,
-  });
-}
-
-function scheduleAutoFit() {
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(() => {
-    rafId = 0;
-    runAutoFit();
-  });
 }
 
 function render() {
@@ -161,7 +138,6 @@ function render() {
   timerNode.textContent = formatTimer(remainingMs(), overlayConfig?.timerFormat);
   renderSegments();
   applyOverlayConfig();
-  scheduleAutoFit();
 }
 
 function startTicker() {
@@ -181,11 +157,3 @@ watchOverlayConfig("round3Timer", (config) => {
   render();
 });
 
-if (window.ResizeObserver && rootNode) {
-  new ResizeObserver(() => scheduleAutoFit()).observe(rootNode);
-}
-if (window.ResizeObserver && timerShellNode) {
-  new ResizeObserver(() => scheduleAutoFit()).observe(timerShellNode);
-}
-window.addEventListener("resize", scheduleAutoFit);
-document.fonts?.ready?.then(() => scheduleAutoFit());
