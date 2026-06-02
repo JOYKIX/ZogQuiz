@@ -178,6 +178,9 @@ code { color: #dfe5ff; padding: .15rem .42rem; border-radius: 7px; background: r
 .panel, .subpanel, .card, .scoreboard-card { padding: clamp(1.1rem, 2vw, 1.55rem); }
 .subpanel, .compact-panel { background: linear-gradient(180deg, rgba(24, 35, 67, .8), rgba(13, 18, 36, .72)); }
 .panel:hover, .subpanel:hover, .stat-card:hover { border-color: var(--line-strong); }
+.scoreboard-card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.scoreboard-card-head h2 { margin-bottom: 0; }
+.scoreboard-card-head .btn { flex: 0 0 auto; }
 .auth-layout { min-height: calc(100vh - var(--topbar-h) - 5rem); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(330px, .65fr); gap: var(--space-6); align-items: center; }
 .auth-intro { padding: clamp(2rem, 5vw, 4rem); background: radial-gradient(circle at 20% 10%, rgba(124,92,255,.35), transparent 32rem), linear-gradient(145deg, rgba(24,35,67,.9), rgba(10,15,31,.78)); }
 .auth-card { padding: var(--space-6); }
@@ -372,6 +375,7 @@ body.modal-open { overflow: hidden; }
   .app-shell, .guest-shell { padding: .85rem; }
   .app-topbar { margin: .85rem; border-radius: 20px; }
   .header-status-grid, .two-col, .scoreboard-grid, .m5-guest-grid, .m6-duel-grid, .m5-guest-status-grid { grid-template-columns: 1fr; }
+  .scoreboard-card-head { align-items: stretch; flex-direction: column; }
   .stats-grid { grid-template-columns: 1fr; }
   .panel, .subpanel, .workspace-panel, .card { padding: 1rem; border-radius: 20px; }
   .btn { width: 100%; }

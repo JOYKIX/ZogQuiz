@@ -1,7 +1,10 @@
-import { db, ref, onValue } from "./firebase.js";
+import { db, ref, onValue, remove } from "./firebase.js";
 
 const participantsLeaderboard = document.getElementById("participants-leaderboard");
 const viewersLeaderboard = document.getElementById("viewers-leaderboard");
+const resetViewersLeaderboardButton = document.getElementById("reset-viewers-leaderboard");
+const viewersResetStatus = document.getElementById("viewers-reset-status");
+const viewersLeaderboardRef = ref(db, "rooms/manche1/viewerLeaderboard");
 
 function renderLeaderboard(container, entries, emptyMessage, labelBuilder) {
   container.innerHTML = "";
@@ -51,7 +54,7 @@ onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
   );
 });
 
-onValue(ref(db, "rooms/manche1/viewerLeaderboard"), (snap) => {
+onValue(viewersLeaderboardRef, (snap) => {
   const entries = Object.values(snap.val() || {})
     .map((viewer) => ({
       twitchUser: viewer.twitchUser || "viewer",
@@ -60,10 +63,35 @@ onValue(ref(db, "rooms/manche1/viewerLeaderboard"), (snap) => {
     }))
     .sort((a, b) => b.score - a.score || b.lastWinAt - a.lastWinAt);
 
+  if (resetViewersLeaderboardButton) resetViewersLeaderboardButton.disabled = entries.length === 0;
+
   renderLeaderboard(
     viewersLeaderboard,
     entries,
     "Aucun viewer classé pour le moment.",
     (entry) => ({ name: entry.twitchUser, score: entry.score }),
   );
+});
+
+function setViewersResetStatus(message, type = "") {
+  if (!viewersResetStatus) return;
+  viewersResetStatus.textContent = message;
+  viewersResetStatus.className = `message${type ? ` ${type}` : ""}`;
+}
+
+resetViewersLeaderboardButton?.addEventListener("click", async () => {
+  const confirmed = window.confirm("Supprimer tous les viewers du classement et remettre le leaderboard à zéro ?");
+  if (!confirmed) return;
+
+  resetViewersLeaderboardButton.disabled = true;
+  setViewersResetStatus("Réinitialisation du classement viewers...", "loading");
+
+  try {
+    await remove(viewersLeaderboardRef);
+    setViewersResetStatus("Classement viewers remis à zéro.", "success");
+  } catch (error) {
+    console.error("Impossible de réinitialiser le classement viewers", error);
+    setViewersResetStatus("Erreur pendant la remise à zéro du classement viewers.", "error");
+    resetViewersLeaderboardButton.disabled = false;
+  }
 });
