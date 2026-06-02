@@ -1,4 +1,5 @@
 import { db, ref, onValue, remove } from "./firebase.js";
+import { showConfirm } from "./modal.js";
 
 const participantsLeaderboard = document.getElementById("participants-leaderboard");
 const viewersLeaderboard = document.getElementById("viewers-leaderboard");
@@ -80,7 +81,10 @@ function setViewersResetStatus(message, type = "") {
 }
 
 resetViewersLeaderboardButton?.addEventListener("click", async () => {
-  const confirmed = window.confirm("Supprimer tous les viewers du classement et remettre le leaderboard à zéro ?");
+  const confirmed = await showConfirm("Supprimer tous les viewers du classement et remettre le leaderboard à zéro ?", {
+    title: "Reset viewers",
+    confirmText: "Réinitialiser",
+  });
   if (!confirmed) return;
 
   resetViewersLeaderboardButton.disabled = true;

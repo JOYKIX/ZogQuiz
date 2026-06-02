@@ -30,6 +30,12 @@ function queueModal(renderer) {
   return modalQueue;
 }
 
+function getModalKicker(kind) {
+  if (kind === "prompt") return "Paramètre";
+  if (kind === "confirm") return "Action requise";
+  return "Message";
+}
+
 function openModal(config) {
   return queueModal((resolve) => {
     const root = ensureModalRoot();
@@ -41,8 +47,20 @@ function openModal(config) {
 
     const dialog = document.createElement("section");
     dialog.className = "app-modal";
+    dialog.dataset.kind = config.kind || "alert";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
+
+    const chrome = document.createElement("div");
+    chrome.className = "app-modal-chrome";
+    chrome.setAttribute("aria-hidden", "true");
+
+    const header = document.createElement("header");
+    header.className = "app-modal-header";
+
+    const kicker = document.createElement("span");
+    kicker.className = "app-modal-kicker";
+    kicker.textContent = config.kicker || getModalKicker(config.kind);
 
     const titleText = config.title || "Information";
     const title = document.createElement("h3");
@@ -53,13 +71,25 @@ function openModal(config) {
     title.id = titleId;
     dialog.setAttribute("aria-labelledby", titleId);
 
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "app-modal-close";
+    closeBtn.setAttribute("aria-label", "Fermer la fenêtre");
+    closeBtn.textContent = "×";
+    closeBtn.hidden = config.showCloseButton === false;
+
+    const titleGroup = document.createElement("div");
+    titleGroup.className = "app-modal-title-group";
+    titleGroup.append(kicker, title);
+    header.append(titleGroup, closeBtn);
+
     const message = document.createElement("p");
     message.className = "app-modal-message";
     message.textContent = config.message || "";
 
     const body = document.createElement("div");
     body.className = "app-modal-body";
-    body.append(title, message);
+    body.append(header, message);
 
     let input = null;
     if (config.kind === "prompt") {
@@ -97,7 +127,7 @@ function openModal(config) {
       actions.append(cancelBtn, confirmBtn);
     }
 
-    dialog.append(body, actions);
+    dialog.append(chrome, body, actions);
     overlay.appendChild(dialog);
     root.appendChild(overlay);
     document.body.classList.add("modal-open");
@@ -165,6 +195,11 @@ function openModal(config) {
     cancelBtn.addEventListener("click", () => {
       const fallback = config.kind === "prompt" ? null : false;
       close(fallback);
+    });
+
+    closeBtn.addEventListener("click", () => {
+      const fallback = config.kind === "prompt" ? null : false;
+      close(config.kind === "alert" ? true : fallback);
     });
 
     overlay.addEventListener("mousedown", onOverlayMouseDown);

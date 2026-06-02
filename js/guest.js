@@ -78,6 +78,14 @@ const ROUND1_BUZZES_PATH = "rooms/manche1/buzzes";
 const GUEST_CLIENT_SESSIONS_PATH = "rooms/manche1/guestClientSessions";
 const CLIENT_SESSION_HEARTBEAT_MS = 20000;
 const DEFAULT_BUZZ_KEY = "Space";
+const ROUND_NAMES = {
+  manche1: "Le sprint de Takumi",
+  manche2: "L'Enquête de Conan",
+  manche3: "L'Examen de Koro-Sensei",
+  manche4: "Les musiques de Kōsei",
+  manche5: "Le Grand Terrassement",
+  manche6: "La Guerre au Sommet",
+};
 
 const FRIENDLY_KEY_NAMES = {
   Space: "Espace",
@@ -638,10 +646,18 @@ function normalizeLiveRoundKey(round) {
   return aliases[compact] || raw || "manche1";
 }
 
+function getRoundNumber(round) {
+  const normalized = normalizeLiveRoundKey(round);
+  const match = normalized.match(/manche(\d+)/);
+  return match ? match[1] : String(round || "").replace(/\D+/g, "");
+}
+
 function formatGuestRoundLabel(round) {
   const normalized = normalizeLiveRoundKey(round);
-  if (normalized === "manche6") return "Manche 6";
-  return normalized.replace("manche", "Manche ");
+  const roundNumber = getRoundNumber(normalized);
+  const roundPrefix = `MANCHE${roundNumber ? ` ${roundNumber}` : ""}`;
+  const roundName = ROUND_NAMES[normalized];
+  return roundName ? `${roundPrefix} ${roundName}` : roundPrefix;
 }
 
 function renderByRound() {
