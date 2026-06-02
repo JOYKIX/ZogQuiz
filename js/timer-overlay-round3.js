@@ -107,6 +107,7 @@ function renderSegments() {
   if (!segmentsNode) return;
   const segmentCount = getSegmentCount();
   const activeCount = getActiveSegmentCount();
+  timerShellNode?.classList.toggle("is-low", remainingMs() <= 10_000 && activeCount > 0);
   renderSegmentGeometry(segmentCount);
 
   Array.from(segmentsNode.children).forEach((segment, index) => {

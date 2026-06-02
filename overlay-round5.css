@@ -2,17 +2,21 @@
   color-scheme: dark;
   --font-live: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --m5-health-height: 54px;
-  --m5-health-radius: 12px;
+  --m5-health-radius: 14px;
   --m5-health-max-width: 790px;
   --m5-health-gap: 34px;
   --m5-health-padding: 44px;
-  --m5-health-color: #ffe600;
-  --m5-health-danger-color: #ff7a00;
+  --m5-health-color: #8cf5dc;
+  --m5-health-danger-color: #ffb84d;
   --m5-text-color: #ffffff;
   --m5-name-font-size: 38px;
   --m5-hp-font-size: 44px;
   --m5-frame-opacity: 0.92;
   --m5-dimmed-opacity: 0.34;
+  --m5-ink: #10233f;
+  --m5-cyan: #16b8c8;
+  --m5-yellow: #ffd35f;
+  --m5-orange: #ff6b16;
 }
 
 * { box-sizing: border-box; }
@@ -25,7 +29,7 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
   height: 100vh;
   padding: var(--m5-health-padding);
   background: transparent;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 1px 2px #000;
+  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.72), 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 .m5o-hud {
@@ -38,26 +42,43 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 }
 
 .m5o-fighter {
+  --m5-side-color: var(--m5-yellow);
   min-width: 0;
   opacity: 1;
-  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.55));
-  transition: opacity 180ms ease;
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5));
+  transition: opacity 180ms ease, filter 180ms ease;
 }
 
+.m5o-fighter-right { --m5-side-color: var(--m5-cyan); }
 .m5o-fighter.is-empty { opacity: var(--m5-dimmed-opacity); }
-.m5o-fighter.is-dead .m5o-health-bar { filter: grayscale(0.65) brightness(0.72); }
+.m5o-fighter.is-wounded { --m5-side-color: var(--m5-health-danger-color); }
+.m5o-fighter.is-danger { filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 14px rgba(255, 107, 22, 0.42)); }
+.m5o-fighter.is-dead .m5o-health-bar { filter: grayscale(0.7) brightness(0.65); }
 
 .m5o-fighter-meta {
+  position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 22px;
-  margin: 0 18px 12px;
+  margin: 0 24px 14px;
   color: var(--m5-text-color);
   text-transform: uppercase;
 }
 
+.m5o-fighter-meta::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 -8px 0;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--m5-side-color), rgba(255, 255, 255, 0));
+  transform: skew(-24deg);
+  opacity: 0.92;
+}
+
 .m5o-fighter-right .m5o-fighter-meta { flex-direction: row-reverse; text-align: right; }
+.m5o-fighter-right .m5o-fighter-meta::before { background: linear-gradient(270deg, var(--m5-side-color), rgba(255, 255, 255, 0)); }
 
 .m5o-fighter-name {
   min-width: 0;
@@ -67,16 +88,24 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
   font-size: var(--m5-name-font-size);
   font-weight: 950;
   letter-spacing: -0.045em;
+  transform: skew(-5deg);
+  -webkit-text-stroke: 1px rgba(16, 35, 63, 0.82);
 }
 
 .m5o-fighter-hp {
   flex: 0 0 auto;
+  padding: 0.03em 0.2em 0.06em;
   font-size: var(--m5-hp-font-size);
   font-weight: 1000;
   line-height: 0.95;
   letter-spacing: -0.06em;
-  color: var(--m5-health-color);
-  text-shadow: 0 0 12px rgba(255, 122, 0, 0.78), 0 3px 12px #000;
+  color: var(--m5-side-color);
+  background: rgba(16, 35, 63, 0.76);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 0.18em;
+  transform: rotate(-1deg) skew(-7deg);
+  box-shadow: 0 0 0 3px rgba(16, 35, 63, 0.72), 0 8px 16px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 0 rgba(16, 35, 63, 0.95), 0 0 18px color-mix(in srgb, var(--m5-side-color) 44%, transparent);
 }
 
 .m5o-health-frame {
@@ -84,39 +113,39 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
   height: var(--m5-health-height);
   overflow: hidden;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--m5-health-radius);
   isolation: isolate;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0 8%, rgba(177, 188, 198, 0.9) 9% 16%, rgba(23, 28, 37, 0.94) 17% 86%, rgba(0, 0, 0, 0.96) 87% 100%);
-  clip-path: polygon(0 0, calc(100% - 38px) 0, 100% 100%, 0 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0 12%, rgba(16, 35, 63, 0.98) 12% 100%);
+  clip-path: polygon(0 0, calc(100% - 44px) 0, 100% 100%, 0 100%);
   box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, var(--m5-frame-opacity)),
-    inset 0 -7px 0 rgba(0, 0, 0, 0.52),
-    0 10px 24px rgba(0, 0, 0, 0.62),
-    0 0 22px rgba(255, 122, 0, 0.34);
+    inset 0 0 0 3px rgba(255, 255, 255, var(--m5-frame-opacity)),
+    inset 0 0 0 8px rgba(16, 35, 63, 0.9),
+    0 0 0 4px rgba(255, 255, 255, 0.84),
+    0 14px 24px rgba(0, 0, 0, 0.52);
 }
 
 .m5o-fighter-right .m5o-health-frame {
-  clip-path: polygon(38px 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(44px 0, 100% 0, 100% 100%, 0 100%);
 }
 
 .m5o-health-frame::before {
   content: "";
   position: absolute;
-  inset: 8px 12px 9px;
+  inset: 10px 16px;
   z-index: 0;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(18, 19, 22, 0.82)),
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.1) 0 7px, rgba(255, 255, 255, 0) 7px 18px);
+    radial-gradient(circle, rgba(255, 255, 255, 0.14) 0 2px, transparent 2.4px) 0 0 / 20px 20px,
+    linear-gradient(180deg, rgba(9, 20, 36, 0.88), rgba(9, 20, 36, 0.72));
   clip-path: inherit;
 }
 
 .m5o-health-frame::after {
   content: "";
   position: absolute;
-  inset: 7px 12px auto;
-  height: 32%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.18) 48%, rgba(255, 255, 255, 0));
+  inset: 7px 18px auto;
+  height: 28%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.14) 54%, rgba(255, 255, 255, 0));
   filter: blur(0.2px);
   pointer-events: none;
   z-index: 3;
@@ -124,39 +153,39 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 
 .m5o-health-bar {
   position: absolute;
-  inset: 8px auto 9px 12px;
+  inset: 10px auto 10px 16px;
   width: calc(var(--hp-percent, 0) * 1%);
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 32px);
   z-index: 1;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.06) 42%, rgba(0, 0, 0, 0.32) 100%),
-    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0 16px, rgba(255, 255, 255, 0) 16px 52px),
-    linear-gradient(90deg, var(--m5-health-color) 0%, #ffb000 50%, var(--m5-health-danger-color) 100%);
-  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 100%, 0 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.08) 40%, rgba(0, 0, 0, 0.2) 100%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 0 2px, transparent 2.4px) 0 0 / 18px 18px,
+    linear-gradient(90deg, var(--m5-health-danger-color) 0%, var(--m5-health-color) 42%, var(--m5-side-color) 100%);
+  border-radius: calc(var(--m5-health-radius) * 0.62);
+  clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 100%, 0 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
-    inset 0 -11px 13px rgba(132, 54, 0, 0.32),
-    0 0 17px rgba(255, 178, 0, 0.82),
-    0 0 34px rgba(255, 122, 0, 0.44);
-  transition: width 280ms cubic-bezier(.2, .8, .2, 1);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 -9px 11px rgba(16, 35, 63, 0.22),
+    0 0 16px color-mix(in srgb, var(--m5-side-color) 58%, transparent);
+  transition: width 280ms cubic-bezier(.2, .8, .2, 1), filter 180ms ease;
 }
 
 .m5o-health-bar::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.26), transparent 62%);
+  background: linear-gradient(106deg, transparent 0 20%, rgba(255, 255, 255, 0.24) 20% 28%, transparent 28% 52%, rgba(255, 255, 255, 0.14) 52% 59%, transparent 59%);
   mix-blend-mode: screen;
 }
 
 .m5o-fighter-right .m5o-health-bar {
-  right: 12px;
+  right: 16px;
   left: auto;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.06) 42%, rgba(0, 0, 0, 0.32) 100%),
-    repeating-linear-gradient(68deg, rgba(255, 255, 255, 0.16) 0 16px, rgba(255, 255, 255, 0) 16px 52px),
-    linear-gradient(90deg, var(--m5-health-danger-color) 0%, #ffb000 50%, var(--m5-health-color) 100%);
-  clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.08) 40%, rgba(0, 0, 0, 0.2) 100%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 0 2px, transparent 2.4px) 0 0 / 18px 18px,
+    linear-gradient(90deg, var(--m5-side-color) 0%, var(--m5-health-color) 58%, var(--m5-health-danger-color) 100%);
+  clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%);
 }
 
 @media (max-width: 900px) {
