@@ -2,9 +2,7 @@ import { activeTracks, watchBlindtestTracks } from "./blindtest/tracks.js";
 import { computeTargetSeconds, defaultBlindtestLiveState, watchBlindtestLive } from "./blindtest/live-sync.js";
 import { YoutubeAudioPlayer, parseYoutubeError } from "./blindtest/youtube.js";
 import { watchOverlayConfig } from "./overlay-config.js";
-import { autoFitText } from "./auto-fit-text.js";
 
-const rootNode = document.querySelector(".overlay-round4");
 const promptNode = document.getElementById("m4-overlay-prompt");
 const errorNode = document.getElementById("m4-overlay-error");
 
@@ -19,8 +17,6 @@ let tracks = [];
 let liveState = defaultBlindtestLiveState();
 let overlayConfig = null;
 let lastAppliedSyncVersion = -1;
-let resizeObserver = null;
-let rafId = 0;
 
 const player = new YoutubeAudioPlayer({
   hostId: "m4-overlay-youtube-host",
@@ -65,30 +61,9 @@ function applyConfig() {
   promptNode.style.textAlign = overlayConfig.align;
   promptNode.style.lineHeight = String(overlayConfig.lineHeight);
   promptNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
+  promptNode.style.setProperty("--m4-min-font", `${overlayConfig.minFontSizePx}px`);
+  promptNode.style.setProperty("--m4-max-font", `${overlayConfig.maxFontSizePx}px`);
   promptNode.classList.toggle("no-shadow", !overlayConfig.textShadow);
-}
-
-function runAutoFit() {
-  if (!rootNode || !promptNode) return;
-
-  const config = overlayConfig || {};
-  autoFitText({
-    container: rootNode,
-    textElement: promptNode,
-    minFontSizePx: config.minFontSizePx ?? 36,
-    maxFontSizePx: config.maxFontSizePx ?? 220,
-    paddingPx: config.paddingPx ?? 40,
-    lineHeight: config.lineHeight ?? 1.04,
-    maxWidthPx: config.maxWidthPx ?? 1800,
-  });
-}
-
-function scheduleAutoFit() {
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(() => {
-    rafId = 0;
-    runAutoFit();
-  });
 }
 
 function render() {
@@ -106,7 +81,6 @@ function render() {
   }
 
   applyConfig();
-  scheduleAutoFit();
 }
 
 async function syncAudio() {
@@ -130,12 +104,6 @@ async function syncAudio() {
   player.play();
 }
 
-if (window.ResizeObserver && rootNode) {
-  resizeObserver = new ResizeObserver(() => scheduleAutoFit());
-  resizeObserver.observe(rootNode);
-}
-window.addEventListener("resize", scheduleAutoFit);
-document.fonts?.ready?.then(() => scheduleAutoFit());
 
 watchBlindtestTracks((nextTracks) => {
   tracks = nextTracks;

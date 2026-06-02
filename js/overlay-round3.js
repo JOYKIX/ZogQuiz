@@ -1,6 +1,5 @@
 import { db, ref, onValue } from "./firebase.js";
 import { watchOverlayConfig } from "./overlay-config.js";
-import { autoFitText } from "./auto-fit-text.js";
 
 const rootNode = document.querySelector(".overlay-round3");
 const themeNode = document.getElementById("m3-overlay-theme");
@@ -8,7 +7,6 @@ const themeNode = document.getElementById("m3-overlay-theme");
 let themes = {};
 let state = null;
 let overlayConfig = null;
-let rafId = 0;
 
 function getDisplayTheme() {
   const theme = themes[state?.activeThemeId] || null;
@@ -24,34 +22,15 @@ function applyOverlayConfig() {
   themeNode.style.color = overlayConfig.themeColor;
   themeNode.style.fontWeight = String(overlayConfig.fontWeight);
   themeNode.style.textAlign = overlayConfig.align;
-}
-
-function runAutoFit() {
-  if (!overlayConfig || !rootNode || !themeNode) return;
-
-  autoFitText({
-    container: rootNode,
-    textElement: themeNode,
-    minFontSizePx: overlayConfig.questionMinFontSizePx,
-    maxFontSizePx: overlayConfig.questionMaxFontSizePx,
-    paddingPx: overlayConfig.questionPaddingPx,
-    lineHeight: overlayConfig.questionLineHeight,
-    maxWidthPx: overlayConfig.maxWidthPx,
-  });
-}
-
-function scheduleAutoFit() {
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(() => {
-    rafId = 0;
-    runAutoFit();
-  });
+  themeNode.style.lineHeight = String(overlayConfig.questionLineHeight);
+  themeNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
+  themeNode.style.setProperty("--m3-min-font", `${overlayConfig.questionMinFontSizePx}px`);
+  themeNode.style.setProperty("--m3-max-font", `${overlayConfig.questionMaxFontSizePx}px`);
 }
 
 function render() {
   themeNode.textContent = getDisplayTheme();
   applyOverlayConfig();
-  scheduleAutoFit();
 }
 
 onValue(ref(db, "rooms/manche3/state"), (snap) => {
@@ -69,8 +48,3 @@ watchOverlayConfig("round3", (config) => {
   render();
 });
 
-if (window.ResizeObserver && rootNode) {
-  new ResizeObserver(() => scheduleAutoFit()).observe(rootNode);
-}
-window.addEventListener("resize", scheduleAutoFit);
-document.fonts?.ready?.then(() => scheduleAutoFit());
