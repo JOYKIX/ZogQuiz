@@ -376,6 +376,9 @@ class ZogQuizViewerBot:
         if isinstance(question.get("acceptedAnswers"), list):
             answers.extend(normalize_answer(str(a)) for a in question.get("acceptedAnswers") if str(a).strip())
 
+        if isinstance(question.get("aliases"), list):
+            answers.extend(normalize_answer(str(a)) for a in question.get("aliases") if str(a).strip())
+
         answer_raw = question.get("answer")
         if isinstance(answer_raw, str) and answer_raw.strip():
             answer_text = answer_raw.strip()

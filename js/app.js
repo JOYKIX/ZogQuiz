@@ -608,6 +608,7 @@ async function createRound1Question(type, questionInputId, answerInputId) {
   if (type === "viewers") {
     const acceptedAnswers = parseAcceptedAnswers(rawAnswer);
     payload.acceptedAnswers = acceptedAnswers;
+    payload.aliases = acceptedAnswers;
     payload.normalizedAnswers = acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean);
     payload.answer = acceptedAnswers[0] || rawAnswer;
     payload.points = Math.max(1, Number($("viewer-points")?.value || 1));
@@ -1417,6 +1418,7 @@ async function editRound1Question(type, questionId, currentQuestion) {
   if (type === "viewers") {
     const acceptedAnswers = parseAcceptedAnswers(nextAnswer);
     payload.acceptedAnswers = acceptedAnswers;
+    payload.aliases = acceptedAnswers;
     payload.normalizedAnswers = acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean);
     payload.answer = acceptedAnswers[0] || nextAnswer;
   }
