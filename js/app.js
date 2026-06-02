@@ -42,9 +42,6 @@ const authMessage = $("auth-message");
 const adminEmail = $("admin-email");
 const logoutBtn = $("logout");
 const loginForm = $("login-form");
-const signupForm = $("signup-form");
-const showLoginBtn = $("show-login");
-const showSignupBtn = $("show-signup");
 const breadcrumb = $("breadcrumb");
 const toast = $("toast");
 
@@ -54,6 +51,12 @@ const guestPasswordInput = $("guest-password");
 const guestBuzzerSoundInput = $("guest-buzzer-sound");
 const guestAccountsList = $("guest-accounts-list");
 const guestAccountsMessage = $("guest-accounts-message");
+
+const adminAccountForm = $("admin-account-form");
+const adminAccountIdInput = $("admin-account-id");
+const adminAccountPasswordInput = $("admin-account-password");
+const adminAccountsList = $("admin-accounts-list");
+const adminAccountsMessage = $("admin-accounts-message");
 
 const participantQuestionForm = $("participant-question-form");
 const viewerQuestionForm = $("viewer-question-form");
@@ -242,6 +245,7 @@ let overlayConfigs = {
   round5: { ...OVERLAY_DEFAULTS.round5 },
 };
 let sessionsById = {};
+let adminsById = {};
 let participantQuestions = {};
 let viewerQuestions = {};
 let manche2Questions = {};
@@ -260,6 +264,19 @@ const triggerBuzzSound = createBuzzSoundTrigger({
 
 function normalizeAdminId(rawId) {
   return rawId.trim().toLowerCase();
+}
+
+function isSafeAdminId(adminId) {
+  return /^[a-z0-9_-]{3,40}$/.test(adminId);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function showToast(text, type = "success") {
@@ -309,6 +326,7 @@ function showAuth() {
 function workspaceLabel(workspace) {
   if (workspace === "dashboard") return "Live";
   if (workspace === "players") return "Joueurs";
+  if (workspace === "admins") return "Admins";
   if (workspace === "broadcast") return "Diffusion";
   if (workspace === "cam-config") return "Cam config";
   return `Rondes • ${formatRound(editingRound)}`;
@@ -411,38 +429,6 @@ initViewerAdmin({
   showToast,
 });
 
-showLoginBtn.addEventListener("click", () => {
-  loginForm.classList.remove("hidden");
-  signupForm.classList.add("hidden");
-  showLoginBtn.classList.add("active-auth");
-  showSignupBtn.classList.remove("active-auth");
-});
-showSignupBtn.addEventListener("click", () => {
-  signupForm.classList.remove("hidden");
-  loginForm.classList.add("hidden");
-  showSignupBtn.classList.add("active-auth");
-  showLoginBtn.classList.remove("active-auth");
-});
-
-signupForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try {
-    setMessage(authMessage, "Création...", "loading");
-    const adminId = normalizeAdminId($("signup-id").value);
-    const password = $("signup-password").value;
-    if (!adminId || !password) throw new Error("ID et mot de passe obligatoires.");
-
-    const adminRef = ref(db, `admins/${adminId}`);
-    if ((await get(adminRef)).exists()) throw new Error("Cet ID existe déjà.");
-
-    await set(adminRef, { adminId, passwordHash: await hashPassword(password), createdAt: Date.now() });
-    await loginSuccess(adminId);
-    setMessage(authMessage, "Compte créé.", "success");
-  } catch (error) {
-    setMessage(authMessage, `Création impossible : ${error.message}`, "error");
-  }
-});
-
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
@@ -464,6 +450,23 @@ logoutBtn.addEventListener("click", () => {
   clearSession();
   showAuth();
   setMessage(authMessage, "Déconnecté.");
+});
+
+adminAccountForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!isLoggedIn()) return;
+  try {
+    setMessage(adminAccountsMessage, "Création...", "loading");
+    await createAdminAccount({
+      adminId: adminAccountIdInput.value,
+      password: adminAccountPasswordInput.value,
+    });
+    adminAccountForm.reset();
+    setMessage(adminAccountsMessage, "Compte admin créé.", "success");
+    showToast("Compte admin créé");
+  } catch (error) {
+    setMessage(adminAccountsMessage, error.message, "error");
+  }
 });
 
 guestAccountForm?.addEventListener("submit", async (event) => {
@@ -681,6 +684,11 @@ function initListeners() {
     updateRoundIndicators();
   });
 
+  onValue(ref(db, "admins"), (snap) => {
+    adminsById = snap.val() || {};
+    renderAdminAccounts();
+  });
+
   onValue(ref(db, "rooms/manche1/questions/participants"), (snap) => {
     participantQuestions = snap.val() || {};
     renderRound1QuestionList("participants", participantQuestions, participantQuestionsList);
@@ -779,6 +787,136 @@ async function ensureParticipantColorsInFirebase() {
     );
   });
   if (updates.length) await Promise.all(updates);
+}
+
+async function createAdminAccount({ adminId, password }) {
+  const normalizedAdminId = normalizeAdminId(adminId || "");
+  const cleanPassword = String(password || "");
+  if (!normalizedAdminId || !cleanPassword) throw new Error("ID et mot de passe obligatoires.");
+  if (!isSafeAdminId(normalizedAdminId)) throw new Error("L’ID admin doit contenir 3 à 40 caractères : lettres, chiffres, tirets ou underscores.");
+  if (cleanPassword.length < 6) throw new Error("Le mot de passe doit contenir au moins 6 caractères.");
+
+  const adminRef = ref(db, `admins/${normalizedAdminId}`);
+  if ((await get(adminRef)).exists()) throw new Error("Cet ID admin existe déjà.");
+
+  await set(adminRef, {
+    adminId: normalizedAdminId,
+    passwordHash: await hashPassword(cleanPassword),
+    createdAt: Date.now(),
+    createdBy: currentAdminId,
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+}
+
+function renderAdminAccounts() {
+  if (!adminAccountsList) return;
+  const entries = Object.entries(adminsById || {}).map(([id, admin]) => ({
+    id,
+    ...admin,
+    createdAt: Number(admin?.createdAt || 0),
+  })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  adminAccountsList.innerHTML = "";
+  if (!entries.length) {
+    adminAccountsList.innerHTML = "<li class='empty-state'>Aucun compte admin.</li>";
+    return;
+  }
+
+  for (const admin of entries) {
+    const li = document.createElement("li");
+    li.className = "question-item";
+    const createdAtLabel = admin.createdAt ? new Date(admin.createdAt).toLocaleString() : "—";
+    const isCurrent = admin.id === currentAdminId;
+    li.innerHTML = `
+      <div class="question-head"><strong>${escapeHtml(admin.adminId || admin.id)}</strong><span class="question-active-chip">${isCurrent ? "Session actuelle" : "Admin"}</span></div>
+      <p class="muted">Créé le : ${escapeHtml(createdAtLabel)}</p>
+      <p class="muted">Créé par : ${escapeHtml(admin.createdBy || "—")}</p>
+    `;
+
+    const actions = document.createElement("div");
+    actions.className = "row";
+
+    const renameBtn = document.createElement("button");
+    renameBtn.className = "btn btn-secondary";
+    renameBtn.textContent = "Modifier l’ID";
+    renameBtn.addEventListener("click", async () => renameAdminAccount(admin.id));
+
+    const resetPasswordBtn = document.createElement("button");
+    resetPasswordBtn.className = "btn btn-secondary";
+    resetPasswordBtn.textContent = "Réinitialiser mdp";
+    resetPasswordBtn.addEventListener("click", async () => resetAdminPassword(admin.id));
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-danger";
+    deleteBtn.textContent = "Supprimer";
+    deleteBtn.disabled = isCurrent;
+    deleteBtn.title = isCurrent ? "Impossible de supprimer la session admin actuelle." : "Supprimer cet admin";
+    deleteBtn.addEventListener("click", async () => deleteAdminAccount(admin.id));
+
+    actions.append(renameBtn, resetPasswordBtn, deleteBtn);
+    li.appendChild(actions);
+    adminAccountsList.appendChild(li);
+  }
+}
+
+async function renameAdminAccount(adminId) {
+  const account = adminsById[adminId];
+  if (!account) return;
+  const nextAdminId = await showPrompt("Nouvel ID admin", {
+    title: "Modifier l’ID admin",
+    inputLabel: "ID admin",
+    defaultValue: adminId,
+    confirmText: "Modifier",
+  });
+  if (nextAdminId === null) return;
+
+  const normalizedNextId = normalizeAdminId(nextAdminId);
+  if (!normalizedNextId) return showToast("ID admin obligatoire", "error");
+  if (!isSafeAdminId(normalizedNextId)) return showToast("ID admin invalide : 3 à 40 caractères, lettres, chiffres, tirets ou underscores", "error");
+  if (normalizedNextId === adminId) return;
+  if ((await get(ref(db, `admins/${normalizedNextId}`))).exists()) return showToast("Cet ID admin existe déjà", "error");
+
+  await set(ref(db, `admins/${normalizedNextId}`), {
+    ...account,
+    adminId: normalizedNextId,
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+  await remove(ref(db, `admins/${adminId}`));
+  if (adminId === currentAdminId) {
+    setSession(normalizedNextId);
+    adminEmail.textContent = `Connecté : ${normalizedNextId}`;
+  }
+  showToast("ID admin modifié");
+}
+
+async function resetAdminPassword(adminId) {
+  if (!adminsById[adminId]) return;
+  const nextPassword = await showPrompt("Nouveau mot de passe (6 caractères min)", {
+    title: "Réinitialiser le mot de passe admin",
+    inputLabel: "Nouveau mot de passe",
+    placeholder: "6 caractères minimum",
+    confirmText: "Mettre à jour",
+  });
+  if (nextPassword === null) return;
+  if (String(nextPassword).length < 6) return showToast("Le mot de passe doit contenir au moins 6 caractères", "error");
+
+  await update(ref(db, `admins/${adminId}`), {
+    passwordHash: await hashPassword(nextPassword),
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId,
+  });
+  showToast("Mot de passe admin mis à jour");
+}
+
+async function deleteAdminAccount(adminId) {
+  const account = adminsById[adminId];
+  if (!account) return;
+  if (adminId === currentAdminId) return showToast("Impossible de supprimer la session admin actuelle", "error");
+  if (!(await showConfirm(`Supprimer le compte admin ${account.adminId || adminId} ?`, { title: "Suppression admin" }))) return;
+  await remove(ref(db, `admins/${adminId}`));
+  showToast("Compte admin supprimé");
 }
 
 function renderGuestAccounts() {

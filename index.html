@@ -35,16 +35,11 @@
       </header>
 
       <section id="auth-section" class="auth-layout">
-        <article class="auth-intro card">
-          <p class="eyebrow">Régie ZogQuiz</p>
-          <h2>Control room premium pour quiz live.</h2>
-          <p class="muted">Pilotez les manches, joueurs, viewers, caméras et sorties broadcast depuis une interface compacte inspirée jeu TV japonais / e-sport.</p>
-        </article>
-
         <article class="auth-card card">
-          <div class="auth-switch">
-            <button id="show-login" class="btn btn-ghost active-auth">Connexion</button>
-            <button id="show-signup" class="btn btn-ghost">Créer un compte</button>
+          <div class="auth-panel-head">
+            <p class="eyebrow">Accès régie</p>
+            <h1>Connexion admin</h1>
+            <p class="muted">Connectez-vous avec un compte administrateur existant. La création de comptes se fait uniquement depuis l’espace admin.</p>
           </div>
 
           <form id="login-form" class="stack">
@@ -55,16 +50,6 @@
               <input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••" />
             </label>
             <button type="submit" class="btn btn-primary">Se connecter</button>
-          </form>
-
-          <form id="signup-form" class="stack hidden">
-            <label>ID admin
-              <input id="signup-id" type="text" required autocomplete="username" placeholder="Créer un identifiant" />
-            </label>
-            <label>Mot de passe
-              <input id="signup-password" type="password" minlength="6" required autocomplete="new-password" placeholder="6 caractères minimum" />
-            </label>
-            <button type="submit" class="btn btn-primary">Créer le compte</button>
           </form>
           <p id="auth-message" class="message"></p>
         </article>
@@ -77,6 +62,7 @@
             <p class="sidebar-label">Menu</p>
             <button class="nav-item active" data-workspace="dashboard"><span class="material-symbols-rounded" aria-hidden="true">dashboard</span><span>Live</span></button>
             <button class="nav-item" data-workspace="players"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span>Participants</span></button>
+            <button class="nav-item" data-workspace="admins"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span><span>Admins</span></button>
             <a class="nav-item" href="classement.html" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">leaderboard</span><span>Leaderboard</span></a>
             <button class="nav-item" data-workspace="rounds"><span class="material-symbols-rounded" aria-hidden="true">target</span><span>Manches</span></button>
             <button class="nav-item" data-workspace="broadcast"><span class="material-symbols-rounded" aria-hidden="true">tv</span><span>Overlay</span></button>
@@ -147,6 +133,36 @@
               <ul id="viewer-chat-feed" class="list compact-list"><li class="empty-state">Aucun message Twitch reçu.</li></ul>
             </article>
 
+          </section>
+
+          <section class="workspace-panel hidden" data-workspace-panel="admins">
+            <div class="panel-head split">
+              <div>
+                <p class="eyebrow">Sécurité</p>
+                <h2>Comptes admin</h2>
+              </div>
+              <span class="status-chip">Création réservée aux admins connectés</span>
+            </div>
+            <div class="two-col">
+              <article class="subpanel stack compact-panel">
+                <h3>Créer un admin</h3>
+                <form id="admin-account-form" class="stack">
+                  <label>ID admin
+                    <input id="admin-account-id" type="text" required maxlength="40" autocomplete="off" placeholder="ex: regie_secondaire" />
+                  </label>
+                  <label>Mot de passe
+                    <input id="admin-account-password" type="password" required minlength="6" autocomplete="new-password" placeholder="6 caractères minimum" />
+                  </label>
+                  <button type="submit" class="btn btn-primary">Créer l’admin</button>
+                </form>
+                <p id="admin-accounts-message" class="message"></p>
+              </article>
+
+              <article class="subpanel compact-panel">
+                <h3>Admins existants</h3>
+                <ul id="admin-accounts-list" class="list compact-list"></ul>
+              </article>
+            </div>
           </section>
 
           <section class="workspace-panel hidden" data-workspace-panel="players">
