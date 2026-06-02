@@ -732,7 +732,7 @@ body.modal-open { overflow: hidden; }
 }
 .guest-auth-screen .panel { width: min(520px, 100%); background: var(--paper); color: var(--ink); }
 .guest-auth-screen .panel::before {
-  content: "PLAYER ENTRY";
+  content: "呪術廻戦 ＞ 双星の陰陽師";
   display: inline-block;
   margin-bottom: .6rem;
   padding: .22rem .4rem;
