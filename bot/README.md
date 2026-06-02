@@ -1,6 +1,6 @@
 # Bot Twitch viewers — ZogQuiz
 
-Ce bot Python lit le chat Twitch et attribue automatiquement **1 point** au premier viewer qui répond correctement à la **question viewers active** en manche 1.
+Ce bot Python lit le chat Twitch et attribue automatiquement des points aux viewers qui répondent correctement aux questions viewers actives.
 
 ## Prérequis
 
@@ -40,22 +40,28 @@ python3 bot/bot.py
 ## Ce que fait le bot
 
 - Se connecte à Twitch IRC en TLS.
+- Garde la connexion IRC ouverte pendant les périodes sans messages pour éviter les cycles déconnexion/reconnexion sur timeout de lecture.
 - Vérifie l'accès Firebase au démarrage.
 - Enregistre un flux chat best-effort dans:
   - `rooms/viewers/chatFeed/{key}`
-- Ne traite le scoring que si:
-  - `rooms/manche1/state.currentType === "viewers"`
-  - `rooms/manche1/state.currentQuestionId` est défini
-- Lit la question dans:
-  - `rooms/manche1/questions/viewers/{questionId}`
+- Traite le scoring viewers dès qu'une question viewers est active dans:
+  - `rooms/viewers/liveState` pour les manches 1, 2, 3 et 4,
+  - avec fallback historique sur `rooms/manche1/state` pour la manche 1.
+- Lit les questions dans:
+  - `rooms/manche1/questions/viewers/{questionId}` pour la manche 1,
+  - `rooms/viewers/questions/{round}/{questionId}` pour les autres manches.
 - Accepte les réponses depuis:
-  - `normalizedAnswers` (déjà normalisées)
-  - `acceptedAnswers` (normalisées côté bot)
-  - `answer` (normalisée côté bot, support multi-réponses si séparateurs `|`, `;`, `/`)
-- Évite les doubles points par question via écriture conditionnelle (`ETag`) dans:
-  - `rooms/manche1/viewerWinners/{questionId}`
-- Incrémente le leaderboard viewer dans:
+  - `normalizedAnswers` (déjà normalisées),
+  - `acceptedAnswers` (normalisées côté bot),
+  - `answer` (normalisée côté bot, support multi-réponses si séparateurs `|`, `;`, `/`).
+- Journalise les tentatives dans:
+  - `rooms/viewers/attempts/{round}:{questionId}/{key}`
+- Évite les doubles points via écriture conditionnelle (`ETag`) dans:
+  - `rooms/viewers/winners/{round}:{questionId}/first` si seul le premier bon gagne,
+  - `rooms/viewers/winners/{round}:{questionId}/{twitchUserLower}` si plusieurs gagnants sont autorisés.
+- Incrémente le leaderboard viewer global dans:
   - `rooms/manche1/viewerLeaderboard/{twitchUserLower}`
+- Utilise la valeur `points` de la question active (ex: +2, +3), pas seulement +1.
 
 ## Normalisation des réponses
 
@@ -72,7 +78,8 @@ Exemple: `Éléphant!` et `elephant` matchent.
 
 - **"Configuration incomplète"**: vérifie `TWITCH_TOKEN` et `TWITCH_CHANNEL`.
 - **"Authentification Twitch refusée"**: token invalide ou sans droits chat IRC.
+- **Déconnexions/reconnexions répétées avec "The read operation timed out"**: mets à jour le bot avec cette version; le silence du chat n'est plus traité comme une erreur de connexion.
 - **Pas de points attribués**:
-  - vérifier que la question active est de type `viewers`,
+  - vérifier qu'une question viewers est active dans `rooms/viewers/liveState`,
   - vérifier la présence des réponses dans la question Firebase,
   - vérifier l'URL `FIREBASE_DB_URL`.
