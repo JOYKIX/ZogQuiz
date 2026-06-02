@@ -3,40 +3,19 @@ import { watchOverlayConfig } from "./overlay-config.js";
 import { formatTimer } from "./timer-format.js";
 
 const ROUND3_DURATION_MS = 90_000;
-const MIN_SEGMENTS = 1;
-const MAX_SEGMENTS = 240;
-const SEGMENT_RADIUS = 45;
-const MIN_SEGMENT_GAP_DEGREES = 2;
-const MAX_SEGMENT_GAP_DEGREES = 7;
 
 const rootNode = document.querySelector(".timer-overlay-round3");
 const timerNode = document.getElementById("m3-timer-overlay-value");
-const timerShellNode = document.querySelector(".m3-segmented-timer");
-const segmentsNode = document.getElementById("m3-timer-segments");
+const timerShellNode = document.querySelector(".m3-timer-card");
+const timerProgressNode = document.getElementById("m3-timer-progress");
 
 let state = null;
 let overlayConfig = null;
 let ticker = 0;
 let roundDurationMs = ROUND3_DURATION_MS;
-let renderedSegmentCount = 0;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
-}
-
-function polarToCartesian(radius, angleDegrees) {
-  const angleRadians = (angleDegrees - 90) * Math.PI / 180;
-  return {
-    x: 50 + radius * Math.cos(angleRadians),
-    y: 50 + radius * Math.sin(angleRadians),
-  };
-}
-
-function describeArc(radius, startAngle, endAngle) {
-  const start = polarToCartesian(radius, startAngle);
-  const end = polarToCartesian(radius, endAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return `M ${start.x.toFixed(3)} ${start.y.toFixed(3)} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x.toFixed(3)} ${end.y.toFixed(3)}`;
 }
 
 function getConfiguredDurationMs(nextState = state) {
@@ -71,72 +50,34 @@ function remainingMs() {
   return Math.max(0, Number(state.timerRemainingMs ?? roundDurationMs));
 }
 
-function getSegmentCount() {
-  return clamp(Math.ceil(roundDurationMs / 1000), MIN_SEGMENTS, MAX_SEGMENTS);
-}
-
-function getActiveSegmentCount() {
-  return clamp(Math.ceil(remainingMs() / 1000), 0, getSegmentCount());
-}
-
-function renderSegmentGeometry(segmentCount) {
-  if (!segmentsNode || renderedSegmentCount === segmentCount) return;
-
-  const angleStep = 360 / segmentCount;
-  const gap = clamp(angleStep * 0.34, MIN_SEGMENT_GAP_DEGREES, MAX_SEGMENT_GAP_DEGREES);
-  const arcSweep = Math.max(0.4, angleStep - gap);
-  const fragment = document.createDocumentFragment();
-
-  for (let index = 0; index < segmentCount; index += 1) {
-    const startAngle = index * angleStep + gap / 2;
-    const endAngle = startAngle + arcSweep;
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("class", "m3-timer-segment");
-    path.setAttribute("d", describeArc(SEGMENT_RADIUS, startAngle, endAngle));
-    path.setAttribute("pathLength", "1");
-    path.setAttribute("vector-effect", "non-scaling-stroke");
-    path.style.setProperty("--segment-index", String(index));
-    fragment.append(path);
-  }
-
-  segmentsNode.replaceChildren(fragment);
-  renderedSegmentCount = segmentCount;
-}
-
-function renderSegments() {
-  if (!segmentsNode) return;
-  const segmentCount = getSegmentCount();
-  const activeCount = getActiveSegmentCount();
-  renderSegmentGeometry(segmentCount);
-
-  Array.from(segmentsNode.children).forEach((segment, index) => {
-    segment.classList.toggle("is-active", index < activeCount);
-    segment.classList.toggle("is-inactive", index >= activeCount);
-  });
-}
-
 function applyOverlayConfig() {
   if (!overlayConfig || !rootNode || !timerNode || !timerShellNode) return;
 
-  const shellMaxSizePx = Math.max(160, Number(overlayConfig.maxWidthPx) || 520);
-  const shellMinSizePx = Math.min(220, shellMaxSizePx);
-  const shellSizePx = clamp(Math.round(overlayConfig.timerFontSizePx * 4.2), shellMinSizePx, shellMaxSizePx);
+  const shellMaxWidthPx = Math.max(260, Number(overlayConfig.maxWidthPx) || 520);
+  const shellWidthPx = clamp(Math.round(overlayConfig.timerFontSizePx * 6.6), 320, shellMaxWidthPx);
 
   rootNode.style.padding = `${overlayConfig.paddingPx}px`;
   rootNode.style.textAlign = overlayConfig.align;
   rootNode.style.justifyItems = overlayConfig.align === "left" ? "start" : overlayConfig.align === "right" ? "end" : "center";
   timerShellNode.style.setProperty("--timer-color", overlayConfig.timerColor);
-  timerShellNode.style.setProperty("--timer-size", `${shellSizePx}px`);
-  timerShellNode.style.setProperty("--timer-font-size", `clamp(2rem, 16vmin, ${overlayConfig.timerFontSizePx}px)`);
+  timerShellNode.style.setProperty("--timer-card-width", `${shellWidthPx}px`);
+  timerShellNode.style.setProperty("--timer-font-size", `clamp(2.5rem, 15vmin, ${overlayConfig.timerFontSizePx}px)`);
   timerNode.style.color = overlayConfig.timerColor;
   timerNode.style.fontWeight = String(overlayConfig.fontWeight);
   timerNode.style.textAlign = overlayConfig.align;
 }
 
+function renderProgress(remaining) {
+  if (!timerProgressNode) return;
+  const percent = clamp((remaining / Math.max(1, roundDurationMs)) * 100, 0, 100);
+  timerProgressNode.style.setProperty("--timer-progress", `${percent}%`);
+}
+
 function render() {
   if (!timerNode) return;
-  timerNode.textContent = formatTimer(remainingMs(), overlayConfig?.timerFormat);
-  renderSegments();
+  const remaining = remainingMs();
+  timerNode.textContent = formatTimer(remaining, overlayConfig?.timerFormat);
+  renderProgress(remaining);
   applyOverlayConfig();
 }
 
@@ -157,3 +98,5 @@ watchOverlayConfig("round3Timer", (config) => {
   render();
 });
 
+import { initMortSubiteOverlay } from "./mort-subite.js";
+initMortSubiteOverlay();

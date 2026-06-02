@@ -8,11 +8,12 @@
   </head>
   <body class="timer-overlay-page">
     <main class="timer-overlay-root timer-overlay-round3" aria-live="polite">
-      <section class="m3-segmented-timer" aria-label="Timer manche 3">
-        <svg class="m3-timer-segments-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-          <g id="m3-timer-segments"></g>
-        </svg>
+      <section class="m3-timer-card" aria-label="Timer manche 3">
+        <span class="m3-timer-kicker">Manche 3</span>
         <p id="m3-timer-overlay-value" class="m3-timer-overlay-value">1:30</p>
+        <div class="m3-timer-rail" aria-hidden="true">
+          <div id="m3-timer-progress" class="m3-timer-progress"></div>
+        </div>
       </section>
     </main>
     <script type="module" src="js/timer-overlay-round3.js"></script>

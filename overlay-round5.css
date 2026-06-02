@@ -1,14 +1,23 @@
 :root {
   color-scheme: dark;
-  --font-live: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Arial", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Arial Black", Impact, "Sora", var(--font-sans);
+  --ink: #050507;
+  --panel: #15151d;
+  --panel-2: #1e1e29;
+  --line: #363744;
+  --primary: #ff3158;
+  --primary-2: #00d8ff;
+  --accent: #b6ff00;
+  --accent-2: #ffd000;
   --m5-health-height: 54px;
-  --m5-health-radius: 12px;
+  --m5-health-radius: 0px;
   --m5-health-max-width: 790px;
   --m5-health-gap: 34px;
   --m5-health-padding: 44px;
-  --m5-health-color: #ffe600;
-  --m5-health-danger-color: #ff7a00;
-  --m5-text-color: #ffffff;
+  --m5-health-color: var(--accent-2);
+  --m5-health-danger-color: var(--primary);
+  --m5-text-color: #f8f7ef;
   --m5-name-font-size: 38px;
   --m5-hp-font-size: 44px;
   --m5-frame-opacity: 0.92;
@@ -17,7 +26,7 @@
 
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent !important; }
-body { font-family: var(--font-live); color: var(--m5-text-color); }
+body { font-family: var(--font-sans); color: var(--m5-text-color); }
 .hidden { display: none !important; }
 
 .m5o {
@@ -25,7 +34,6 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
   height: 100vh;
   padding: var(--m5-health-padding);
   background: transparent;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 1px 2px #000;
 }
 
 .m5o-hud {
@@ -38,125 +46,158 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 }
 
 .m5o-fighter {
+  position: relative;
   min-width: 0;
+  padding: clamp(14px, 2vw, 24px);
   opacity: 1;
-  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.55));
-  transition: opacity 180ms ease;
+  isolation: isolate;
+  color: var(--m5-text-color);
+  background:
+    linear-gradient(110deg, var(--primary) 0 18%, transparent 18% 100%),
+    linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 3px solid var(--ink);
+  box-shadow: 9px 9px 0 var(--ink);
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+
+.m5o-fighter::before {
+  content: "DUEL";
+  position: absolute;
+  left: 16px;
+  top: 0;
+  transform: translateY(-50%) rotate(-2deg);
+  padding: .24em .5em;
+  color: var(--ink);
+  background: var(--accent);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  font: 950 clamp(.7rem, 1.1vw, 1rem)/1 var(--font-sans);
+  letter-spacing: .16em;
+  z-index: 2;
+}
+
+.m5o-fighter::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: clamp(46px, 7vmin, 74px);
+  height: clamp(46px, 7vmin, 74px);
+  background: linear-gradient(135deg, transparent 0 49%, var(--accent-2) 50% 100%);
+  border-top: 3px solid var(--ink);
+  border-right: 3px solid var(--ink);
+  pointer-events: none;
 }
 
 .m5o-fighter.is-empty { opacity: var(--m5-dimmed-opacity); }
-.m5o-fighter.is-dead .m5o-health-bar { filter: grayscale(0.65) brightness(0.72); }
+.m5o-fighter.is-dead { filter: grayscale(.75) brightness(.74); }
 
 .m5o-fighter-meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 22px;
-  margin: 0 18px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  margin: 0 0 clamp(12px, 1.8vw, 20px);
   color: var(--m5-text-color);
   text-transform: uppercase;
 }
 
-.m5o-fighter-right .m5o-fighter-meta { flex-direction: row-reverse; text-align: right; }
+.m5o-fighter-right .m5o-fighter-meta { grid-template-columns: auto minmax(0, 1fr); text-align: right; }
+.m5o-fighter-right .m5o-fighter-name { grid-column: 2; }
+.m5o-fighter-right .m5o-fighter-hp { grid-column: 1; grid-row: 1; }
 
 .m5o-fighter-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
   font-size: var(--m5-name-font-size);
   font-weight: 950;
-  letter-spacing: -0.045em;
+  line-height: .9;
+  letter-spacing: -0.055em;
+  text-shadow: 4px 4px 0 var(--ink);
 }
 
 .m5o-fighter-hp {
   flex: 0 0 auto;
+  padding: .18em .32em .12em;
+  color: var(--ink);
+  background: var(--m5-health-color);
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  font-family: var(--font-display);
   font-size: var(--m5-hp-font-size);
-  font-weight: 1000;
-  line-height: 0.95;
-  letter-spacing: -0.06em;
-  color: var(--m5-health-color);
-  text-shadow: 0 0 12px rgba(255, 122, 0, 0.78), 0 3px 12px #000;
+  font-weight: 950;
+  line-height: .86;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
 }
 
 .m5o-health-frame {
+  --track-pad: 7px;
   position: relative;
   height: var(--m5-health-height);
   overflow: hidden;
-  border: 0;
+  border: 2px solid var(--ink);
   border-radius: 0;
   isolation: isolate;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0 8%, rgba(177, 188, 198, 0.9) 9% 16%, rgba(23, 28, 37, 0.94) 17% 86%, rgba(0, 0, 0, 0.96) 87% 100%);
-  clip-path: polygon(0 0, calc(100% - 38px) 0, 100% 100%, 0 100%);
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, var(--m5-frame-opacity)),
-    inset 0 -7px 0 rgba(0, 0, 0, 0.52),
-    0 10px 24px rgba(0, 0, 0, 0.62),
-    0 0 22px rgba(255, 122, 0, 0.34);
-}
-
-.m5o-fighter-right .m5o-health-frame {
-  clip-path: polygon(38px 0, 100% 0, 100% 100%, 0 100%);
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(255,255,255,.16) calc(10% - 2px) 10%),
+    #09090d;
+  box-shadow: 0 0 0 1px var(--line) inset;
 }
 
 .m5o-health-frame::before {
-  content: "";
+  content: "PV";
   position: absolute;
-  inset: 8px 12px 9px;
-  z-index: 0;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(18, 19, 22, 0.82)),
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.1) 0 7px, rgba(255, 255, 255, 0) 7px 18px);
-  clip-path: inherit;
+  inset: var(--track-pad) auto var(--track-pad) var(--track-pad);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  padding: 0 .42em;
+  color: var(--ink);
+  background: var(--primary-2);
+  border-right: 2px solid var(--ink);
+  font: 950 .82rem/1 var(--font-sans);
+  letter-spacing: .16em;
 }
+
+.m5o-fighter-right .m5o-health-frame::before { right: var(--track-pad); left: auto; border-right: 0; border-left: 2px solid var(--ink); }
 
 .m5o-health-frame::after {
   content: "";
   position: absolute;
-  inset: 7px 12px auto;
-  height: 32%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.18) 48%, rgba(255, 255, 255, 0));
-  filter: blur(0.2px);
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,.22) 1px, transparent 2px);
+  background-size: 12px 12px;
+  opacity: .18;
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
 }
 
 .m5o-health-bar {
   position: absolute;
-  inset: 8px auto 9px 12px;
-  width: calc(var(--hp-percent, 0) * 1%);
-  max-width: calc(100% - 24px);
+  inset: var(--track-pad) auto var(--track-pad) calc(var(--track-pad) + 42px);
+  width: calc(100% - (var(--track-pad) * 2) - 42px);
   z-index: 1;
+  transform: scaleX(calc(var(--hp-percent, 0) / 100));
+  transform-origin: left center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.06) 42%, rgba(0, 0, 0, 0.32) 100%),
-    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0 16px, rgba(255, 255, 255, 0) 16px 52px),
-    linear-gradient(90deg, var(--m5-health-color) 0%, #ffb000 50%, var(--m5-health-danger-color) 100%);
-  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 100%, 0 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
-    inset 0 -11px 13px rgba(132, 54, 0, 0.32),
-    0 0 17px rgba(255, 178, 0, 0.82),
-    0 0 34px rgba(255, 122, 0, 0.44);
-  transition: width 280ms cubic-bezier(.2, .8, .2, 1);
-}
-
-.m5o-health-bar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.26), transparent 62%);
-  mix-blend-mode: screen;
+    repeating-linear-gradient(115deg, rgba(5,5,7,.18) 0 8px, transparent 8px 18px),
+    linear-gradient(90deg, var(--m5-health-danger-color), var(--m5-health-color), var(--accent));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--m5-health-color) 38%, transparent);
+  transition: transform 280ms cubic-bezier(.16, 1, .3, 1);
 }
 
 .m5o-fighter-right .m5o-health-bar {
-  right: 12px;
+  right: calc(var(--track-pad) + 42px);
   left: auto;
+  transform-origin: right center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.06) 42%, rgba(0, 0, 0, 0.32) 100%),
-    repeating-linear-gradient(68deg, rgba(255, 255, 255, 0.16) 0 16px, rgba(255, 255, 255, 0) 16px 52px),
-    linear-gradient(90deg, var(--m5-health-danger-color) 0%, #ffb000 50%, var(--m5-health-color) 100%);
-  clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
+    repeating-linear-gradient(65deg, rgba(5,5,7,.18) 0 8px, transparent 8px 18px),
+    linear-gradient(90deg, var(--accent), var(--m5-health-color), var(--m5-health-danger-color));
 }
 
 @media (max-width: 900px) {
