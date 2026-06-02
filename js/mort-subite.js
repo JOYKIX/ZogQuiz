@@ -810,10 +810,13 @@ export function initMortSubiteOverlay() {
     const refs = elements[side];
     const participant = id ? roundState.participants[id] : null;
     const hp = Math.max(0, Number(participant?.hp || 0));
+    const hpPercent = getHpPercent(id);
     refs.name.textContent = participant?.name || "—";
     refs.hp.textContent = `${hp} PV`;
-    refs.bar.style.setProperty("--hp-percent", String(getHpPercent(id)));
+    refs.bar.style.setProperty("--hp-percent", String(hpPercent));
     refs.fighter.classList.toggle("is-empty", !id || !participant);
+    refs.fighter.classList.toggle("is-wounded", Boolean(id && hpPercent <= 50 && hpPercent > 25));
+    refs.fighter.classList.toggle("is-danger", Boolean(id && hpPercent <= 25 && hpPercent > 0));
     refs.fighter.classList.toggle("is-dead", Boolean(id && !isAlive(roundState, id)));
   }
 
