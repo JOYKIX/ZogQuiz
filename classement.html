@@ -13,7 +13,14 @@
       </header>
       <section class="scoreboard-grid">
         <article class="panel scoreboard-card"><h2>Participants</h2><ul id="participants-leaderboard" class="leaderboard"></ul></article>
-        <article class="panel scoreboard-card"><h2>Viewers</h2><ul id="viewers-leaderboard" class="leaderboard"></ul></article>
+        <article class="panel scoreboard-card">
+          <div class="scoreboard-card-head">
+            <h2>Viewers</h2>
+            <button id="reset-viewers-leaderboard" class="btn btn-danger" type="button" disabled>Remettre à zéro</button>
+          </div>
+          <p id="viewers-reset-status" class="message" role="status" aria-live="polite"></p>
+          <ul id="viewers-leaderboard" class="leaderboard"></ul>
+        </article>
       </section>
     </main>
     <script type="module" src="js/classement.js"></script>
