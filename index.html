@@ -224,7 +224,8 @@
             <section class="round-shell" data-round-panel="manche1">
               <nav class="subnav" aria-label="Sous navigation manche 1">
                 <button class="subnav-tab active" data-round="manche1" data-round-section="live">Live</button>
-                <button class="subnav-tab" data-round="manche1" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="questions">Participants</button>
+                <button class="subnav-tab" data-round="manche1" data-round-section="viewer-questions">Viewers</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche1" data-round-section="overlay">Overlay</button>
@@ -248,7 +249,7 @@
               <section class="round-section hidden" data-round-section-panel="manche1:questions">
                 <div class="two-col">
                   <form id="participant-question-form" class="subpanel stack compact-panel">
-                    <h3>Participants</h3>
+                    <h3>Questions participants</h3>
                     <label>Question
                       <textarea id="participant-question" rows="3" required placeholder="Question"></textarea>
                     </label>
@@ -257,16 +258,24 @@
                     </label>
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
+                  <article class="subpanel compact-panel">
+                    <h3>Questions participants</h3>
+                    <ul id="participant-questions-list" class="list"></ul>
+                  </article>
+                </div>
+              </section>
 
+              <section class="round-section hidden" data-round-section-panel="manche1:viewer-questions">
+                <div class="two-col">
                   <form id="viewer-question-form" class="subpanel stack compact-panel viewer-panel">
                     <h3>Question viewers</h3>
                     <label>Question viewers
                       <textarea id="viewer-question" rows="3" required placeholder="Question envoyée au chat Twitch"></textarea>
                     </label>
-                    <label>Réponses acceptées
-                      <textarea id="viewer-answer" rows="5" required placeholder="L'Attaque des Titans
-Attack on Titan
-SNK"></textarea>
+                    <label>Réponse principale et alias acceptés
+                      <textarea id="viewer-answer" rows="5" required placeholder="Luffy
+Monkey D Luffy
+Monkey D. Luffy"></textarea>
                     </label>
                     <div class="row compact">
                       <label>Points<input id="viewer-points" type="number" min="1" value="1" /></label>
@@ -276,13 +285,6 @@ SNK"></textarea>
                     <label class="row"><input id="viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
-                </div>
-
-                <div class="two-col">
-                  <article class="subpanel compact-panel">
-                    <h3>Participants</h3>
-                    <ul id="participant-questions-list" class="list"></ul>
-                  </article>
                   <article class="subpanel compact-panel">
                     <h3>Questions viewers</h3>
                     <ul id="viewer-questions-list" class="list"></ul>
@@ -369,7 +371,8 @@ SNK"></textarea>
             <section class="round-shell hidden" data-round-panel="manche2">
               <nav class="subnav" aria-label="Sous navigation manche 2">
                 <button class="subnav-tab active" data-round="manche2" data-round-section="live">Live</button>
-                <button class="subnav-tab" data-round="manche2" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="questions">Participants</button>
+                <button class="subnav-tab" data-round="manche2" data-round-section="viewer-questions">Viewers</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche2" data-round-section="overlay">Overlay</button>
@@ -407,10 +410,14 @@ SNK"></textarea>
                     <ul id="m2-questions-list" class="list question-list scroll-area"></ul>
                   </article>
                 </div>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche2:viewer-questions">
                 <div class="two-col">
                   <form id="m2-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
                     <h3>Question viewers</h3>
                     <p id="m2-viewer-live-label" class="message">Aucune question active.</p>
+                    <label>Image viewers (optionnelle)<input id="m2-viewer-image" type="file" accept="image/*" /></label>
                     <label>Question viewers<input id="m2-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce monument ?" /></label>
                     <label>Réponses acceptées<textarea id="m2-viewer-aliases" rows="4" required placeholder="Tour Eiffel
 La Tour Eiffel"></textarea></label>
@@ -475,8 +482,9 @@ La Tour Eiffel"></textarea></label>
             <section class="round-shell hidden" data-round-panel="manche3">
               <nav class="subnav" aria-label="Sous navigation manche 3">
                 <button class="subnav-tab active" data-round="manche3" data-round-section="live">Live</button>
-                <button class="subnav-tab" data-round="manche3" data-round-section="participants">Contenu</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="participants">Thèmes</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="questions">Participants</button>
+                <button class="subnav-tab" data-round="manche3" data-round-section="viewer-questions">Viewers</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche3" data-round-section="overlay">Overlay</button>
               </nav>
@@ -511,29 +519,33 @@ La Tour Eiffel"></textarea></label>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:questions">
+                <article class="subpanel stack compact-panel panel">
+                  <h3 class="panel-title">Questions participants</h3>
+                  <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
+                  <p id="m3-current-question" class="highlight">En attente</p>
+                  <div class="toolbar">
+                    <button class="btn btn-secondary m3-pass-legacy">Passer</button>
+                    <button class="btn btn-primary m3-correct-legacy">Correct</button>
+                    <button class="btn btn-secondary m3-next-legacy">Suivante</button>
+                  </div>
+                </article>
+              </section>
+
+              <section class="round-section hidden" data-round-section-panel="manche3:viewer-questions">
                 <div class="two-col">
-                  <article class="subpanel stack compact-panel panel">
-                    <h3 class="panel-title">Questions</h3>
-                    <p class="muted">Thème : <span id="m3-active-theme">Aucun</span></p>
-                    <p id="m3-current-question" class="highlight">En attente</p>
-                    <div class="toolbar">
-                      <button class="btn btn-secondary m3-pass-legacy">Passer</button>
-                      <button class="btn btn-primary m3-correct-legacy">Correct</button>
-                      <button class="btn btn-secondary m3-next-legacy">Suivante</button>
-                    </div>
-                  </article>
                   <form id="m3-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
                     <h3>Question viewers</h3>
                     <p id="m3-viewer-live-label" class="message">Aucune question active.</p>
+                    <label>Musique viewers (optionnelle)<input id="m3-viewer-audio" type="file" accept="audio/*" /></label>
                     <label>Question viewers<input id="m3-viewer-prompt" required maxlength="240" /></label>
-                    <label>Réponses acceptées<textarea id="m3-viewer-aliases" rows="4" required></textarea></label>
+                    <label>Réponse principale et alias acceptés<textarea id="m3-viewer-aliases" rows="4" required></textarea></label>
                     <div class="row compact"><label>Points<input id="m3-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m3-viewer-timer" type="number" min="0" value="30" /></label></div>
                     <label class="row"><input id="m3-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m3-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                   </form>
+                  <article class="subpanel compact-panel"><h3>Questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
                 </div>
-                <article class="subpanel compact-panel"><h3>Questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:live">
@@ -623,7 +635,8 @@ La Tour Eiffel"></textarea></label>
             <section class="round-shell hidden" data-round-panel="manche4">
               <nav class="subnav" aria-label="Sous navigation manche 4">
                 <button class="subnav-tab active" data-round="manche4" data-round-section="live">Live</button>
-                <button class="subnav-tab" data-round="manche4" data-round-section="questions">Contenu</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="questions">Participants</button>
+                <button class="subnav-tab" data-round="manche4" data-round-section="viewer-questions">Viewers</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="overview">État</button>
                 <button class="subnav-tab" data-round="manche4" data-round-section="overlay">Overlay</button>
@@ -674,6 +687,8 @@ La Tour Eiffel"></textarea></label>
                   </form>
                   <ul id="m4-track-list" class="leaderboard"></ul>
                 </article>
+              </section>
+              <section class="round-section hidden" data-round-section-panel="manche4:viewer-questions">
                 <article class="subpanel compact-panel stack viewer-panel">
                   <h3>Question viewers</h3>
                   <p id="m4-viewer-live-label" class="message">Aucune question active.</p>

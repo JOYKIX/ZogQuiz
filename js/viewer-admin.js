@@ -7,6 +7,8 @@ const LIVE_STATE_PATH = `${VIEWER_ROOT}/liveState`;
 const CHAT_FEED_PATH = `${VIEWER_ROOT}/chatFeed`;
 const ATTEMPTS_PATH = `${VIEWER_ROOT}/attempts`;
 const WINNERS_PATH = `${VIEWER_ROOT}/winners`;
+const MAX_VIEWER_IMAGE_SIZE = 3 * 1024 * 1024;
+const MAX_VIEWER_AUDIO_SIZE = 10 * 1024 * 1024;
 
 const ROUND_CONFIGS = {
   manche2: {
@@ -15,6 +17,8 @@ const ROUND_CONFIGS = {
     liveLabelId: "m2-viewer-live-label",
     promptId: "m2-viewer-prompt",
     aliasesId: "m2-viewer-aliases",
+    mediaId: "m2-viewer-image",
+    mediaKind: "image",
     pointsId: "m2-viewer-points",
     timerId: "m2-viewer-timer",
     firstCorrectOnlyId: "m2-viewer-first-correct-only",
@@ -26,6 +30,8 @@ const ROUND_CONFIGS = {
     liveLabelId: "m3-viewer-live-label",
     promptId: "m3-viewer-prompt",
     aliasesId: "m3-viewer-aliases",
+    mediaId: "m3-viewer-audio",
+    mediaKind: "audio",
     pointsId: "m3-viewer-points",
     timerId: "m3-viewer-timer",
     firstCorrectOnlyId: "m3-viewer-first-correct-only",
@@ -64,7 +70,36 @@ function formatRemaining(endsAt) {
   return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
 }
 
-function buildQuestionPayload(round, cfg, adminId) {
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Lecture fichier impossible."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function readViewerMedia(cfg) {
+  const input = cfg.mediaId ? document.getElementById(cfg.mediaId) : null;
+  const file = input?.files?.[0];
+  if (!file) return {};
+
+  if (cfg.mediaKind === "image") {
+    if (!file.type.startsWith("image/")) throw new Error("Image viewers invalide.");
+    if (file.size > MAX_VIEWER_IMAGE_SIZE) throw new Error("Image viewers trop lourde (3 Mo max).");
+    return { imageDataUrl: await readFileAsDataURL(file), fileName: file.name, mimeType: file.type };
+  }
+
+  if (cfg.mediaKind === "audio") {
+    if (!file.type.startsWith("audio/")) throw new Error("Musique viewers invalide.");
+    if (file.size > MAX_VIEWER_AUDIO_SIZE) throw new Error("Musique viewers trop lourde (10 Mo max).");
+    return { audioDataUrl: await readFileAsDataURL(file), audioFileName: file.name, audioMimeType: file.type };
+  }
+
+  return {};
+}
+
+async function buildQuestionPayload(round, cfg, adminId) {
   const prompt = document.getElementById(cfg.promptId)?.value?.trim() || "";
   const acceptedAnswers = parseAcceptedAnswers(document.getElementById(cfg.aliasesId)?.value || "");
   const points = Math.max(1, Number(document.getElementById(cfg.pointsId)?.value || 1));
@@ -74,13 +109,18 @@ function buildQuestionPayload(round, cfg, adminId) {
   if (!prompt || !acceptedAnswers.length) {
     throw new Error("Prompt et réponses acceptées obligatoires.");
   }
+  const mediaPayload = await readViewerMedia(cfg);
   return {
     round,
     type: "viewer",
     prompt,
+    text: prompt,
+    questionText: prompt,
     acceptedAnswers,
+    aliases: acceptedAnswers,
     answer: acceptedAnswers[0],
     normalizedAnswers: acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean),
+    ...mediaPayload,
     active: false,
     points,
     timerSeconds,
@@ -112,7 +152,7 @@ export function initViewerAdmin(options) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
-        const payload = buildQuestionPayload(round, cfg, getCurrentAdminId?.() || "admin");
+        const payload = await buildQuestionPayload(round, cfg, getCurrentAdminId?.() || "admin");
         const questionRef = push(ref(db, qPath(round)));
         await set(questionRef, payload);
         form.reset();
@@ -199,9 +239,15 @@ function renderQuestionList(round, cfg, state, options) {
     const li = document.createElement("li");
     const isActive = state.liveState?.active && state.liveState?.round === round && state.liveState?.questionId === id;
     li.className = `question-item viewer-question-card ${isActive ? "viewer-question-card-active" : ""}`;
+    const mediaPreview = question.imageDataUrl
+      ? `<img class="m2-thumb" src="${question.imageDataUrl}" alt="Image viewers ${formatRoundLabel(round)}" loading="lazy" decoding="async" />`
+      : question.audioDataUrl
+        ? `<audio controls preload="metadata" src="${question.audioDataUrl}"></audio>`
+        : "";
     li.innerHTML = `
       <div class="question-head"><strong>V${index + 1}</strong>${isActive ? '<span class="question-active-chip">Live</span>' : ""}</div>
-      <p>${escapeHtml(question.prompt)}</p>
+      ${mediaPreview}
+      <p>${escapeHtml(question.prompt || question.text || question.questionText)}</p>
       <p class="muted">Aliases (${(question.acceptedAnswers || []).length}) : ${(question.acceptedAnswers || []).map((a) => escapeHtml(a)).join(" · ")}</p>
       <p class="muted">Points ${Number(question.points || 1)} · Timer ${Number(question.timerSeconds || 0)}s · ${question.settings?.firstCorrectOnly ? "1er bon" : "multi"}</p>
     `;
@@ -225,6 +271,7 @@ function renderQuestionList(round, cfg, state, options) {
         settings: question.settings || {},
         points: Number(question.points || 1),
         timerSeconds,
+        media: question.imageDataUrl ? { kind: "image", fileName: question.fileName || "image" } : question.audioDataUrl ? { kind: "audio", fileName: question.audioFileName || "musique" } : null,
         startedAt: now,
         endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
         updatedAt: now,
@@ -271,8 +318,11 @@ function renderQuestionList(round, cfg, state, options) {
       }
       await update(ref(db, `${qPath(round)}/${id}`), {
         prompt: nextPrompt.trim(),
+        text: nextPrompt.trim(),
+        questionText: nextPrompt.trim(),
         acceptedAnswers,
-        normalizedAnswers: acceptedAnswers.map((value) => normalizeViewerAnswer(value)),
+        aliases: acceptedAnswers,
+        normalizedAnswers: acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean),
         answer: acceptedAnswers[0],
         updatedAt: Date.now(),
         updatedBy: options.getCurrentAdminId?.() || "admin",
