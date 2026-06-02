@@ -311,21 +311,22 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
 .auth-layout {
   min-height: calc(100vh - var(--topbar-h));
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
-  gap: .85rem;
-  align-items: stretch;
-  padding: .85rem;
-}
-.auth-intro {
-  display: grid;
-  align-content: end;
-  min-height: 480px;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 3rem);
   background:
-    radial-gradient(circle at 14% 18%, rgba(182,255,0,.26), transparent 15rem),
-    linear-gradient(128deg, rgba(255,49,88,.95) 0 38%, #181821 38% 100%);
+    radial-gradient(circle at 18% 12%, rgba(0,214,255,.16), transparent 18rem),
+    radial-gradient(circle at 82% 72%, rgba(255,49,88,.22), transparent 20rem),
+    linear-gradient(135deg, #0b0b12 0%, #171722 58%, #07070a 100%);
 }
-.auth-intro h2 { max-width: 760px; font-size: clamp(2rem, 5vw, 5.6rem); }
-.auth-card { align-self: center; background: var(--paper); color: var(--ink); }
+.auth-card {
+  width: min(520px, 100%);
+  align-self: center;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 12px 12px 0 rgba(0,0,0,.45);
+}
+.auth-panel-head { display: grid; gap: .35rem; margin-bottom: 1rem; }
+.auth-panel-head h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: .92; text-transform: uppercase; }
 .auth-card label, .auth-card .muted { color: #30303a; }
 .auth-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; margin-bottom: .85rem; padding: .25rem; border: 2px solid var(--ink); background: #d8d0b9; }
 
@@ -863,8 +864,7 @@ body.modal-open { overflow: hidden; }
   .sidebar { border-right: 0; border-bottom: 3px solid var(--ink); }
   .sidebar-scroll { max-height: 50vh; }
   .context-bar { position: static; }
-  .auth-layout { grid-template-columns: 1fr; }
-  .auth-intro { min-height: 320px; }
+  .auth-layout { min-height: auto; }
   .guest-player-header, .guest-live-layout { grid-template-columns: 1fr; }
   .guest-camera-sidebar, .guest-camera-sidebar-right { border: 0; border-bottom: 3px solid var(--ink); }
   .guest-round-content { min-height: auto; }
