@@ -34,7 +34,7 @@ export const OVERLAY_DEFAULTS = {
   },
   round3Timer: {
     timerFontSizePx: 72,
-    timerColor: "#8cf5dc",
+    timerColor: "#ffe27a",
     timerFormat: "minutes-seconds",
     fontWeight: 950,
     align: "center",

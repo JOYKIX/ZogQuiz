@@ -3,21 +3,23 @@
   --font-sans: "Arial", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Arial Black", Impact, "Sora", var(--font-sans);
   --ink: #050507;
-  --panel: #15151d;
-  --panel-2: #1e1e29;
-  --line: #363744;
-  --primary: #ff3158;
-  --primary-2: #00d8ff;
-  --accent: #b6ff00;
-  --accent-2: #ffd000;
+  --panel: rgba(9, 23, 29, .92);
+  --panel-2: rgba(8, 35, 42, .9);
+  --line: rgba(255,255,255,.18);
+  --zog-yellow: #ffc83d;
+  --zog-yellow-soft: #ffe27a;
+  --zog-cyan: #08b9c6;
+  --zog-cyan-soft: #42d6df;
+  --zog-orange: #ff6b00;
+  --paper: #ffffff;
   --m5-health-height: 54px;
-  --m5-health-radius: 0px;
+  --m5-health-radius: 12px;
   --m5-health-max-width: 790px;
   --m5-health-gap: 34px;
   --m5-health-padding: 44px;
-  --m5-health-color: var(--accent-2);
-  --m5-health-danger-color: var(--primary);
-  --m5-text-color: #f8f7ef;
+  --m5-health-color: var(--zog-yellow-soft);
+  --m5-health-danger-color: var(--zog-orange);
+  --m5-text-color: #fff9df;
   --m5-name-font-size: 38px;
   --m5-hp-font-size: 44px;
   --m5-frame-opacity: 0.92;
@@ -53,10 +55,11 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   isolation: isolate;
   color: var(--m5-text-color);
   background:
-    linear-gradient(110deg, var(--primary) 0 18%, transparent 18% 100%),
+    linear-gradient(110deg, var(--side-accent, var(--zog-yellow)) 0 18%, transparent 18% 100%),
+    linear-gradient(110deg, transparent 0 68%, rgba(255,255,255,.94) 68% 73%, transparent 73% 100%),
     linear-gradient(180deg, var(--panel-2), var(--panel));
   border: 3px solid var(--ink);
-  box-shadow: 9px 9px 0 var(--ink);
+  box-shadow: 9px 9px 0 var(--ink), 0 0 0 2px rgba(255,255,255,.1) inset;
   transition: opacity 180ms ease, filter 180ms ease;
 }
 
@@ -68,7 +71,7 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   transform: translateY(-50%) rotate(-2deg);
   padding: .24em .5em;
   color: var(--ink);
-  background: var(--accent);
+  background: var(--zog-yellow-soft);
   border: 2px solid var(--ink);
   box-shadow: 4px 4px 0 var(--ink);
   font: 950 clamp(.7rem, 1.1vw, 1rem)/1 var(--font-sans);
@@ -83,11 +86,14 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   top: -3px;
   width: clamp(46px, 7vmin, 74px);
   height: clamp(46px, 7vmin, 74px);
-  background: linear-gradient(135deg, transparent 0 49%, var(--accent-2) 50% 100%);
+  background: linear-gradient(135deg, transparent 0 49%, var(--zog-orange) 50% 100%);
   border-top: 3px solid var(--ink);
   border-right: 3px solid var(--ink);
   pointer-events: none;
 }
+
+.m5o-fighter-left { --side-accent: var(--zog-yellow); }
+.m5o-fighter-right { --side-accent: var(--zog-cyan); }
 
 .m5o-fighter.is-empty { opacity: var(--m5-dimmed-opacity); }
 .m5o-fighter.is-dead { filter: grayscale(.75) brightness(.74); }
@@ -98,6 +104,7 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   gap: 18px;
   align-items: end;
   margin: 0 0 clamp(12px, 1.8vw, 20px);
+  padding-right: clamp(56px, 7vmin, 82px);
   color: var(--m5-text-color);
   text-transform: uppercase;
 }
@@ -116,14 +123,14 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   font-weight: 950;
   line-height: .9;
   letter-spacing: -0.055em;
-  text-shadow: 4px 4px 0 var(--ink);
+  text-shadow: 4px 4px 0 var(--ink), 0 0 14px rgba(255,255,255,.1);
 }
 
 .m5o-fighter-hp {
   flex: 0 0 auto;
   padding: .18em .32em .12em;
   color: var(--ink);
-  background: var(--m5-health-color);
+  background: var(--side-accent, var(--m5-health-color));
   border: 2px solid var(--ink);
   box-shadow: 5px 5px 0 var(--ink);
   font-family: var(--font-display);
@@ -140,11 +147,13 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   height: var(--m5-health-height);
   overflow: hidden;
   border: 2px solid var(--ink);
-  border-radius: 0;
+  border-radius: var(--m5-health-radius);
   isolation: isolate;
+  opacity: var(--m5-frame-opacity);
   background:
-    repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(255,255,255,.16) calc(10% - 2px) 10%),
-    #09090d;
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(255,255,255,.14) calc(10% - 2px) 10%),
+    linear-gradient(90deg, rgba(255,200,61,.16), rgba(8,185,198,.14)),
+    #071216;
   box-shadow: 0 0 0 1px var(--line) inset;
 }
 
@@ -158,7 +167,7 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   min-width: 42px;
   padding: 0 .42em;
   color: var(--ink);
-  background: var(--primary-2);
+  background: var(--zog-cyan-soft);
   border-right: 2px solid var(--ink);
   font: 950 .82rem/1 var(--font-sans);
   letter-spacing: .16em;
@@ -170,9 +179,10 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,.22) 1px, transparent 2px);
-  background-size: 12px 12px;
-  opacity: .18;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.24) 1px, transparent 2px) 0 0 / 12px 12px,
+    linear-gradient(105deg, transparent 0 70%, rgba(255,255,255,.7) 70% 74%, transparent 74% 100%);
+  opacity: .2;
   pointer-events: none;
   z-index: 4;
 }
@@ -185,8 +195,9 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   transform: scaleX(calc(var(--hp-percent, 0) / 100));
   transform-origin: left center;
   background:
+    linear-gradient(105deg, rgba(255,255,255,.7) 0 8%, transparent 8% 13%, rgba(255,255,255,.25) 13% 17%, transparent 17% 100%),
     repeating-linear-gradient(115deg, rgba(5,5,7,.18) 0 8px, transparent 8px 18px),
-    linear-gradient(90deg, var(--m5-health-danger-color), var(--m5-health-color), var(--accent));
+    linear-gradient(90deg, var(--m5-health-danger-color), var(--m5-health-color), var(--zog-cyan));
   box-shadow: 0 0 18px color-mix(in srgb, var(--m5-health-color) 38%, transparent);
   transition: transform 280ms cubic-bezier(.16, 1, .3, 1);
 }
@@ -196,8 +207,9 @@ body { font-family: var(--font-sans); color: var(--m5-text-color); }
   left: auto;
   transform-origin: right center;
   background:
+    linear-gradient(65deg, rgba(255,255,255,.7) 0 8%, transparent 8% 13%, rgba(255,255,255,.25) 13% 17%, transparent 17% 100%),
     repeating-linear-gradient(65deg, rgba(5,5,7,.18) 0 8px, transparent 8px 18px),
-    linear-gradient(90deg, var(--accent), var(--m5-health-color), var(--m5-health-danger-color));
+    linear-gradient(90deg, var(--zog-cyan), var(--m5-health-color), var(--m5-health-danger-color));
 }
 
 @media (max-width: 900px) {
