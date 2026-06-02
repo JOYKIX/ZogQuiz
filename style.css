@@ -263,10 +263,10 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
 }
 .context-bar .muted { margin: 0; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
 .app-workspace { padding: 0; }
-.workspace-panel { padding: .85rem; border-bottom: 3px solid var(--ink); }
+.workspace-panel { padding: clamp(.9rem, 1.4vw, 1.25rem); border-bottom: 3px solid var(--ink); }
 .workspace-panel > .panel-head:first-child {
-  margin: -.85rem -.85rem .85rem;
-  padding: .85rem 1rem;
+  margin: calc(-1 * clamp(.9rem, 1.4vw, 1.25rem)) calc(-1 * clamp(.9rem, 1.4vw, 1.25rem)) clamp(.9rem, 1.4vw, 1.25rem);
+  padding: clamp(.9rem, 1.4vw, 1.25rem) clamp(1rem, 1.8vw, 1.45rem);
   background: linear-gradient(110deg, var(--primary) 0 34%, #191923 34% 100%);
   border-bottom: 3px solid var(--ink);
   color: #fff;
@@ -290,8 +290,8 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
   border: 2px solid var(--ink);
   background: var(--panel);
   box-shadow: var(--shadow-sm);
-  padding: .95rem;
-  margin-bottom: .85rem;
+  padding: clamp(.85rem, 1.2vw, 1.1rem);
+  margin-bottom: clamp(.75rem, 1.1vw, 1rem);
 }
 .panel::after,
 .subpanel::after,
@@ -329,10 +329,10 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
 .auth-card label, .auth-card .muted { color: #30303a; }
 .auth-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; margin-bottom: .85rem; padding: .25rem; border: 2px solid var(--ink); background: #d8d0b9; }
 
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .65rem; margin-bottom: .85rem; }
-.two-col, .scoreboard-grid, .m5-guest-grid, .m6-duel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: .85rem; }
-.grid { display: grid; gap: .85rem; }
-.stack { display: grid; gap: .75rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: clamp(.55rem, .9vw, .8rem); margin-bottom: clamp(.75rem, 1.1vw, 1rem); }
+.two-col, .scoreboard-grid, .m5-guest-grid, .m6-duel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: clamp(.75rem, 1.2vw, 1.1rem); align-items: start; }
+.grid { display: grid; gap: clamp(.75rem, 1.2vw, 1.1rem); }
+.stack { display: grid; gap: clamp(.65rem, 1vw, .85rem); }
 .compact { gap: .45rem; }
 
 .btn {
@@ -473,26 +473,37 @@ table { width: 100%; min-width: 720px; border-collapse: collapse; }
 th, td { padding: .55rem .65rem; border: 1px solid var(--line); text-align: left; }
 th { color: var(--ink); background: var(--accent-2); text-transform: uppercase; font-size: .78rem; }
 
-/* Round question editors: keep form height independent from long question lists. */
+/* Round question editors: list on the left, form on the right, independent heights. */
 .question-manager,
 .viewer-question-manager {
   display: grid;
-  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-  gap: .85rem;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 430px);
+  gap: clamp(.75rem, 1.2vw, 1.1rem);
   align-items: start;
 }
 
-.question-form-panel {
+.question-form-panel,
+.question-list-panel {
   align-self: start;
-  height: auto;
+  height: fit-content;
   min-height: 0;
 }
 
+.question-form-panel {
+  grid-column: 2;
+  position: sticky;
+  top: calc(var(--topbar-h) + 4rem);
+}
+
 .question-list-panel {
-  align-self: start;
-  min-height: 0;
-  max-height: calc(100vh - 260px);
+  grid-column: 1;
+}
+
+.question-list-panel > .list,
+.question-list-panel > .question-list {
+  max-height: min(720px, calc(100vh - 320px));
   overflow-y: auto;
+  padding-right: .25rem;
 }
 
 .add-question-button {
@@ -508,9 +519,17 @@ th { color: var(--ink); background: var(--accent-2); text-transform: uppercase; 
     grid-template-columns: 1fr;
   }
 
+  .question-form-panel,
   .question-list-panel {
+    grid-column: auto;
+    position: static;
+  }
+
+  .question-list-panel > .list,
+  .question-list-panel > .question-list {
     max-height: none;
     overflow-y: visible;
+    padding-right: 0;
   }
 }
 
