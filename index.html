@@ -389,7 +389,7 @@ Monkey D. Luffy"></textarea>
 
               <section class="round-section hidden" data-round-section-panel="manche2:questions">
                 <div class="question-manager">
-                  <form id="m2-question-form" class="subpanel stack compact-panel question-editor">
+                  <form id="m2-question-form" class="subpanel stack compact-panel question-editor question-form-panel">
                     <div class="panel-header"><h3>Question M2</h3><p id="m2-editor-mode" class="muted"></p></div>
                     <label>Image
                       <input id="m2-image" type="file" accept="image/*" />
@@ -415,8 +415,8 @@ Monkey D. Luffy"></textarea>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche2:viewer-questions">
-                <div class="two-col">
-                  <form id="m2-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
+                <div class="viewer-question-manager">
+                  <form id="m2-viewer-question-form" class="subpanel stack compact-panel viewer-panel question-form-panel">
                     <h3>Question viewers</h3>
                     <p id="m2-viewer-live-label" class="message">Aucune question active.</p>
                     <label>Image viewers (optionnelle)<input id="m2-viewer-image" type="file" accept="image/*" /></label>
@@ -426,9 +426,9 @@ La Tour Eiffel"></textarea></label>
                     <div class="row compact"><label>Points<input id="m2-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m2-viewer-timer" type="number" min="0" value="30" /></label></div>
                     <label class="row"><input id="m2-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m2-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
-                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                    <button type="submit" class="btn btn-primary add-question-button">Ajouter</button>
                   </form>
-                  <article class="subpanel compact-panel"><h3>Questions viewers</h3><ul id="m2-viewer-questions-list" class="list"></ul></article>
+                  <article class="subpanel compact-panel question-list-panel"><h3>Questions viewers</h3><ul id="m2-viewer-questions-list" class="list"></ul></article>
                 </div>
               </section>
 
@@ -534,8 +534,8 @@ La Tour Eiffel"></textarea></label>
               </section>
 
               <section class="round-section hidden" data-round-section-panel="manche3:viewer-questions">
-                <div class="two-col">
-                  <form id="m3-viewer-question-form" class="subpanel stack compact-panel viewer-panel">
+                <div class="viewer-question-manager">
+                  <form id="m3-viewer-question-form" class="subpanel stack compact-panel viewer-panel question-form-panel">
                     <h3>Question viewers</h3>
                     <p id="m3-viewer-live-label" class="message">Aucune question active.</p>
                     <label>Musique viewers (optionnelle)<input id="m3-viewer-audio" type="file" accept="audio/*" /></label>
@@ -544,9 +544,9 @@ La Tour Eiffel"></textarea></label>
                     <div class="row compact"><label>Points<input id="m3-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m3-viewer-timer" type="number" min="0" value="30" /></label></div>
                     <label class="row"><input id="m3-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m3-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
-                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                    <button type="submit" class="btn btn-primary add-question-button">Ajouter</button>
                   </form>
-                  <article class="subpanel compact-panel"><h3>Questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
+                  <article class="subpanel compact-panel question-list-panel"><h3>Questions viewers manche 3</h3><ul id="m3-viewer-questions-list" class="list"></ul></article>
                 </div>
               </section>
 
@@ -691,20 +691,23 @@ La Tour Eiffel"></textarea></label>
                 </article>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:viewer-questions">
-                <article class="subpanel compact-panel stack viewer-panel">
-                  <h3>Question viewers</h3>
-                  <p id="m4-viewer-live-label" class="message">Aucune question active.</p>
-                  <form id="m4-viewer-question-form" class="stack">
+                <div class="viewer-question-manager">
+                  <form id="m4-viewer-question-form" class="subpanel compact-panel stack viewer-panel question-form-panel">
+                    <h3>Question viewers</h3>
+                    <p id="m4-viewer-live-label" class="message">Aucune question active.</p>
                     <label>Question viewers<input id="m4-viewer-prompt" required maxlength="240" placeholder="Ex: Quel est ce titre ?" /></label>
                     <label>Réponses acceptées<textarea id="m4-viewer-aliases" rows="5" required placeholder="Guren no Yumiya
 SNK OP1"></textarea></label>
                     <div class="row compact"><label>Points<input id="m4-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m4-viewer-timer" type="number" min="0" value="25" /></label></div>
                     <label class="row"><input id="m4-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="m4-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
-                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                    <button type="submit" class="btn btn-primary add-question-button">Ajouter</button>
                   </form>
-                  <ul id="m4-viewer-questions-list" class="list"></ul>
-                </article>
+                  <article class="subpanel compact-panel question-list-panel">
+                    <h3>Questions viewers manche 4</h3>
+                    <ul id="m4-viewer-questions-list" class="list"></ul>
+                  </article>
+                </div>
               </section>
               <section class="round-section hidden" data-round-section-panel="manche4:participants">
                 <article class="subpanel compact-panel stack">

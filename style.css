@@ -473,6 +473,47 @@ table { width: 100%; min-width: 720px; border-collapse: collapse; }
 th, td { padding: .55rem .65rem; border: 1px solid var(--line); text-align: left; }
 th { color: var(--ink); background: var(--accent-2); text-transform: uppercase; font-size: .78rem; }
 
+/* Round question editors: keep form height independent from long question lists. */
+.question-manager,
+.viewer-question-manager {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: .85rem;
+  align-items: start;
+}
+
+.question-form-panel {
+  align-self: start;
+  height: auto;
+  min-height: 0;
+}
+
+.question-list-panel {
+  align-self: start;
+  min-height: 0;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+
+.add-question-button {
+  align-self: start;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+}
+
+@media (max-width: 760px) {
+  .question-manager,
+  .viewer-question-manager {
+    grid-template-columns: 1fr;
+  }
+
+  .question-list-panel {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
 .broadcast-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: .85rem; }
 .broadcast-card { grid-column: span 4; }
 .broadcast-card-wide { grid-column: span 6; }
