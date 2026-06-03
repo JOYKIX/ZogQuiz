@@ -82,7 +82,6 @@ body::before {
 body::after {
   z-index: -1;
   background:
-    linear-gradient(108deg, transparent 0 11%, rgba(255,208,0,.18) 11% 14%, transparent 14% 100%),
     linear-gradient(154deg, transparent 0 76%, rgba(255,49,88,.18) 76% 82%, transparent 82% 100%);
 }
 
@@ -253,12 +252,21 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
   position: sticky;
   top: var(--topbar-h);
   z-index: 30;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 46px;
   padding: .45rem .9rem;
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
+  background: #101018;
+  box-shadow: 0 4px 0 rgba(0,0,0,.55);
+}
+.context-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: #101018;
 }
 .context-bar .muted { margin: 0; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
@@ -267,8 +275,9 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
 .workspace-panel > .panel-head:first-child {
   margin: calc(-1 * clamp(.9rem, 1.4vw, 1.25rem)) calc(-1 * clamp(.9rem, 1.4vw, 1.25rem)) clamp(.9rem, 1.4vw, 1.25rem);
   padding: clamp(.9rem, 1.4vw, 1.25rem) clamp(1rem, 1.8vw, 1.45rem);
-  background: linear-gradient(110deg, var(--primary) 0 34%, #191923 34% 100%);
+  background: #191923;
   border-bottom: 3px solid var(--ink);
+  border-left: 5px solid var(--primary);
   color: #fff;
 }
 .panel-head, .broadcast-card-head, .scoreboard-card-head, .compact-head, .row, .sticky-actions {
@@ -293,19 +302,7 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
   padding: clamp(.85rem, 1.2vw, 1.1rem);
   margin-bottom: clamp(.75rem, 1.1vw, 1rem);
 }
-.panel::after,
-.subpanel::after,
-.card::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 42px;
-  height: 42px;
-  background: linear-gradient(135deg, transparent 0 49%, var(--accent-2) 50% 100%);
-  opacity: .9;
-  pointer-events: none;
-}
+/* Decorative yellow corner triangles were removed to keep panels clean across the app. */
 .subpanel, .compact-panel { background: #181821; }
 .panel:hover, .subpanel:hover, .stat-card:hover { border-color: var(--line-strong); }
 .auth-layout {
