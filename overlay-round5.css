@@ -43,7 +43,7 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 
 .m5o-fighter {
   --m5-health-fill-color: var(--m5-cyan);
-  --m5-side-color: var(--m5-yellow);
+  --m5-side-color: var(--m5-cyan);
   min-width: 0;
   opacity: 1;
   filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5));
@@ -52,7 +52,7 @@ body { font-family: var(--font-live); color: var(--m5-text-color); }
 
 .m5o-fighter-right {
   --m5-health-fill-color: var(--m5-yellow);
-  --m5-side-color: var(--m5-cyan);
+  --m5-side-color: var(--m5-yellow);
 }
 .m5o-fighter.is-empty { opacity: var(--m5-dimmed-opacity); }
 .m5o-fighter.is-wounded { --m5-side-color: var(--m5-health-danger-color); }
