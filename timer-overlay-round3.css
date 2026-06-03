@@ -63,7 +63,12 @@ body {
   background:
     radial-gradient(circle at 36% 28%, rgba(255, 255, 255, .46) 0 2.3%, transparent 2.5% 100%),
     radial-gradient(circle at 63% 67%, rgba(255, 255, 255, .2) 0 2.8%, transparent 3% 100%),
-    conic-gradient(from -18deg, rgba(255, 211, 95, .92) 0 43%, #f9fbff 43% 48%, rgba(24, 196, 207, .9) 48% 100%);
+    conic-gradient(
+      from -18deg,
+      color-mix(in srgb, var(--timer-circle-color) 84%, #ffd35f) 0 43%,
+      #f9fbff 43% 48%,
+      color-mix(in srgb, var(--timer-circle-color) 82%, #18c4cf) 48% 100%
+    );
   box-shadow:
     inset 0 0 0 10px rgba(255, 255, 255, .96),
     inset 0 0 0 18px rgba(16, 35, 63, .9),
@@ -92,7 +97,7 @@ body {
 
 .m3-timer-segment {
   fill: none;
-  stroke: rgba(16, 35, 63, .36);
+  stroke: color-mix(in srgb, var(--timer-circle-color) 46%, rgba(16, 35, 63, .36));
   stroke-width: 5.8;
   stroke-linecap: butt;
   opacity: .28;
@@ -108,7 +113,9 @@ body {
 }
 
 .m3-timer-segment.is-inactive {
-  opacity: .18;
+  stroke: var(--timer-circle-color);
+  opacity: .16;
+  filter: none;
 }
 
 .m3-timer-overlay-value {
