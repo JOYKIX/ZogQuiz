@@ -18,3 +18,49 @@ p { margin: 0; font: 850 clamp(1rem, 2vw, 2.2rem)/1.2 var(--font-live); }
 .m6-question-text { color: #fff; font: 950 clamp(1.5rem, 3.8vw, 4.8rem)/1.05 var(--font-live); text-wrap: balance; }
 .m6-winner { margin-top: .55em; color: var(--green); font-weight: 950; }
 @media (max-aspect-ratio: 4/3) { .m6-duel-grid { grid-template-columns: 1fr; } .m6-overlay { overflow: auto; } }
+
+/* Round 6 overlay polish aligned with Admin/Guest art direction. */
+:root {
+  --font-live: "Arial Black", Impact, Inter, ui-sans-serif, system-ui, sans-serif;
+  --cyan: #09c8d7;
+  --pink: #ff6a00;
+  --green: #ffd044;
+  --gold: #ffd044;
+  --zq-ink: #050507;
+}
+.m6-overlay {
+  text-shadow: 4px 4px 0 var(--zq-ink), 0 18px 58px rgba(0,0,0,.68);
+}
+.eyebrow {
+  display: inline-flex;
+  justify-self: center;
+  padding: .25em .55em;
+  border: 3px solid var(--zq-ink);
+  background: var(--gold);
+  color: var(--zq-ink);
+  box-shadow: 5px 5px 0 var(--zq-ink);
+  text-shadow: none;
+}
+.m6-player-card,
+.m6-question-card {
+  position: relative;
+  overflow: hidden;
+  border: 3px solid var(--zq-ink);
+  border-left: 10px solid var(--cyan);
+  border-radius: 2px;
+  background:
+    linear-gradient(115deg, rgba(255,208,68,.18) 0 17%, transparent 17% 100%),
+    linear-gradient(180deg, rgba(24,26,36,.96), rgba(11,12,18,.96));
+  box-shadow: 9px 9px 0 var(--zq-ink), 0 22px 68px rgba(0,0,0,.42);
+}
+.m6-player-card:nth-child(2) { border-left-color: var(--pink); }
+.m6-question-card { border-left-color: var(--gold); }
+.m6-timer { -webkit-text-stroke: .025em var(--zq-ink); }
+.m6-live-meta p {
+  padding: .28em .5em;
+  border: 2px solid var(--zq-ink);
+  background: rgba(9,200,215,.16);
+  box-shadow: 3px 3px 0 var(--zq-ink);
+}
+.m6-question-text { text-transform: uppercase; }
+.m6-winner { color: var(--gold); }

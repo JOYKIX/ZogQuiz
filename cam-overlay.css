@@ -130,3 +130,43 @@ body { background-color: transparent; }
   height: 1px;
   overflow: hidden;
 }
+
+/* Camera overlay polish matching the ZogQuiz broadcast frame. */
+:root {
+  --cam-radius: 4px;
+  --zq-ink: #050507;
+  --zq-cyan: #09c8d7;
+  --zq-yellow: #ffd044;
+  --zq-orange: #ff6a00;
+}
+.camera-card {
+  border: 3px solid var(--zq-ink);
+  border-left: 8px solid var(--zq-cyan);
+  background: rgba(5,5,7,.78);
+  box-shadow: 6px 6px 0 var(--zq-ink), 0 18px 44px rgba(0,0,0,.42);
+}
+.camera-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,208,68,.18) 0 12%, transparent 12% 100%);
+  mix-blend-mode: screen;
+}
+.camera-card.connecting { border-left-color: var(--zq-orange); }
+.camera-name,
+.camera-answer {
+  border: 2px solid var(--zq-ink);
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255,208,68,.95), rgba(255,106,0,.9));
+  color: var(--zq-ink);
+  box-shadow: 4px 4px 0 var(--zq-ink);
+  text-shadow: none;
+  text-transform: uppercase;
+}
+.camera-preview-card {
+  border: 3px solid var(--zq-ink);
+  border-left: 8px solid var(--zq-yellow);
+  box-shadow: 6px 6px 0 var(--zq-ink), 0 18px 44px rgba(0,0,0,.42);
+}
+.camera-preview-label { text-transform: uppercase; text-shadow: 3px 3px 0 var(--zq-ink), 0 0 24px rgba(9,200,215,.3); }
