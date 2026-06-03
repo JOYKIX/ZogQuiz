@@ -8,7 +8,13 @@
     "anim-controlledFlash",
     "anim-rulesReveal",
     "anim-timerPulse",
-    "anim-streamSweep"
+    "anim-streamSweep",
+    "anim-buzzerHit",
+    "anim-lockSnap",
+    "anim-imageFocus",
+    "anim-soundWave",
+    "anim-hpDrain",
+    "anim-duelClash"
   ];
 
   const state = {
@@ -191,6 +197,47 @@
 
     if (visual === "spark") {
       el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="sparkline"></div><div class="card-row"><div class="quiz-card">LIVE</div><div class="quiz-card">OBS</div></div></div>`;
+      return;
+    }
+
+    if (visual === "buzzer") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="buzzer-pad"><span>BUZZ</span></div><div class="lock-line"><span>Joueur A</span><strong>LOCK</strong><span>Joueur B</span></div></div>`;
+      return;
+    }
+
+    if (visual === "lock") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="lock-visual"><div class="lock-shackle"></div><div class="lock-body">MAIN</div></div></div>`;
+      return;
+    }
+
+    if (visual === "imageFrame") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="image-frame"><div class="image-sun"></div><div class="image-mountain one"></div><div class="image-mountain two"></div><span>${escapeHtml(scene.token || "IMG")}</span></div></div>`;
+      return;
+    }
+
+    if (visual === "answerFlow") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="answer-flow">${cardLabels.map((label, index) => `<div class="answer-step"><span>${index + 1}</span><strong>${escapeHtml(label)}</strong></div>`).join("")}</div></div>`;
+      return;
+    }
+
+    if (visual === "themeGrid") {
+      const labels = cardLabels.length ? cardLabels : ["Thème", "Question", "Score"];
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="theme-grid">${labels.concat(["Anime", "Manga", scene.timer || "1:30"]).slice(0, 6).map((label) => `<div>${escapeHtml(label)}</div>`).join("")}</div></div>`;
+      return;
+    }
+
+    if (visual === "audio") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="audio-visual"><div class="play-disc"><span>${escapeHtml(scene.token || "♪")}</span></div><div class="wave-bars"><i></i><i></i><i></i><i></i><i></i></div></div></div>`;
+      return;
+    }
+
+    if (visual === "hp") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="hp-board"><div class="hp-line"><span>Joueur A</span><strong style="--hp: 82%"></strong></div><div class="hp-line danger"><span>Joueur B</span><strong style="--hp: 34%"></strong></div><div class="hp-hit">-${escapeHtml(scene.damage || "PV")}</div></div></div>`;
+      return;
+    }
+
+    if (visual === "duel") {
+      el.sceneVisual.innerHTML = `<div class="scene-art" aria-hidden="true"><div class="duel-board"><div class="duel-player">P1</div><strong>VS</strong><div class="duel-player viewer">VIEWER</div></div></div>`;
       return;
     }
 
