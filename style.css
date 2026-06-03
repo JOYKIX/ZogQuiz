@@ -372,6 +372,9 @@ code { color: var(--accent); padding: .08rem .35rem; background: var(--ink); bor
 }
 .btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); filter: saturate(1.08); }
 .btn:hover::before { opacity: .4; }
+#buzz-btn::before,
+#buzz-button::before,
+.m5-buzz::before { display: none; }
 .btn:active { transform: translate(0,0); box-shadow: 2px 2px 0 var(--ink); }
 .btn-primary { --btn-bg: var(--primary); --btn-color: #fff; }
 .btn-secondary { --btn-bg: var(--primary-2); --btn-color: var(--ink); }
@@ -821,6 +824,8 @@ body.modal-open { overflow: hidden; }
 .m5-question-text, .m6-question-text { font-size: clamp(1.2rem, 2.5vw, 2.2rem); font-weight: 950; }
 .m6-timer { display: block; font-family: var(--font-display); font-size: clamp(3rem, 8vw, 7rem); line-height: .9; color: var(--accent-2); text-shadow: 4px 4px 0 var(--ink); }
 .guest-camera-preview, .guest-camera-wall video { width: 100%; border: 2px solid var(--ink); background: #000; }
+.guest-camera-preview.render-disabled,
+.guest-camera-wall.render-disabled { display: none !important; }
 .guest-camera-wall-stack { display: grid; gap: .55rem; }
 .toggle-line { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: .45rem; margin: .5rem 0; }
 .camera-status.off { color: var(--muted); }

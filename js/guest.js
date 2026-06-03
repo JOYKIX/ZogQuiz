@@ -1185,9 +1185,12 @@ guestCameraController = createGuestCameraController({
   },
 });
 
-guestSelfCameraRender?.addEventListener("change", () => {
-  guestCameraPreview?.classList.toggle("render-disabled", !guestSelfCameraRender.checked);
-});
+function syncSelfCameraRender() {
+  guestCameraPreview?.classList.toggle("render-disabled", !guestSelfCameraRender?.checked);
+}
+
+guestSelfCameraRender?.addEventListener("change", syncSelfCameraRender);
+syncSelfCameraRender();
 
 guestCameraWallController = initGuestCameraWall({
   adminRoot: guestAdminCameraWall,

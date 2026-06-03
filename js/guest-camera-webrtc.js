@@ -603,6 +603,15 @@ export function initGuestCameraWall({
     return showParticipantsInput ? showParticipantsInput.checked : true;
   }
 
+  function shouldShowGroup(group) {
+    return group === "admin" ? shouldShowAdmin() : shouldShowParticipants();
+  }
+
+  function syncRenderVisibility() {
+    adminRoot?.classList.toggle("render-disabled", !shouldShowAdmin());
+    participantsRoot?.classList.toggle("render-disabled", !shouldShowParticipants());
+  }
+
   function setStatusText(target, text) {
     if (target) target.textContent = text;
   }
@@ -701,6 +710,7 @@ export function initGuestCameraWall({
   }
 
   async function connect(guestId, nickname, group) {
+    if (!shouldShowGroup(group)) return;
     const entry = ensureCard(guestId, nickname, group);
     if (entry.pc && !["failed", "closed", "disconnected"].includes(entry.pc.connectionState)) return;
     closePeer(entry);
@@ -711,6 +721,10 @@ export function initGuestCameraWall({
     Object.assign(entry, { pc, signalPath, signalId });
 
     pc.ontrack = (event) => {
+      if (!shouldShowGroup(group)) {
+        disconnect(guestId).catch(console.warn);
+        return;
+      }
       const [stream] = event.streams;
       entry.video.srcObject = stream;
       entry.card.classList.remove("connecting");
@@ -760,6 +774,7 @@ export function initGuestCameraWall({
   }
 
   function reconcile() {
+    syncRenderVisibility();
     const desired = desiredStreams();
     const ids = new Set(desired.map((item) => item.guestId));
     for (const guestId of [...peers.keys()]) {
@@ -785,6 +800,7 @@ export function initGuestCameraWall({
 
   showAdminInput?.addEventListener("change", reconcile);
   showParticipantsInput?.addEventListener("change", reconcile);
+  syncRenderVisibility();
 
   onValue(ref(db, "quiz/state"), (snap) => {
     const state = snap.val() || {};
