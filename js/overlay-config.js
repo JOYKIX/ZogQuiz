@@ -35,6 +35,7 @@ export const OVERLAY_DEFAULTS = {
   round3Timer: {
     timerFontSizePx: 72,
     timerColor: "#8cf5dc",
+    timerCircleColor: "#8cf5dc",
     timerFormat: "minutes-seconds",
     fontWeight: 950,
     align: "center",
@@ -178,6 +179,7 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
     return {
       timerFontSizePx: clampInt(raw.timerFontSizePx, defaults.timerFontSizePx, 20, UNLIMITED_PX),
       timerColor: asColor(raw.timerColor, defaults.timerColor),
+      timerCircleColor: asColor(raw.timerCircleColor, asColor(raw.timerColor, defaults.timerCircleColor)),
       timerFormat: normalizeTimerFormat(raw.timerFormat, defaults.timerFormat),
       fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 1000),
       align: asAlign(raw.align, defaults.align),
