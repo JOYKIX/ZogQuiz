@@ -38,6 +38,8 @@ body {
   --m3-cyan: #18c4cf;
   --m3-yellow: #ffd35f;
   --m3-orange: #ff6b16;
+  --m3-ring-blue: #1f8ac7;
+  --m3-ring-accent: #ff7a16;
   position: relative;
   display: grid;
   place-items: center;
@@ -60,13 +62,13 @@ body {
   z-index: -2;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 36% 28%, rgba(255, 255, 255, .46) 0 2.3%, transparent 2.5% 100%),
-    radial-gradient(circle at 63% 67%, rgba(255, 255, 255, .2) 0 2.8%, transparent 3% 100%),
-    conic-gradient(from -18deg, rgba(255, 211, 95, .92) 0 43%, #f9fbff 43% 48%, rgba(24, 196, 207, .9) 48% 100%);
+    radial-gradient(circle at 36% 28%, rgba(255, 218, 107, .48) 0 2.3%, transparent 2.5% 100%),
+    radial-gradient(circle at 63% 67%, rgba(24, 196, 207, .26) 0 2.8%, transparent 3% 100%),
+    conic-gradient(from -18deg, rgba(255, 211, 95, .92) 0 43%, var(--m3-ring-accent) 43% 48%, rgba(24, 196, 207, .9) 48% 100%);
   box-shadow:
-    inset 0 0 0 10px rgba(255, 255, 255, .96),
+    inset 0 0 0 10px color-mix(in srgb, var(--m3-ring-blue) 84%, var(--m3-cyan)),
     inset 0 0 0 18px rgba(16, 35, 63, .9),
-    0 0 0 5px rgba(255, 255, 255, .86),
+    0 0 0 5px color-mix(in srgb, var(--m3-ring-accent) 82%, var(--m3-yellow)),
     0 18px 38px rgba(0, 0, 0, .36);
 }
 
@@ -74,7 +76,7 @@ body {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, .28) 0 2px, transparent 2.4px) 0 0 / 22px 22px;
+    radial-gradient(circle, rgba(255, 218, 107, .28) 0 2px, rgba(24, 196, 207, .14) 2.1px 2.4px, transparent 2.5px) 0 0 / 22px 22px;
   clip-path: polygon(11% 12%, 77% 4%, 64% 31%, 91% 34%, 60% 52%, 83% 88%, 48% 68%, 18% 92%, 31% 59%, 4% 42%, 33% 34%);
   opacity: .72;
   mix-blend-mode: screen;
@@ -102,7 +104,7 @@ body {
   stroke: var(--timer-color);
   opacity: 1;
   filter:
-    drop-shadow(0 0 2px rgba(255, 255, 255, .52))
+    drop-shadow(0 0 2px rgba(255, 122, 22, .46))
     drop-shadow(0 0 8px color-mix(in srgb, var(--timer-color) 48%, transparent));
 }
 
