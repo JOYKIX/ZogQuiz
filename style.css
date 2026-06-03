@@ -481,19 +481,19 @@ th { color: var(--ink); background: var(--accent-2); text-transform: uppercase; 
   grid-template-columns: minmax(0, 1fr) minmax(300px, 430px);
   gap: clamp(.75rem, 1.2vw, 1.1rem);
   align-items: start;
+  grid-auto-flow: dense;
 }
 
 .question-form-panel,
 .question-list-panel {
   align-self: start;
+  grid-row: 1;
   height: fit-content;
   min-height: 0;
 }
 
 .question-form-panel {
   grid-column: 2;
-  position: sticky;
-  top: calc(var(--topbar-h) + 4rem);
 }
 
 .question-list-panel {
@@ -523,7 +523,7 @@ th { color: var(--ink); background: var(--accent-2); text-transform: uppercase; 
   .question-form-panel,
   .question-list-panel {
     grid-column: auto;
-    position: static;
+    grid-row: auto;
   }
 
   .question-list-panel > .list,

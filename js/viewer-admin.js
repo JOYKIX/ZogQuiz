@@ -1,5 +1,6 @@
 import { db, ref, set, push, update, remove, onValue } from "./firebase.js";
 import { showConfirm, showPrompt } from "./modal.js";
+import { validateYoutubeUrl } from "./blindtest/youtube.js";
 import { normalizeViewerAnswer, parseAcceptedAnswers } from "./viewer-utils.js";
 
 const VIEWER_ROOT = "rooms/viewers";
@@ -43,6 +44,7 @@ const ROUND_CONFIGS = {
     liveLabelId: "m4-viewer-live-label",
     promptId: "m4-viewer-prompt",
     aliasesId: "m4-viewer-aliases",
+    youtubeUrlId: "m4-viewer-youtube-url",
     pointsId: "m4-viewer-points",
     timerId: "m4-viewer-timer",
     firstCorrectOnlyId: "m4-viewer-first-correct-only",
@@ -61,7 +63,11 @@ function qPath(round) {
 }
 
 function escapeHtml(value) {
-  return String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function formatRemaining(endsAt) {
@@ -106,10 +112,18 @@ async function buildQuestionPayload(round, cfg, adminId) {
   const timerSeconds = Math.max(0, Number(document.getElementById(cfg.timerId)?.value || 0));
   const firstCorrectOnly = Boolean(document.getElementById(cfg.firstCorrectOnlyId)?.checked);
   const allowMultipleWinners = Boolean(document.getElementById(cfg.allowMultiId)?.checked);
+  const youtubeUrl = cfg.youtubeUrlId ? String(document.getElementById(cfg.youtubeUrlId)?.value || "").trim() : "";
   if (!prompt || !acceptedAnswers.length) {
     throw new Error("Prompt et réponses acceptées obligatoires.");
   }
   const mediaPayload = await readViewerMedia(cfg);
+  const youtubePayload = {};
+  if (youtubeUrl) {
+    const validation = validateYoutubeUrl(youtubeUrl);
+    if (!validation.valid) throw new Error(validation.reason || "URL YouTube invalide.");
+    youtubePayload.youtubeUrl = youtubeUrl;
+    youtubePayload.videoId = validation.videoId;
+  }
   return {
     round,
     type: "viewer",
@@ -121,6 +135,7 @@ async function buildQuestionPayload(round, cfg, adminId) {
     answer: acceptedAnswers[0],
     normalizedAnswers: acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean),
     ...mediaPayload,
+    ...youtubePayload,
     active: false,
     points,
     timerSeconds,
@@ -243,7 +258,9 @@ function renderQuestionList(round, cfg, state, options) {
       ? `<img class="m2-thumb" src="${question.imageDataUrl}" alt="Image viewers ${formatRoundLabel(round)}" loading="lazy" decoding="async" />`
       : question.audioDataUrl
         ? `<audio controls preload="metadata" src="${question.audioDataUrl}"></audio>`
-        : "";
+        : question.youtubeUrl
+          ? `<p class="muted">YouTube : <a href="${escapeHtml(question.youtubeUrl)}" target="_blank" rel="noopener">${escapeHtml(question.youtubeUrl)}</a></p>`
+          : "";
     li.innerHTML = `
       <div class="question-head"><strong>V${index + 1}</strong>${isActive ? '<span class="question-active-chip">Live</span>' : ""}</div>
       ${mediaPreview}
@@ -271,7 +288,13 @@ function renderQuestionList(round, cfg, state, options) {
         settings: question.settings || {},
         points: Number(question.points || 1),
         timerSeconds,
-        media: question.imageDataUrl ? { kind: "image", fileName: question.fileName || "image" } : question.audioDataUrl ? { kind: "audio", fileName: question.audioFileName || "musique" } : null,
+        media: question.imageDataUrl
+          ? { kind: "image", fileName: question.fileName || "image" }
+          : question.audioDataUrl
+            ? { kind: "audio", fileName: question.audioFileName || "musique" }
+            : question.youtubeUrl
+              ? { kind: "youtube", youtubeUrl: question.youtubeUrl, videoId: question.videoId || "" }
+              : null,
         startedAt: now,
         endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
         updatedAt: now,
