@@ -229,6 +229,7 @@ export async function ensureRoundsSeed(uid) {
       round3Timer: {
         timerFontSizePx: 72,
         timerColor: "#8cf5dc",
+        timerCircleColor: "#8cf5dc",
         timerFormat: "minutes-seconds",
         fontWeight: 950,
         align: "center",
