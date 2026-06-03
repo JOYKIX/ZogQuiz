@@ -74,8 +74,7 @@ body {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, .28) 0 2px, transparent 2.4px) 0 0 / 22px 22px,
-    linear-gradient(114deg, transparent 0 42%, #fff 42.4% 47%, transparent 47.4% 52%, #fff 52.4% 56%, transparent 56.4% 100%);
+    radial-gradient(circle, rgba(255, 255, 255, .28) 0 2px, transparent 2.4px) 0 0 / 22px 22px;
   clip-path: polygon(11% 12%, 77% 4%, 64% 31%, 91% 34%, 60% 52%, 83% 88%, 48% 68%, 18% 92%, 31% 59%, 4% 42%, 33% 34%);
   opacity: .72;
   mix-blend-mode: screen;
@@ -123,9 +122,8 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   transform: rotate(3deg) skew(-5deg);
-  -webkit-text-stroke: .035em rgba(16, 35, 63, .82);
+  -webkit-text-stroke: 0;
   text-shadow:
-    .055em .055em 0 #fff,
     0 7px 24px rgba(0, 0, 0, .72),
     0 0 30px color-mix(in srgb, var(--timer-color) 38%, transparent);
 }
@@ -139,8 +137,7 @@ body {
   width: 74%;
   height: .08em;
   border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 0 14px rgba(255, 255, 255, .34);
+  display: none;
 }
 
 .m3-timer-overlay-value::before { top: -.23em; }
