@@ -31,7 +31,8 @@ body {
 }
 
 .m3-segmented-timer {
-  --timer-color: var(--gold);
+  --timer-text-color: var(--gold);
+  --timer-circle-color: var(--timer-text-color);
   --timer-size: clamp(220px, 42vmin, 520px);
   --timer-font-size: 72px;
   --m3-ink: #10233f;
@@ -99,11 +100,11 @@ body {
 }
 
 .m3-timer-segment.is-active {
-  stroke: var(--timer-color);
+  stroke: var(--timer-circle-color);
   opacity: 1;
   filter:
     drop-shadow(0 0 2px rgba(255, 255, 255, .52))
-    drop-shadow(0 0 8px color-mix(in srgb, var(--timer-color) 48%, transparent));
+    drop-shadow(0 0 8px color-mix(in srgb, var(--timer-circle-color) 48%, transparent));
 }
 
 .m3-timer-segment.is-inactive {
@@ -114,7 +115,7 @@ body {
   position: relative;
   width: min(62%, 820px);
   margin: 0;
-  color: var(--timer-color, var(--gold));
+  color: var(--timer-text-color, var(--gold));
   font-size: var(--timer-font-size);
   font-weight: 950;
   line-height: .9;
@@ -125,7 +126,7 @@ body {
   -webkit-text-stroke: 0;
   text-shadow:
     0 7px 24px rgba(0, 0, 0, .72),
-    0 0 30px color-mix(in srgb, var(--timer-color) 38%, transparent);
+    0 0 30px color-mix(in srgb, var(--timer-text-color) 38%, transparent);
 }
 
 .m3-timer-overlay-value::before,
@@ -145,12 +146,6 @@ body {
 
 .m3-segmented-timer.is-low {
   animation: m3-timer-pulse 700ms steps(2, jump-none) infinite;
-}
-
-.m3-segmented-timer.is-low .m3-timer-segment.is-active,
-.m3-segmented-timer.is-low .m3-timer-overlay-value {
-  color: var(--m3-orange) !important;
-  stroke: var(--m3-orange);
 }
 
 @keyframes m3-timer-pulse {

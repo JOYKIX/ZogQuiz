@@ -126,7 +126,8 @@ function applyOverlayConfig() {
   rootNode.style.padding = `${overlayConfig.paddingPx}px`;
   rootNode.style.textAlign = overlayConfig.align;
   rootNode.style.justifyItems = overlayConfig.align === "left" ? "start" : overlayConfig.align === "right" ? "end" : "center";
-  timerShellNode.style.setProperty("--timer-color", overlayConfig.timerColor);
+  timerShellNode.style.setProperty("--timer-text-color", overlayConfig.timerColor);
+  timerShellNode.style.setProperty("--timer-circle-color", overlayConfig.timerCircleColor);
   timerShellNode.style.setProperty("--timer-size", `${shellSizePx}px`);
   timerShellNode.style.setProperty("--timer-font-size", `clamp(2rem, 16vmin, ${overlayConfig.timerFontSizePx}px)`);
   timerNode.style.color = overlayConfig.timerColor;

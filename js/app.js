@@ -166,6 +166,7 @@ const overlayRound3AlignInput = $("overlay-round3-align");
 const overlayRound3MaxWidthInput = $("overlay-round3-max-width");
 const overlayRound3TimerSizeInput = $("overlay-round3-timer-size");
 const overlayRound3TimerColorInput = $("overlay-round3-timer-color");
+const overlayRound3TimerCircleColorInput = $("overlay-round3-timer-circle-color");
 const overlayRound3TimerFormatInput = $("overlay-round3-timer-format");
 const overlayRound3TimerFontWeightInput = $("overlay-round3-timer-font-weight");
 const overlayRound3TimerAlignInput = $("overlay-round3-timer-align");
@@ -543,7 +544,7 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound3ThemeColorInput, overlayRound3FontWeightInput, overlayRound3AlignInput, overlayRound3MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3")));
 [
-  overlayRound3TimerSizeInput, overlayRound3TimerColorInput, overlayRound3TimerFormatInput, overlayRound3TimerFontWeightInput,
+  overlayRound3TimerSizeInput, overlayRound3TimerColorInput, overlayRound3TimerCircleColorInput, overlayRound3TimerFormatInput, overlayRound3TimerFontWeightInput,
   overlayRound3TimerAlignInput, overlayRound3TimerPaddingInput, overlayRound3TimerLineHeightInput, overlayRound3TimerMaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round3Timer")));
 [
@@ -2074,6 +2075,7 @@ function syncOverlayInputs() {
   const r3Timer = overlayConfigs.round3Timer;
   if (overlayRound3TimerSizeInput) overlayRound3TimerSizeInput.value = String(r3Timer.timerFontSizePx);
   if (overlayRound3TimerColorInput) overlayRound3TimerColorInput.value = r3Timer.timerColor;
+  if (overlayRound3TimerCircleColorInput) overlayRound3TimerCircleColorInput.value = r3Timer.timerCircleColor;
   if (overlayRound3TimerFormatInput) overlayRound3TimerFormatInput.value = r3Timer.timerFormat;
   if (overlayRound3TimerFontWeightInput) overlayRound3TimerFontWeightInput.value = String(r3Timer.fontWeight);
   if (overlayRound3TimerAlignInput) overlayRound3TimerAlignInput.value = r3Timer.align;
@@ -2166,6 +2168,7 @@ function readOverlayConfigInputs(roundKey) {
     return {
       timerFontSizePx: overlayRound3TimerSizeInput?.value,
       timerColor: overlayRound3TimerColorInput?.value,
+      timerCircleColor: overlayRound3TimerCircleColorInput?.value,
       timerFormat: overlayRound3TimerFormatInput?.value,
       fontWeight: overlayRound3TimerFontWeightInput?.value,
       align: overlayRound3TimerAlignInput?.value,
