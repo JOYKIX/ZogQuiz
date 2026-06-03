@@ -161,3 +161,32 @@ body {
 @keyframes m3-timer-pulse {
   50% { filter: drop-shadow(0 24px 34px rgba(0, 0, 0, .42)) drop-shadow(0 0 18px rgba(255, 107, 22, .52)); }
 }
+
+/* Timer overlay polish using the shared ZogQuiz tokens. */
+:root {
+  --gold: #ffd044;
+  --zq-ink: #050507;
+  --zq-cyan: #09c8d7;
+  --zq-orange: #ff6a00;
+}
+.m3-segmented-timer {
+  --m3-ink: var(--zq-ink);
+  --m3-cyan: var(--zq-cyan);
+  --m3-yellow: var(--gold);
+  --m3-orange: var(--zq-orange);
+  filter: drop-shadow(9px 9px 0 var(--zq-ink)) drop-shadow(0 24px 34px rgba(0,0,0,.42));
+}
+.m3-segmented-timer::before {
+  box-shadow:
+    inset 0 0 0 10px rgba(255,255,255,.98),
+    inset 0 0 0 18px rgba(5,5,7,.95),
+    0 0 0 5px rgba(255,255,255,.9),
+    0 0 24px rgba(9,200,215,.36),
+    0 0 28px rgba(255,208,68,.3),
+    0 18px 38px rgba(0,0,0,.36);
+}
+.m3-timer-overlay-value {
+  font-family: "Arial Black", Impact, var(--font-live);
+  -webkit-text-stroke: .035em var(--zq-ink);
+  text-shadow: .07em .07em 0 var(--zq-ink), 0 0 30px rgba(255,208,68,.42);
+}
