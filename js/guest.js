@@ -930,6 +930,7 @@ function getBuzzAvailability() {
   if (normalizeLiveRoundKey(liveRound) !== "manche1") return { canBuzz: false, message: "Buzzer indisponible hors manche 1." };
   if (!liveState.currentQuestionId) return { canBuzz: false, message: "Manche inactive : aucune question ouverte." };
   if (liveState.currentType === "viewers") return { canBuzz: false, message: "Buzzer non autorisé en mode viewers." };
+  if (liveState.buzzerDisabled) return { canBuzz: false, message: "Buzzer désactivé par l’admin." };
   if (currentQuestionBlocked) return { canBuzz: false, message: "Vous avez déjà tenté sur cette question." };
   if (liveState.buzzerLocked) {
     const buzzedBy = liveState.lockedByNickname || "un autre joueur";
@@ -1020,7 +1021,7 @@ async function attemptBuzz() {
 
     const stateRef = ref(db, ROUND1_STATE_PATH);
     const tx = await runTransaction(stateRef, (state) => {
-      if (!state || !state.currentQuestionId || state.currentType === "viewers" || state.buzzerLocked) return state;
+      if (!state || !state.currentQuestionId || state.currentType === "viewers" || state.buzzerLocked || state.buzzerDisabled) return state;
       return {
         ...state,
         buzzerLocked: true,
