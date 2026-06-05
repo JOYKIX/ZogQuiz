@@ -65,6 +65,7 @@ const viewerQuestionsList = $("viewer-questions-list");
 
 const toggleAnswerBtn = $("toggle-answer");
 const unlockBuzzerBtn = $("unlock-buzzer");
+const disableBuzzerBtn = $("disable-buzzer");
 const markCorrectBtn = $("mark-correct");
 const markWrongBtn = $("mark-wrong");
 const round1PrevQuestionBtn = $("round1-prev-question");
@@ -508,6 +509,11 @@ toggleAnswerBtn.addEventListener("click", async () => {
   showToast("Réponse mise à jour");
 });
 unlockBuzzerBtn.addEventListener("click", async () => { await unlockBuzzer(); showToast("Buzzer réouvert"); });
+disableBuzzerBtn?.addEventListener("click", async () => {
+  if (!liveState?.currentQuestionId || liveState.currentType === "viewers") return;
+  await disableBuzzer();
+  showToast("Buzzer désactivé");
+});
 markCorrectBtn.addEventListener("click", async () => {
   if (!liveState?.lockedBySessionId) return;
   await updateParticipantScore(liveState.lockedBySessionId, 1);
@@ -1044,7 +1050,18 @@ function getRound1QuestionById(questionId) {
 
 async function unlockBuzzer() {
   await update(ref(db, "rooms/manche1/state"), {
-    buzzerLocked: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: Date.now(),
+    buzzerLocked: false, buzzerDisabled: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: Date.now(),
+  });
+}
+
+async function disableBuzzer() {
+  await update(ref(db, "rooms/manche1/state"), {
+    buzzerDisabled: true,
+    buzzerLocked: false,
+    lockedBySessionId: null,
+    lockedByNickname: "",
+    lockedAt: 0,
+    updatedAt: Date.now(),
   });
 }
 
@@ -1059,6 +1076,7 @@ async function resetParticipantsAndLeaderboard() {
     remove(ref(db, "rooms/manche1/questionBlocks")),
     update(ref(db, "rooms/manche1/state"), {
       buzzerLocked: false,
+      buzzerDisabled: false,
       lockedBySessionId: null,
       lockedByNickname: "",
       lockedAt: 0,
@@ -1123,6 +1141,7 @@ async function resetCompleteQuiz() {
       currentQuestionId: null,
       showAnswer: false,
       buzzerLocked: false,
+      buzzerDisabled: false,
       lockedBySessionId: null,
       lockedByNickname: "",
       lockedAt: 0,
@@ -1438,7 +1457,7 @@ function renderRound1QuestionList(type, data, container) {
     askBtn.addEventListener("click", async () => {
       const now = Date.now();
       await clearBuzzData();
-      await update(ref(db, "rooms/manche1/state"), { currentType: type, currentQuestionId: id, showAnswer: false, buzzerLocked: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: now });
+      await update(ref(db, "rooms/manche1/state"), { currentType: type, currentQuestionId: id, showAnswer: false, buzzerLocked: false, buzzerDisabled: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: now });
       if (type === 'viewers') {
         const timerSeconds = Number(q.timerSeconds || 0);
         await set(ref(db, "rooms/viewers/liveState"), {
@@ -1523,6 +1542,7 @@ async function moveRound1Question(direction) {
     currentQuestionId: target.id,
     showAnswer: false,
     buzzerLocked: false,
+    buzzerDisabled: false,
     lockedBySessionId: null,
     lockedByNickname: "",
     lockedAt: 0,
@@ -1603,7 +1623,7 @@ async function deleteRound1Question(type, questionId) {
   const isActive = liveState?.currentQuestionId === questionId;
   await remove(ref(db, `rooms/manche1/questions/${type}/${questionId}`));
   if (isActive) {
-    await update(ref(db, "rooms/manche1/state"), { currentType: "participants", currentQuestionId: null, showAnswer: false, buzzerLocked: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: Date.now() });
+    await update(ref(db, "rooms/manche1/state"), { currentType: "participants", currentQuestionId: null, showAnswer: false, buzzerLocked: false, buzzerDisabled: false, lockedBySessionId: null, lockedByNickname: "", lockedAt: 0, updatedAt: Date.now() });
     await update(ref(db, "rooms/viewers/liveState"), { active: false, status: "stopped", endedAt: Date.now(), updatedAt: Date.now(), updatedBy: currentAdminId || "admin" });
     await clearBuzzData();
   }
@@ -1735,8 +1755,9 @@ function refreshRound1Snapshot() {
   activeQuestion.textContent = question ? `Question active : ${question.text}` : "Aucune question active.";
   const activeQuestionLive = $("active-question-live");
   if (activeQuestionLive) activeQuestionLive.textContent = question ? `Question active : ${question.text}` : "Aucune question active.";
-  const buzzerOpen = Boolean(liveState?.currentQuestionId) && !liveState?.buzzerLocked && liveState?.currentType !== "viewers";
-  buzzerStatus.textContent = liveState?.currentType === "viewers" ? "Désactivé" : buzzerOpen ? "Ouvert" : "Verrouillé";
+  const buzzerDisabled = Boolean(liveState?.buzzerDisabled);
+  const buzzerOpen = Boolean(liveState?.currentQuestionId) && !liveState?.buzzerLocked && !buzzerDisabled && liveState?.currentType !== "viewers";
+  buzzerStatus.textContent = liveState?.currentType === "viewers" || buzzerDisabled ? "Désactivé" : buzzerOpen ? "Ouvert" : "Verrouillé";
   lastBuzzStatus.textContent = lockedByName;
 }
 
@@ -1744,13 +1765,14 @@ function updateRound1Status() {
   if (!liveState) return;
   const typeLabel = liveState.currentType === "viewers" ? "Question viewers" : "Question participants";
   const answerLabel = liveState.showAnswer ? "réponse visible" : "réponse cachée";
-  const buzzerLabel = liveState.currentType === "viewers" ? "buzzer off" : liveState.buzzerLocked ? "buzzer verrouillé" : "buzzer ouvert";
+  const buzzerLabel = liveState.currentType === "viewers" || liveState.buzzerDisabled ? "buzzer off" : liveState.buzzerLocked ? "buzzer verrouillé" : "buzzer ouvert";
   setMessage(roundStatus, `${typeLabel} • ${answerLabel} • ${buzzerLabel}`);
 
   toggleAnswerBtn.textContent = liveState.showAnswer ? "Masquer la réponse" : "Afficher la réponse";
   const hasQuestion = Boolean(liveState.currentQuestionId);
   toggleAnswerBtn.disabled = !hasQuestion;
   unlockBuzzerBtn.disabled = !hasQuestion || liveState.currentType === "viewers";
+  if (disableBuzzerBtn) disableBuzzerBtn.disabled = !hasQuestion || liveState.currentType === "viewers" || liveState.buzzerDisabled;
   markCorrectBtn.disabled = !liveState.lockedBySessionId;
   markWrongBtn.disabled = !liveState.lockedBySessionId || !hasQuestion;
   buzzPlusBtn.disabled = !liveState.lockedBySessionId;
@@ -1767,6 +1789,9 @@ function updateRound1Status() {
   } else if (liveState.currentType === "viewers") {
     buzzLive.textContent = "Mode viewers";
     buzzPriorityName.textContent = "Mode viewers";
+  } else if (liveState.buzzerDisabled) {
+    buzzLive.textContent = "Buzzer désactivé";
+    buzzPriorityName.textContent = "Désactivé";
   } else {
     buzzLive.textContent = "En attente";
     buzzPriorityName.textContent = "Personne";

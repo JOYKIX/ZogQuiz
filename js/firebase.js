@@ -71,6 +71,7 @@ export async function ensureRoundsSeed(uid) {
       currentQuestionId: null,
       showAnswer: false,
       buzzerLocked: false,
+      buzzerDisabled: false,
       lockedBySessionId: null,
       lockedByNickname: "",
       lockedAt: 0,
