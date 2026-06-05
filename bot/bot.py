@@ -371,7 +371,7 @@ class ZogQuizViewerBot:
         answers: list[str] = []
 
         if isinstance(question.get("normalizedAnswers"), list):
-            answers.extend(str(a) for a in question.get("normalizedAnswers") if str(a).strip())
+            answers.extend(normalize_answer(str(a)) for a in question.get("normalizedAnswers") if str(a).strip())
 
         if isinstance(question.get("acceptedAnswers"), list):
             answers.extend(normalize_answer(str(a)) for a in question.get("acceptedAnswers") if str(a).strip())

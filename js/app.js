@@ -1555,13 +1555,46 @@ async function editRound1Question(type, questionId, currentQuestion) {
     updatedBy: currentAdminId,
   };
   if (type === "viewers") {
+    const pointsRaw = await showPrompt("Modifier les points de la question viewers", {
+      title: "Éditer les points",
+      inputLabel: "Points",
+      defaultValue: String(Math.max(1, Number(currentQuestion?.points || 1))),
+      confirmText: "Enregistrer",
+    });
+    if (pointsRaw === null) return;
+    const timerRaw = await showPrompt("Modifier le timer viewers en secondes (0 = pas de limite)", {
+      title: "Éditer le timer",
+      inputLabel: "Timer (s)",
+      defaultValue: String(Math.max(0, Number(currentQuestion?.timerSeconds || 0))),
+      confirmText: "Enregistrer",
+    });
+    if (timerRaw === null) return;
+
+    const points = Math.max(1, Number(pointsRaw));
+    const timerSeconds = Math.max(0, Number(timerRaw));
+    if (!Number.isFinite(points) || !Number.isFinite(timerSeconds)) {
+      return showToast("Points et timer doivent être des nombres valides.", "error");
+    }
+
     const acceptedAnswers = parseAcceptedAnswers(nextAnswer);
     payload.acceptedAnswers = acceptedAnswers;
     payload.aliases = acceptedAnswers;
     payload.normalizedAnswers = acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean);
     payload.answer = acceptedAnswers[0] || nextAnswer;
+    payload.points = points;
+    payload.timerSeconds = timerSeconds;
   }
   await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), payload);
+  if (type === "viewers" && liveState?.currentType === "viewers" && liveState?.currentQuestionId === questionId) {
+    const now = Date.now();
+    await update(ref(db, "rooms/viewers/liveState"), {
+      points: payload.points,
+      timerSeconds: payload.timerSeconds,
+      endsAt: payload.timerSeconds > 0 ? now + payload.timerSeconds * 1000 : null,
+      updatedAt: now,
+      updatedBy: currentAdminId || "admin",
+    });
+  }
   showToast("Question mise à jour");
 }
 
