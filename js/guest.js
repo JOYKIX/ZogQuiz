@@ -42,6 +42,10 @@ const guestCameraStatus = document.getElementById("guest-camera-status");
 const guestCameraPreview = document.getElementById("guest-camera-preview");
 const guestCameraDevice = document.getElementById("guest-camera-device");
 const guestCameraDeviceField = document.getElementById("guest-camera-device-field");
+const guestMicrophoneToggle = document.getElementById("guest-microphone-toggle");
+const guestMicrophoneStatus = document.getElementById("guest-microphone-status");
+const guestMicrophoneDevice = document.getElementById("guest-microphone-device");
+const guestMicrophoneDeviceField = document.getElementById("guest-microphone-device-field");
 const guestSelfCameraRender = document.getElementById("guest-self-camera-render");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
@@ -386,7 +390,7 @@ function clearCurrentGuest({ reason = "Déconnecté.", type = "default" } = {}) 
   };
   currentQuestionBlocked = false;
   stopClientSessionHeartbeat();
-  guestCameraController?.stop?.({ keepMessage: true });
+  guestCameraController?.stopAll?.();
   deactivateRealtimeClientSession();
   clearStoredClientId();
   showLoginForm();
@@ -1183,6 +1187,10 @@ guestCameraController = createGuestCameraController({
     preview: guestCameraPreview,
     deviceSelect: guestCameraDevice,
     deviceField: guestCameraDeviceField,
+    microphoneButton: guestMicrophoneToggle,
+    microphoneStatus: guestMicrophoneStatus,
+    microphoneDeviceSelect: guestMicrophoneDevice,
+    microphoneDeviceField: guestMicrophoneDeviceField,
   },
 });
 
