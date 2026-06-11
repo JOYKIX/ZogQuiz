@@ -827,6 +827,7 @@ body.modal-open { overflow: hidden; }
 .guest-camera-preview.render-disabled,
 .guest-camera-wall.render-disabled { display: none !important; }
 .guest-camera-wall-stack { display: grid; gap: .55rem; }
+.voice-control-block { display: grid; gap: .45rem; margin: .6rem 0; padding: .55rem; border: 2px dashed rgba(255,255,255,.2); border-radius: var(--radius-sm); background: rgba(255,255,255,.04); }
 .toggle-line { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: .45rem; margin: .5rem 0; }
 .camera-status.off { color: var(--muted); }
 

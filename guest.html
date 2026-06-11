@@ -91,6 +91,24 @@
                   >Caméra
                   <select id="guest-camera-device"></select>
                 </label>
+                <div class="voice-control-block">
+                  <button
+                    id="guest-microphone-toggle"
+                    class="btn btn-secondary"
+                    type="button"
+                  >
+                    Activer micro
+                  </button>
+                  <label
+                    id="guest-microphone-device-field"
+                    class="camera-device-field hidden"
+                    >Micro
+                    <select id="guest-microphone-device"></select>
+                  </label>
+                  <p id="guest-microphone-status" class="message camera-status off">
+                    Micro désactivé.
+                  </p>
+                </div>
                 <label class="toggle-line camera-render-toggle">
                   <input
                     id="guest-self-camera-render"

@@ -1,5 +1,5 @@
 import { db, ref, onValue, update } from "./firebase.js";
-import { createCameraPublisherController } from "./guest-camera-webrtc.js";
+import { createCameraPublisherController, initGuestCameraWall } from "./guest-camera-webrtc.js";
 import { ADMIN_CAMERA_ID, ADMIN_CAMERA_LABEL, CAMERA_CONFIGS_PATH, CAMERA_PRESENCE_PATH, CAMERA_ROUNDS, CAMERA_ROLE_OPTIONS, normalizeCameraConfig } from "./camera-config.js";
 import { GUEST_SESSIONS_PATH } from "./participants.js";
 
@@ -30,6 +30,13 @@ const adminCameraStatus = document.getElementById("admin-camera-status");
 const adminCameraPreview = document.getElementById("admin-camera-preview");
 const adminCameraDevice = document.getElementById("admin-camera-device");
 const adminCameraDeviceField = document.getElementById("admin-camera-device-field");
+const adminMicrophoneButton = document.getElementById("admin-microphone-toggle");
+const adminMicrophoneStatus = document.getElementById("admin-microphone-status");
+const adminMicrophoneDevice = document.getElementById("admin-microphone-device");
+const adminMicrophoneDeviceField = document.getElementById("admin-microphone-device-field");
+const adminParticipantsAudioRender = document.getElementById("admin-participants-audio-render");
+const adminParticipantsAudioStatus = document.getElementById("admin-participants-audio-status");
+const adminParticipantsAudioWall = document.getElementById("admin-participants-audio-wall");
 
 if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
   createCameraPublisherController({
@@ -43,7 +50,22 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       preview: adminCameraPreview,
       deviceSelect: adminCameraDevice,
       deviceField: adminCameraDeviceField,
+      microphoneButton: adminMicrophoneButton,
+      microphoneStatus: adminMicrophoneStatus,
+      microphoneDeviceSelect: adminMicrophoneDevice,
+      microphoneDeviceField: adminMicrophoneDeviceField,
     },
+  });
+}
+
+
+if (adminParticipantsAudioWall && adminParticipantsAudioStatus) {
+  initGuestCameraWall({
+    adminRoot: null,
+    participantsRoot: adminParticipantsAudioWall,
+    participantsStatus: adminParticipantsAudioStatus,
+    showParticipantsInput: adminParticipantsAudioRender,
+    getCurrentSessionId: () => ADMIN_CAMERA_ID,
   });
 }
 
@@ -60,6 +82,7 @@ function setStatus(text, type = "") {
 
 function getPresenceOptions(selectedGuestId = "") {
   const activeGuests = Object.entries(presence)
+    .filter(([, item]) => item?.hasVideo !== false)
     .map(([guestId, item]) => ({ guestId, nickname: item?.nickname || guestId, active: Boolean(item?.active) }))
     .sort((a, b) => a.nickname.localeCompare(b.nickname, "fr"));
   const selectedExists = activeGuests.some((item) => item.guestId === selectedGuestId);

@@ -42,11 +42,6 @@ function createClientId(prefix) {
   return safeKey(`${prefix}_${Date.now().toString(36)}_${bytes[0].toString(36)}${bytes[1].toString(36)}`);
 }
 
-function stopStream(stream) {
-  stream?.getTracks?.().forEach((track) => track.stop());
-}
-
-
 function chooseFreshestRoundState(current = {}, next = {}) {
   if (!current || !Object.keys(current).length) return next || {};
   if (!next || !Object.keys(next).length) return current || {};
@@ -63,14 +58,38 @@ function closePeer(entry) {
 
 export function createCameraPublisherController({ getSessionId, getNickname, elements, sourceType = "guest", activeLabel = "Caméra active : flux prêt pour les overlays OBS." }) {
   const state = {
-    stream: null,
+    stream: new MediaStream(),
     status: "off",
+    microphoneStatus: "off",
     peers: new Map(),
     unsubscribeRequests: null,
     unsubscribeRequestRemovals: null,
     heartbeat: null,
     selectedDeviceId: "",
+    selectedMicrophoneDeviceId: "",
+    mediaVersion: Date.now(),
   };
+
+  function hasVideo() {
+    return state.stream.getVideoTracks().some((track) => track.readyState !== "ended");
+  }
+
+  function hasAudio() {
+    return state.stream.getAudioTracks().some((track) => track.readyState !== "ended");
+  }
+
+  function hasTracks() {
+    return state.stream.getTracks().some((track) => track.readyState !== "ended");
+  }
+
+  function stopTracks(kind) {
+    state.stream.getTracks()
+      .filter((track) => !kind || track.kind === kind)
+      .forEach((track) => {
+        track.stop();
+        state.stream.removeTrack(track);
+      });
+  }
 
   function render(status = state.status, text = "") {
     state.status = status;
@@ -87,8 +106,29 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
         error: "Erreur caméra.",
       }[status] || "";
     }
-    elements.preview.classList.toggle("hidden", !state.stream);
-    if (state.stream && elements.preview.srcObject !== state.stream) elements.preview.srcObject = state.stream;
+    elements.preview.classList.toggle("hidden", !hasVideo());
+    if (hasVideo() && elements.preview.srcObject !== state.stream) elements.preview.srcObject = state.stream;
+    if (!hasVideo() && elements.preview.srcObject) elements.preview.srcObject = null;
+  }
+
+  function renderMicrophone(status = state.microphoneStatus, text = "") {
+    state.microphoneStatus = status;
+    if (!elements.microphoneButton && !elements.microphoneStatus) return;
+    const active = status === "active" || status === "starting";
+    if (elements.microphoneButton) {
+      elements.microphoneButton.disabled = status === "starting";
+      elements.microphoneButton.textContent = active ? "Désactiver le micro" : "Activer le micro";
+    }
+    if (elements.microphoneDeviceSelect) elements.microphoneDeviceSelect.disabled = status === "starting";
+    if (elements.microphoneStatus) {
+      elements.microphoneStatus.className = `message camera-status ${status}`;
+      elements.microphoneStatus.textContent = text || {
+        off: "Micro désactivé.",
+        starting: "Demande d’autorisation micro…",
+        active: "Micro actif : traitement anti-bruit WebRTC activé.",
+        error: "Erreur micro.",
+      }[status] || "";
+    }
   }
 
   function cameraConstraints() {
@@ -98,36 +138,73 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       : { ...base, facingMode: "user" };
   }
 
+  function microphoneConstraints() {
+    const base = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: { ideal: 1 },
+    };
+    return state.selectedMicrophoneDeviceId
+      ? { ...base, deviceId: { exact: state.selectedMicrophoneDeviceId } }
+      : base;
+  }
+
   async function refreshDeviceList() {
-    if (!elements.deviceSelect || !navigator.mediaDevices?.enumerateDevices) return;
-    const currentValue = state.selectedDeviceId || elements.deviceSelect.value;
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    const currentValue = state.selectedDeviceId || elements.deviceSelect?.value;
+    const currentMicrophoneValue = state.selectedMicrophoneDeviceId || elements.microphoneDeviceSelect?.value;
     const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
     const cameras = devices.filter((device) => device.kind === "videoinput");
-    elements.deviceSelect.replaceChildren();
-    cameras.forEach((device, index) => {
-      const option = document.createElement("option");
-      option.value = device.deviceId;
-      option.textContent = device.label || `Caméra ${index + 1}`;
-      elements.deviceSelect.append(option);
-    });
-    const hasCurrent = cameras.some((device) => device.deviceId === currentValue);
-    state.selectedDeviceId = hasCurrent ? currentValue : (cameras[0]?.deviceId || "");
-    elements.deviceSelect.value = state.selectedDeviceId;
-    elements.deviceSelect.hidden = cameras.length <= 1;
-    elements.deviceField?.classList.toggle("hidden", cameras.length <= 1);
+    if (elements.deviceSelect) {
+      elements.deviceSelect.replaceChildren();
+      cameras.forEach((device, index) => {
+        const option = document.createElement("option");
+        option.value = device.deviceId;
+        option.textContent = device.label || `Caméra ${index + 1}`;
+        elements.deviceSelect.append(option);
+      });
+      const hasCurrent = cameras.some((device) => device.deviceId === currentValue);
+      state.selectedDeviceId = hasCurrent ? currentValue : (cameras[0]?.deviceId || "");
+      elements.deviceSelect.value = state.selectedDeviceId;
+      elements.deviceSelect.hidden = cameras.length <= 1;
+      elements.deviceField?.classList.toggle("hidden", cameras.length <= 1);
+    }
+
+    const microphones = devices.filter((device) => device.kind === "audioinput");
+    if (elements.microphoneDeviceSelect) {
+      elements.microphoneDeviceSelect.replaceChildren();
+      microphones.forEach((device, index) => {
+        const option = document.createElement("option");
+        option.value = device.deviceId;
+        option.textContent = device.label || `Micro ${index + 1}`;
+        elements.microphoneDeviceSelect.append(option);
+      });
+      const hasCurrentMicrophone = microphones.some((device) => device.deviceId === currentMicrophoneValue);
+      state.selectedMicrophoneDeviceId = hasCurrentMicrophone ? currentMicrophoneValue : (microphones[0]?.deviceId || "");
+      elements.microphoneDeviceSelect.value = state.selectedMicrophoneDeviceId;
+      elements.microphoneDeviceSelect.hidden = microphones.length <= 1;
+      elements.microphoneDeviceField?.classList.toggle("hidden", microphones.length <= 1);
+    }
   }
 
   async function writePresence() {
     const sessionId = getSessionId();
-    if (!sessionId || !state.stream) return;
+    if (!sessionId || !hasTracks()) return;
     const presenceRef = ref(db, `${CAMERA_PRESENCE_PATH}/${safeKey(sessionId)}`);
+    const videoTracks = state.stream.getVideoTracks();
+    const audioTracks = state.stream.getAudioTracks();
     await set(presenceRef, {
       sessionId: safeKey(sessionId),
       nickname: String(getNickname() || "Invité").slice(0, 40),
       sourceType,
       isAdmin: sourceType === "admin",
       active: true,
-      tracks: state.stream.getVideoTracks().map((track) => ({ id: track.id, label: track.label, enabled: track.enabled })),
+      hasVideo: videoTracks.length > 0,
+      hasAudio: audioTracks.length > 0,
+      mediaVersion: state.mediaVersion,
+      tracks: videoTracks.map((track) => ({ id: track.id, label: track.label, enabled: track.enabled })),
+      audioTracks: audioTracks.map((track) => ({ id: track.id, label: track.label, enabled: track.enabled, noiseSuppression: track.getSettings?.().noiseSuppression ?? true, echoCancellation: track.getSettings?.().echoCancellation ?? true })),
       updatedAt: Date.now(),
     });
   }
@@ -145,8 +222,33 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     }, GUEST_HEARTBEAT_MS);
   }
 
+  async function resetPeerConnections() {
+    for (const requestId of [...state.peers.keys()]) await closeRequest(requestId, true);
+    if (hasTracks()) watchRequests();
+  }
+
+  async function syncPresenceAfterTrackChange() {
+    state.mediaVersion = Date.now();
+    if (hasTracks()) {
+      await writePresence();
+      await onDisconnect(ref(db, `${CAMERA_PRESENCE_PATH}/${safeKey(getSessionId())}`)).remove();
+      startHeartbeat();
+      watchRequests();
+      await resetPeerConnections();
+    } else {
+      clearInterval(state.heartbeat);
+      state.heartbeat = null;
+      state.unsubscribeRequests?.();
+      state.unsubscribeRequestRemovals?.();
+      state.unsubscribeRequests = null;
+      state.unsubscribeRequestRemovals = null;
+      for (const requestId of [...state.peers.keys()]) await closeRequest(requestId, true);
+      await removePresence().catch(() => {});
+    }
+  }
+
   async function createOfferForRequest(requestId, request) {
-    if (!state.stream || !getSessionId()) return;
+    if (!hasTracks() || !getSessionId()) return;
     if (Date.now() - Number(request?.requestedAt || 0) > SIGNAL_TTL_MS) {
       await remove(ref(db, `${CAMERA_SIGNALING_PATH}/${safeKey(getSessionId())}/${requestId}`));
       return;
@@ -191,6 +293,9 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       status: "offered",
       nickname: String(getNickname() || "Invité").slice(0, 40),
       sourceType,
+      hasVideo: hasVideo(),
+      hasAudio: hasAudio(),
+      mediaVersion: state.mediaVersion,
       offer: toPlainDescription(pc.localDescription),
       offeredAt: Date.now(),
     });
@@ -205,8 +310,11 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
 
   function watchRequests() {
     if (state.unsubscribeRequests) state.unsubscribeRequests();
+    if (state.unsubscribeRequestRemovals) state.unsubscribeRequestRemovals();
+    state.unsubscribeRequests = null;
+    state.unsubscribeRequestRemovals = null;
     const sessionId = getSessionId();
-    if (!sessionId) return;
+    if (!sessionId || !hasTracks()) return;
     const requestsRef = ref(db, `${CAMERA_SIGNALING_PATH}/${safeKey(sessionId)}`);
     state.unsubscribeRequests = onChildAdded(requestsRef, (snap) => createOfferForRequest(snap.key, snap.val()).catch(console.warn));
     state.unsubscribeRequestRemovals = onChildRemoved(requestsRef, (snap) => closeRequest(snap.key, false));
@@ -218,21 +326,52 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     await refreshDeviceList();
     render("starting");
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
+      stopTracks("video");
+      cameraStream.getVideoTracks().forEach((track) => state.stream.addTrack(track));
       await refreshDeviceList();
       render("active");
-      await writePresence();
-      await onDisconnect(ref(db, `${CAMERA_PRESENCE_PATH}/${safeKey(getSessionId())}`)).remove();
-      startHeartbeat();
-      watchRequests();
+      await syncPresenceAfterTrackChange();
     } catch (error) {
-      stopStream(state.stream);
-      state.stream = null;
+      stopTracks("video");
       render("error", error?.name === "NotAllowedError" ? "Permission caméra refusée." : `Impossible d’activer la caméra : ${error.message || error}`);
     }
   }
 
+  async function startMicrophone() {
+    if (!getSessionId()) { renderMicrophone("error", "Connectez-vous avant d’activer le micro."); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { renderMicrophone("error", "Micro indisponible sur ce navigateur ou sans HTTPS."); return; }
+    await refreshDeviceList();
+    renderMicrophone("starting");
+    try {
+      const microphoneStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: microphoneConstraints() });
+      stopTracks("audio");
+      microphoneStream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+        state.stream.addTrack(track);
+      });
+      await refreshDeviceList();
+      renderMicrophone("active");
+      await syncPresenceAfterTrackChange();
+    } catch (error) {
+      stopTracks("audio");
+      renderMicrophone("error", error?.name === "NotAllowedError" ? "Permission micro refusée." : `Impossible d’activer le micro : ${error.message || error}`);
+    }
+  }
+
+  async function stopMicrophone({ keepMessage = false, skipRender = false } = {}) {
+    stopTracks("audio");
+    await syncPresenceAfterTrackChange();
+    if (!skipRender) renderMicrophone("off", keepMessage ? "Micro désactivé." : undefined);
+  }
+
   async function stop({ keepMessage = false, skipRender = false } = {}) {
+    stopTracks("video");
+    await syncPresenceAfterTrackChange();
+    if (!skipRender) render("off", keepMessage ? "Caméra désactivée." : undefined);
+  }
+
+  async function stopAll() {
     clearInterval(state.heartbeat);
     state.heartbeat = null;
     state.unsubscribeRequests?.();
@@ -240,25 +379,33 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     state.unsubscribeRequests = null;
     state.unsubscribeRequestRemovals = null;
     for (const requestId of [...state.peers.keys()]) await closeRequest(requestId, true);
-    stopStream(state.stream);
-    state.stream = null;
+    stopTracks();
     await removePresence().catch(() => {});
-    if (!skipRender) render("off", keepMessage ? "Caméra désactivée." : undefined);
+    render("off");
+    renderMicrophone("off");
   }
 
-  elements.button.addEventListener("click", () => (state.stream ? stop({ keepMessage: true }) : start()));
+  elements.button.addEventListener("click", () => (hasVideo() ? stop({ keepMessage: true }) : start()));
+  elements.microphoneButton?.addEventListener("click", () => (hasAudio() ? stopMicrophone({ keepMessage: true }) : startMicrophone()));
   elements.deviceSelect?.addEventListener("change", async () => {
     state.selectedDeviceId = elements.deviceSelect.value;
-    if (!state.stream) return;
+    if (!hasVideo()) return;
     await stop({ skipRender: true });
     await start();
   });
+  elements.microphoneDeviceSelect?.addEventListener("change", async () => {
+    state.selectedMicrophoneDeviceId = elements.microphoneDeviceSelect.value;
+    if (!hasAudio()) return;
+    await stopMicrophone({ skipRender: true });
+    await startMicrophone();
+  });
   navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn));
-  window.addEventListener("beforeunload", () => { stopStream(state.stream); removePresence(); });
+  window.addEventListener("beforeunload", () => { stopTracks(); removePresence(); });
   render("off");
+  renderMicrophone("off");
   refreshDeviceList().catch(console.warn);
 
-  return { start, stop, isActive: () => Boolean(state.stream), refreshIdentity: writePresence };
+  return { start, stop, startMicrophone, stopMicrophone, stopAll, isActive: hasTracks, refreshIdentity: writePresence };
 }
 
 export function createGuestCameraController(options) {
@@ -351,7 +498,7 @@ export function initCameraOverlay(roundKey) {
   function activePresenceEntries() {
     const now = Date.now();
     return Object.entries(presence)
-      .filter(([, item]) => item?.active && now - Number(item.updatedAt || 0) < PRESENCE_STALE_MS)
+      .filter(([, item]) => item?.active && item.hasVideo !== false && now - Number(item.updatedAt || 0) < PRESENCE_STALE_MS)
       .sort((a, b) => String(a[1].nickname || a[0]).localeCompare(String(b[1].nickname || b[0]), "fr"));
   }
 
@@ -463,6 +610,7 @@ export function initCameraOverlay(roundKey) {
     pc.ontrack = (event) => {
       const [stream] = event.streams;
       entry.video.srcObject = stream;
+      entry.video.play?.().catch(() => {});
       entry.card.classList.remove("connecting");
     };
     pc.onicecandidate = async (event) => {
@@ -596,10 +744,12 @@ export function initGuestCameraWall({
   }
 
   function shouldShowAdmin() {
+    if (!adminRoot) return false;
     return showAdminInput ? showAdminInput.checked : true;
   }
 
   function shouldShowParticipants() {
+    if (!participantsRoot) return false;
     return showParticipantsInput ? showParticipantsInput.checked : true;
   }
 
@@ -644,7 +794,7 @@ export function initGuestCameraWall({
     const showParticipants = shouldShowParticipants();
 
     if (showAdmin && byId.has(ADMIN_CAMERA_ID)) {
-      desired.push({ guestId: ADMIN_CAMERA_ID, nickname: byId.get(ADMIN_CAMERA_ID)?.nickname || "Admin", group: "admin" });
+      desired.push({ guestId: ADMIN_CAMERA_ID, nickname: byId.get(ADMIN_CAMERA_ID)?.nickname || "Admin", group: "admin", mediaVersion: byId.get(ADMIN_CAMERA_ID)?.mediaVersion || 0 });
       used.add(ADMIN_CAMERA_ID);
     }
 
@@ -653,7 +803,7 @@ export function initGuestCameraWall({
         const guestId = resolveCameraSlotGuestId(slot, { activeEntries: entries, activeParticipantIds, roleParticipantIds, roleParticipantNames, used, includeAdmin: false });
         if (!guestId || guestId === ADMIN_CAMERA_ID) return;
         used.add(guestId);
-        desired.push({ guestId, nickname: byId.get(guestId)?.nickname || "Invité", group: "participants" });
+        desired.push({ guestId, nickname: byId.get(guestId)?.nickname || "Invité", group: "participants", mediaVersion: byId.get(guestId)?.mediaVersion || 0 });
       });
     }
 
@@ -661,7 +811,7 @@ export function initGuestCameraWall({
       activeParticipantIds.forEach((participantId) => {
         if (!byId.has(participantId) || used.has(participantId)) return;
         used.add(participantId);
-        desired.push({ guestId: participantId, nickname: byId.get(participantId)?.nickname || "Participant", group: "participants" });
+        desired.push({ guestId: participantId, nickname: byId.get(participantId)?.nickname || "Participant", group: "participants", mediaVersion: byId.get(participantId)?.mediaVersion || 0 });
       });
     }
 
@@ -669,7 +819,7 @@ export function initGuestCameraWall({
       entries.forEach(([guestId, item]) => {
         if (used.has(guestId) || guestId === ADMIN_CAMERA_ID) return;
         used.add(guestId);
-        desired.push({ guestId, nickname: item?.nickname || "Invité", group: "participants" });
+        desired.push({ guestId, nickname: item?.nickname || "Invité", group: "participants", mediaVersion: item?.mediaVersion || 0 });
       });
     }
 
@@ -680,12 +830,13 @@ export function initGuestCameraWall({
     return group === "admin" ? adminRoot : participantsRoot;
   }
 
-  function ensureCard(guestId, nickname, group) {
+  function ensureCard(guestId, nickname, group, mediaVersion = 0) {
     let entry = peers.get(guestId);
     const targetRoot = rootForGroup(group);
     if (entry?.card) {
       entry.nickname = nickname;
       entry.group = group;
+      entry.mediaVersion = mediaVersion;
       entry.name.textContent = nickname;
       entry.card.classList.toggle("admin", guestId === ADMIN_CAMERA_ID);
       if (targetRoot && entry.card.parentElement !== targetRoot) targetRoot.append(entry.card);
@@ -698,20 +849,22 @@ export function initGuestCameraWall({
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
-    video.muted = true;
+    video.muted = false;
+    video.volume = 1;
+    video.controls = true;
     const name = document.createElement("span");
     name.className = "guest-remote-camera-name";
     name.textContent = nickname;
     card.append(video, name);
     targetRoot?.append(card);
-    entry = { ...(entry || {}), card, video, name, guestId, nickname, group };
+    entry = { ...(entry || {}), card, video, name, guestId, nickname, group, mediaVersion };
     peers.set(guestId, entry);
     return entry;
   }
 
-  async function connect(guestId, nickname, group) {
+  async function connect(guestId, nickname, group, mediaVersion = 0) {
     if (!shouldShowGroup(group)) return;
-    const entry = ensureCard(guestId, nickname, group);
+    const entry = ensureCard(guestId, nickname, group, mediaVersion);
     if (entry.pc && !["failed", "closed", "disconnected"].includes(entry.pc.connectionState)) return;
     closePeer(entry);
 
@@ -727,6 +880,7 @@ export function initGuestCameraWall({
       }
       const [stream] = event.streams;
       entry.video.srcObject = stream;
+      entry.video.play?.().catch(() => {});
       entry.card.classList.remove("connecting");
     };
     pc.onicecandidate = async (event) => {
@@ -780,21 +934,26 @@ export function initGuestCameraWall({
     for (const guestId of [...peers.keys()]) {
       if (!ids.has(guestId)) disconnect(guestId).catch(console.warn);
     }
-    desired.forEach(({ guestId, nickname, group }) => connect(guestId, nickname, group).catch(console.warn));
+    const desiredById = new Map(desired.map((item) => [item.guestId, item]));
+    peers.forEach((entry, guestId) => {
+      const desiredEntry = desiredById.get(guestId);
+      if (desiredEntry && entry.mediaVersion !== desiredEntry.mediaVersion) disconnect(guestId).catch(console.warn);
+    });
+    desired.forEach(({ guestId, nickname, group, mediaVersion }) => connect(guestId, nickname, group, mediaVersion).catch(console.warn));
 
     const adminCount = desired.filter((item) => item.group === "admin").length;
     const participantCount = desired.filter((item) => item.group === "participants").length;
     setStatusText(
       adminStatus,
       shouldShowAdmin()
-        ? (adminCount ? `${adminCount} caméra admin visible.` : "Aucune caméra admin active.")
-        : "Rendu de la cam admin désactivé.",
+        ? (adminCount ? `${adminCount} flux admin visible.` : "Aucun flux admin actif.")
+        : "Rendu du flux admin désactivé.",
     );
     setStatusText(
       participantsStatus,
       shouldShowParticipants()
-        ? (participantCount ? `${participantCount} caméra(s) participant(s) visible(s).` : "Aucune caméra participant active pour le moment.")
-        : "Rendu des cams participants désactivé.",
+        ? (participantCount ? `${participantCount} flux participant(s) visible(s).` : "Aucun flux participant actif pour le moment.")
+        : "Rendu des flux participants désactivé.",
     );
   }
 
