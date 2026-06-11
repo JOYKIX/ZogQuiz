@@ -34,6 +34,8 @@ const adminMicrophoneButton = document.getElementById("admin-microphone-toggle")
 const adminMicrophoneStatus = document.getElementById("admin-microphone-status");
 const adminMicrophoneDevice = document.getElementById("admin-microphone-device");
 const adminMicrophoneDeviceField = document.getElementById("admin-microphone-device-field");
+const adminMicrophoneMonitor = document.getElementById("admin-microphone-monitor");
+const adminMicrophoneMonitorStatus = document.getElementById("admin-microphone-monitor-status");
 const adminParticipantsAudioRender = document.getElementById("admin-participants-audio-render");
 const adminParticipantsAudioStatus = document.getElementById("admin-participants-audio-status");
 const adminParticipantsAudioWall = document.getElementById("admin-participants-audio-wall");
@@ -54,6 +56,8 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       microphoneStatus: adminMicrophoneStatus,
       microphoneDeviceSelect: adminMicrophoneDevice,
       microphoneDeviceField: adminMicrophoneDeviceField,
+      microphoneMonitorInput: adminMicrophoneMonitor,
+      microphoneMonitorStatus: adminMicrophoneMonitorStatus,
     },
   });
 }

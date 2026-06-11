@@ -67,8 +67,16 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     heartbeat: null,
     selectedDeviceId: "",
     selectedMicrophoneDeviceId: "",
+    microphoneMonitorStream: null,
     mediaVersion: Date.now(),
   };
+  const microphoneMonitorAudio = elements.microphoneMonitorInput ? new Audio() : null;
+  if (microphoneMonitorAudio) {
+    microphoneMonitorAudio.autoplay = true;
+    microphoneMonitorAudio.playsInline = true;
+    microphoneMonitorAudio.muted = true;
+    microphoneMonitorAudio.volume = 1;
+  }
 
   function hasVideo() {
     return state.stream.getVideoTracks().some((track) => track.readyState !== "ended");
@@ -80,6 +88,44 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
 
   function hasTracks() {
     return state.stream.getTracks().some((track) => track.readyState !== "ended");
+  }
+
+  function wantsMicrophoneMonitor() {
+    return Boolean(elements.microphoneMonitorInput?.checked);
+  }
+
+  function renderMicrophoneMonitor(text = "") {
+    if (!elements.microphoneMonitorStatus) return;
+    const enabled = wantsMicrophoneMonitor();
+    const active = enabled && hasAudio();
+    elements.microphoneMonitorStatus.className = `message camera-status ${active ? "active" : "off"}`;
+    elements.microphoneMonitorStatus.textContent = text || (enabled
+      ? (active ? "Retour audio actif : vous entendez votre micro localement." : "Retour audio en attente : activez le micro.")
+      : "Retour audio désactivé.");
+  }
+
+  function syncMicrophoneMonitor() {
+    if (!microphoneMonitorAudio) return;
+    const audioTracks = state.stream.getAudioTracks().filter((track) => track.readyState !== "ended");
+    const shouldMonitor = wantsMicrophoneMonitor() && audioTracks.length > 0;
+    if (!shouldMonitor) {
+      microphoneMonitorAudio.pause?.();
+      microphoneMonitorAudio.srcObject = null;
+      state.microphoneMonitorStream = null;
+      renderMicrophoneMonitor();
+      return;
+    }
+    const needsStream = !state.microphoneMonitorStream
+      || audioTracks.length !== state.microphoneMonitorStream.getAudioTracks().length
+      || audioTracks.some((track, index) => state.microphoneMonitorStream.getAudioTracks()[index]?.id !== track.id);
+    if (needsStream) {
+      state.microphoneMonitorStream = new MediaStream(audioTracks);
+      microphoneMonitorAudio.srcObject = state.microphoneMonitorStream;
+    }
+    microphoneMonitorAudio.muted = false;
+    microphoneMonitorAudio.play?.().then(() => renderMicrophoneMonitor()).catch(() => {
+      renderMicrophoneMonitor("Retour audio prêt : cliquez à nouveau si le navigateur bloque la lecture.");
+    });
   }
 
   function stopTracks(kind) {
@@ -129,6 +175,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
         error: "Erreur micro.",
       }[status] || "";
     }
+    syncMicrophoneMonitor();
   }
 
   function cameraConstraints() {
@@ -387,6 +434,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
 
   elements.button.addEventListener("click", () => (hasVideo() ? stop({ keepMessage: true }) : start()));
   elements.microphoneButton?.addEventListener("click", () => (hasAudio() ? stopMicrophone({ keepMessage: true }) : startMicrophone()));
+  elements.microphoneMonitorInput?.addEventListener("change", syncMicrophoneMonitor);
   elements.deviceSelect?.addEventListener("change", async () => {
     state.selectedDeviceId = elements.deviceSelect.value;
     if (!hasVideo()) return;
@@ -403,6 +451,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   window.addEventListener("beforeunload", () => { stopTracks(); removePresence(); });
   render("off");
   renderMicrophone("off");
+  renderMicrophoneMonitor();
   refreshDeviceList().catch(console.warn);
 
   return { start, stop, startMicrophone, stopMicrophone, stopAll, isActive: hasTracks, refreshIdentity: writePresence };
