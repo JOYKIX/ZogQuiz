@@ -10,6 +10,7 @@ import {
   remove,
 } from "./firebase.js";
 import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, getCameraRoleParticipantIds, getCameraRoleParticipantNames, getCameraSlotPreviewLabel, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
+import { cleanVoiceConstraints, createCleanVoiceStream } from "./clean-voice.js";
 
 const RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 const GUEST_HEARTBEAT_MS = 15000;
@@ -68,6 +69,8 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     selectedDeviceId: "",
     selectedMicrophoneDeviceId: "",
     microphoneMonitorStream: null,
+    microphoneCleanup: null,
+    microphoneEnhancement: null,
     mediaVersion: Date.now(),
   };
   const microphoneMonitorAudio = elements.microphoneMonitorInput ? new Audio() : null;
@@ -135,6 +138,11 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
         track.stop();
         state.stream.removeTrack(track);
       });
+    if (!kind || kind === "audio") {
+      state.microphoneCleanup?.();
+      state.microphoneCleanup = null;
+      state.microphoneEnhancement = null;
+    }
   }
 
   function render(status = state.status, text = "") {
@@ -171,7 +179,9 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       elements.microphoneStatus.textContent = text || {
         off: "Micro désactivé.",
         starting: "Demande d’autorisation micro…",
-        active: "Micro actif : traitement anti-bruit WebRTC activé.",
+        active: state.microphoneEnhancement?.enhanced
+          ? "Micro actif : CleanVoice open source filtre clavier, souris et bruit de fond."
+          : "Micro actif : anti-bruit navigateur activé (CleanVoice indisponible).",
         error: "Erreur micro.",
       }[status] || "";
     }
@@ -188,8 +198,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   function microphoneConstraints() {
     const base = {
       echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
+      ...cleanVoiceConstraints(),
       channelCount: { ideal: 1 },
     };
     return state.selectedMicrophoneDeviceId
@@ -251,7 +260,15 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       hasAudio: audioTracks.length > 0,
       mediaVersion: state.mediaVersion,
       tracks: videoTracks.map((track) => ({ id: track.id, label: track.label, enabled: track.enabled })),
-      audioTracks: audioTracks.map((track) => ({ id: track.id, label: track.label, enabled: track.enabled, noiseSuppression: track.getSettings?.().noiseSuppression ?? true, echoCancellation: track.getSettings?.().echoCancellation ?? true })),
+      audioTracks: audioTracks.map((track) => ({
+        id: track.id,
+        label: track.label,
+        enabled: track.enabled,
+        cleanVoice: Boolean(state.microphoneEnhancement?.enhanced),
+        cleanVoiceReason: state.microphoneEnhancement?.reason || "browser-processing",
+        noiseSuppression: track.getSettings?.().noiseSuppression ?? true,
+        echoCancellation: track.getSettings?.().echoCancellation ?? true,
+      })),
       updatedAt: Date.now(),
     });
   }
@@ -392,13 +409,19 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     renderMicrophone("starting");
     try {
       const microphoneStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: microphoneConstraints() });
+      const cleanVoice = await createCleanVoiceStream(microphoneStream);
       stopTracks("audio");
-      microphoneStream.getAudioTracks().forEach((track) => {
+      state.microphoneCleanup = cleanVoice.cleanup;
+      state.microphoneEnhancement = { enhanced: cleanVoice.enhanced, reason: cleanVoice.reason };
+      cleanVoice.stream.getAudioTracks().forEach((track) => {
         track.enabled = true;
+        track.contentHint = "speech";
         state.stream.addTrack(track);
       });
       await refreshDeviceList();
-      renderMicrophone("active");
+      renderMicrophone("active", cleanVoice.enhanced
+        ? "Micro actif : CleanVoice open source filtre clavier, souris et bruit de fond."
+        : "Micro actif : anti-bruit navigateur activé (CleanVoice indisponible).");
       await syncPresenceAfterTrackChange();
     } catch (error) {
       stopTracks("audio");

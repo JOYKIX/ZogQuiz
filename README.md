@@ -8,6 +8,7 @@ Application web admin + buzzer + overlay OBS pour un format type *Questions pour
 - Génération de codes temporaires pour connecter les participants au buzzer.
 - Nettoyage automatique des codes expirés en base pour éviter la surcharge.
 - Reconnexion participant sur le même pseudo sans doublon de profil (même entrée de session conservée).
+- Voix améliorée avec CleanVoice (DSP open source en JavaScript pur, sans binaire) : contraintes WebRTC, passe-haut/passe-bas, notch 50/60 Hz, expander anti-bruit, réduction des clics clavier/souris et compression vocale.
 - Création de questions/réponses pour :
   - **questions participants** (buzzer actif)
   - **questions viewers** (sans buzzer)
