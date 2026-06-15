@@ -1905,17 +1905,24 @@ function renderRound3Players() {
     btn.textContent = active ? "Joueur actif" : "Faire jouer";
     btn.setAttribute("aria-pressed", String(active));
     btn.addEventListener("click", async () => {
-      await update(ref(db, "rooms/manche3/state"), {
-        activePlayerId: p.id,
-        activeThemeId: null,
-        questionIndex: 0,
-        timerStatus: "idle",
-        timerRemainingMs: ROUND3_DURATION_MS,
-        timerEndsAt: null,
-        turnEnded: false,
-        updatedAt: Date.now(),
-        updatedBy: currentAdminId,
-      });
+      const updates = {
+        "rooms/manche3/state/activePlayerId": p.id,
+        "rooms/manche3/state/activeThemeId": null,
+        "rooms/manche3/state/questionIndex": 0,
+        "rooms/manche3/state/timerStatus": "idle",
+        "rooms/manche3/state/timerRemainingMs": ROUND3_DURATION_MS,
+        "rooms/manche3/state/timerEndsAt": null,
+        "rooms/manche3/state/turnEnded": false,
+        "rooms/manche3/state/updatedAt": Date.now(),
+        "rooms/manche3/state/updatedBy": currentAdminId,
+      };
+      const activeThemeId = manche3State?.activeThemeId;
+      if (activeThemeId && manche3Themes?.[activeThemeId]) {
+        updates[`rooms/manche3/themes/${activeThemeId}/locked`] = true;
+        updates[`rooms/manche3/themes/${activeThemeId}/lockedAt`] = Date.now();
+        updates[`rooms/manche3/themes/${activeThemeId}/lockedBy`] = manche3State?.activePlayerId || null;
+      }
+      await update(ref(db), updates);
       showToast(`${p.nickname} joue`);
     });
     li.appendChild(btn);
