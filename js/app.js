@@ -139,6 +139,7 @@ const m2SaveQuestionBtn = $("m2-save-question");
 const m3ThemeForm = $("m3-theme-form");
 const m3ThemeName = $("m3-theme-name");
 const m3ThemeList = $("m3-theme-list");
+const m3UnlockThemesBtn = $("m3-unlock-themes");
 const m3PlayerList = $("m3-player-list");
 const m3ActivePlayer = $("m3-active-player");
 const m3ActiveTheme = $("m3-active-theme");
@@ -578,7 +579,7 @@ m3ThemeForm.addEventListener("submit", async (event) => {
   const name = m3ThemeName.value.trim();
   if (!name) return;
   const themeRef = push(ref(db, "rooms/manche3/themes"));
-  await set(themeRef, { name, questions: {}, createdAt: Date.now(), createdBy: currentAdminId });
+  await set(themeRef, { name, questions: {}, locked: false, createdAt: Date.now(), createdBy: currentAdminId });
   m3ThemeForm.reset();
   showToast("Thème ajouté");
 });
@@ -587,6 +588,7 @@ m3StartBtn.addEventListener("click", async () => round3Start());
 m3PauseBtn.addEventListener("click", async () => round3Pause());
 m3ResumeBtn.addEventListener("click", async () => round3Resume());
 m3ResetBtn.addEventListener("click", async () => round3Reset());
+m3UnlockThemesBtn?.addEventListener("click", async () => unlockRound3Themes());
 m3NextBtn.addEventListener("click", async () => round3Advance(false));
 m3PassBtn.addEventListener("click", async () => round3Advance(false));
 m3CorrectBtn.addEventListener("click", async () => round3Advance(true));
@@ -1935,7 +1937,8 @@ function renderRound3Themes() {
     const questionEntries = Object.entries(theme.questions || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
     const questions = questionEntries.map((entry) => entry[1]);
     const isActive = manche3State?.activeThemeId === themeId;
-    li.innerHTML = `<div class="question-head"><strong>${theme.name}</strong>${isActive ? '<span class="question-active-chip">Actif</span>' : ''}</div><p class="muted">${questions.length} question(s)</p>`;
+    const isLocked = Boolean(theme.locked);
+    li.innerHTML = `<div class="question-head"><strong>${theme.name}</strong>${isActive ? '<span class="question-active-chip">Actif</span>' : ''}${isLocked ? '<span class="question-active-chip">Verrouillé</span>' : ''}</div><p class="muted">${questions.length} question(s)</p>`;
 
     const addForm = document.createElement("form");
     addForm.className = "row";
@@ -2064,6 +2067,22 @@ function renderRound3State() {
   m3StartBtn.disabled = status === "running" || !manche3State?.activePlayerId || !manche3State?.activeThemeId;
   m3PauseBtn.disabled = status !== "running";
   m3ResumeBtn.disabled = status !== "paused" || remaining <= 0;
+}
+
+async function unlockRound3Themes() {
+  const updates = {};
+  for (const themeId of Object.keys(manche3Themes || {})) {
+    updates[`rooms/manche3/themes/${themeId}/locked`] = false;
+    updates[`rooms/manche3/themes/${themeId}/lockedAt`] = null;
+    updates[`rooms/manche3/themes/${themeId}/lockedBy`] = null;
+  }
+  if (!Object.keys(updates).length) return;
+  updates["rooms/manche3/state/activeThemeId"] = null;
+  updates["rooms/manche3/state/questionIndex"] = 0;
+  updates["rooms/manche3/state/updatedAt"] = Date.now();
+  updates["rooms/manche3/state/updatedBy"] = currentAdminId;
+  await update(ref(db), updates);
+  showToast("Thèmes reset");
 }
 
 async function round3Start() {
