@@ -890,12 +890,18 @@ function renderRound3() {
 
   for (const [id, theme] of themes) {
     const btn = document.createElement("button");
+    const isLocked = Boolean(theme.locked);
     btn.className = id === round3State?.activeThemeId ? "btn btn-secondary" : "btn btn-primary";
     btn.textContent = theme.name || "Thème";
-    btn.disabled = !isCurrentPlayer || themeLocked || !getCurrentNickname();
+    btn.disabled = !isCurrentPlayer || themeLocked || isLocked || !getCurrentNickname();
     btn.setAttribute("aria-pressed", String(id === round3State?.activeThemeId));
     btn.addEventListener("click", async () => {
-      if (!isCurrentPlayer) return;
+      if (!isCurrentPlayer || themeLocked) return;
+      const result = await runTransaction(ref(db, `rooms/manche3/themes/${id}`), (currentTheme) => {
+        if (!currentTheme || currentTheme.locked) return;
+        return { ...currentTheme, locked: true, lockedAt: Date.now(), lockedBy: getCurrentSessionId() };
+      });
+      if (!result.committed) return;
       await update(ref(db, "rooms/manche3/state"), {
         activeThemeId: id,
         questionIndex: 0,
