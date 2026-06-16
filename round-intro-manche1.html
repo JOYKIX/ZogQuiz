@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="round-intro-manche1.css" />
+    <title>ZogQuiz - Manche 1</title>
+  </head>
+  <body>
+    <main class="round-intro" aria-live="polite">
+      <div class="speed-lines" aria-hidden="true"></div>
+      <div class="track-grid" aria-hidden="true"></div>
+      <div class="start-light" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+
+      <section class="intro-card" aria-labelledby="round-title">
+        <p class="round-kicker">Manche 1</p>
+        <h1 id="round-title">Le Sprint de Takumi</h1>
+        <div class="copy-stack">
+          <p>La première manche du ZogQuiz commence avec le Sprint de Takumi !</p>
+          <p>Les participants devront faire preuve de rapidité pour être les premiers à répondre aux questions. Attention : en cas de mauvaise réponse, ils ne pourront plus répondre à cette question.</p>
+          <p>Chaque bonne réponse rapporte 1 point.</p>
+          <p>Tout le monde sur la ligne de départ... La course commence !</p>
+        </div>
+      </section>
+
+      <div class="race-scene" aria-hidden="true">
+        <div class="road">
+          <span class="lane lane-a"></span>
+          <span class="lane lane-b"></span>
+          <span class="lane lane-c"></span>
+        </div>
+        <div class="takumi-car">
+          <span class="car-body"></span>
+          <span class="car-window"></span>
+          <span class="wheel wheel-front"></span>
+          <span class="wheel wheel-back"></span>
+          <span class="car-flame"></span>
+        </div>
+      </div>
+
+      <div class="intro-actions">
+        <button id="replay-animation" type="button">Rejouer</button>
+        <button id="toggle-voice" type="button" aria-pressed="false">Voix</button>
+      </div>
+    </main>
+    <script src="js/round-intro-manche1.js" defer></script>
+  </body>
+</html>
