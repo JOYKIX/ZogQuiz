@@ -1,0 +1,70 @@
+:root {
+  color-scheme: dark;
+  --font-sans: "Arial", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Arial Black", Impact, var(--font-sans);
+  --ink: #050507;
+  --bg: #07080c;
+  --paper: #eef7ff;
+  --text: #f7f8fb;
+  --primary: #09c8d7;
+  --primary-2: #ffd044;
+  --accent: #ff6a00;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { font-family: var(--font-sans); color: var(--text); background: var(--bg); }
+.round2-intro {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 5vw, 78px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 76% 24%, rgba(9,200,215,.26), transparent 25rem),
+    radial-gradient(circle at 18% 82%, rgba(255,208,68,.22), transparent 23rem),
+    linear-gradient(135deg, #07080b 0%, #111827 54%, #07080b 100%);
+}
+.round2-intro::before,
+.round2-intro::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.round2-intro::before { z-index: -2; background-image: radial-gradient(circle, rgba(255,255,255,.2) 1px, transparent 2px); background-size: 18px 18px; opacity: .22; }
+.round2-intro::after { z-index: 8; border: clamp(10px, 1.2vw, 18px) solid var(--ink); box-shadow: inset 0 0 0 3px rgba(9,200,215,.76), inset 0 0 92px rgba(0,0,0,.78); }
+.scan-grid { position: absolute; inset: -16%; z-index: -1; background: repeating-linear-gradient(0deg, transparent 0 34px, rgba(9,200,215,.18) 35px 37px, transparent 38px 78px), repeating-linear-gradient(90deg, transparent 0 54px, rgba(255,208,68,.14) 55px 57px, transparent 58px 120px); transform: rotate(-8deg) scale(1.08); animation: scanDrift 7s linear infinite; }
+.focus-frame { position: absolute; inset: clamp(58px, 9vh, 120px) clamp(70px, 10vw, 170px); z-index: 1; opacity: .9; animation: frameLock 1.1s var(--ease) both; }
+.focus-frame span { position: absolute; width: clamp(58px, 8vw, 120px); height: clamp(58px, 8vw, 120px); border-color: var(--primary-2); border-style: solid; filter: drop-shadow(0 0 18px rgba(255,208,68,.38)); }
+.focus-frame span:nth-child(1) { left: 0; top: 0; border-width: 5px 0 0 5px; }
+.focus-frame span:nth-child(2) { right: 0; top: 0; border-width: 5px 5px 0 0; }
+.focus-frame span:nth-child(3) { right: 0; bottom: 0; border-width: 0 5px 5px 0; }
+.focus-frame span:nth-child(4) { left: 0; bottom: 0; border-width: 0 0 5px 5px; }
+.intro-card { position: relative; z-index: 4; width: min(980px, 86vw); padding: clamp(30px, 4.4vw, 66px); color: var(--ink); background: linear-gradient(135deg, var(--paper) 0 68%, var(--primary) 68% 100%); border: 4px solid var(--ink); box-shadow: 14px 14px 0 var(--ink), 0 0 62px rgba(9,200,215,.42); clip-path: polygon(0 0, 92% 0, 100% 17%, 100% 100%, 6% 100%, 0 84%); animation: cardFocus .92s var(--ease) both; }
+.intro-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 0 47%, rgba(255,255,255,.72) 49%, transparent 52% 100%); transform: translateX(-120%); animation: lensSweep 3.6s var(--ease) 1s infinite; pointer-events: none; }
+.round-kicker, h1, .copy-stack { position: relative; z-index: 1; }
+.round-kicker { width: max-content; margin: 0 0 .7rem; padding: .25rem .8rem; font-weight: 950; letter-spacing: .16em; text-transform: uppercase; background: var(--primary-2); border: 3px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); }
+h1 { margin: 0 0 clamp(18px, 2.2vw, 34px); font-family: var(--font-display); font-size: clamp(4.4rem, 12vw, 12.5rem); line-height: .78; letter-spacing: -.09em; text-transform: uppercase; text-shadow: 6px 6px 0 rgba(9,200,215,.5), 11px 11px 0 rgba(255,106,0,.48); animation: titleReveal .76s var(--ease) both .16s; }
+.copy-stack { display: flex; flex-wrap: wrap; gap: 10px; font-size: clamp(1.1rem, 1.55vw, 1.72rem); font-weight: 950; text-transform: uppercase; }
+.copy-stack p { margin: 0; padding: .55rem .75rem; background: #fff; border: 3px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); opacity: 0; transform: translateY(18px); animation: chipIn .5s var(--ease) both; }
+.copy-stack p:nth-child(1) { animation-delay: .62s; }
+.copy-stack p:nth-child(2) { animation-delay: .82s; }
+.copy-stack p:nth-child(3) { animation-delay: 1.02s; }
+.image-reveal { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.photo-card { position: absolute; width: clamp(170px, 18vw, 330px); aspect-ratio: 4 / 3; border: 4px solid var(--ink); background: linear-gradient(135deg, rgba(255,208,68,.92), rgba(9,200,215,.92)); box-shadow: 10px 10px 0 var(--ink); opacity: .85; animation: photoFloat 5s ease-in-out infinite; }
+.photo-card::before { content: ""; position: absolute; inset: 12%; border: 3px solid rgba(5,5,7,.78); background: linear-gradient(135deg, rgba(255,255,255,.58), transparent 48%), radial-gradient(circle at 72% 35%, var(--accent), transparent 18%), linear-gradient(150deg, var(--primary) 0 42%, var(--primary-2) 42% 100%); }
+.photo-card-a { left: 7vw; top: 14vh; transform: rotate(-9deg); }
+.photo-card-b { right: 8vw; top: 17vh; transform: rotate(8deg); animation-delay: -.8s; }
+.photo-card-c { right: 14vw; bottom: 12vh; transform: rotate(-5deg); animation-delay: -1.4s; }
+.intro-actions { position: absolute; right: clamp(24px, 4vw, 64px); bottom: clamp(24px, 4vw, 58px); z-index: 9; display: flex; gap: 10px; }
+.intro-actions button { min-height: 44px; padding: .7rem 1rem; border: 3px solid var(--ink); color: var(--ink); background: var(--primary-2); font: 950 .82rem/1 var(--font-sans); text-transform: uppercase; box-shadow: 5px 5px 0 var(--ink); cursor: pointer; }
+.intro-actions button[aria-pressed="true"] { background: var(--primary); }
+.round2-intro.is-replaying .intro-card, .round2-intro.is-replaying h1, .round2-intro.is-replaying .copy-stack p, .round2-intro.is-replaying .focus-frame { animation-name: none; }
+@keyframes scanDrift { to { transform: rotate(-8deg) scale(1.08) translate3d(80px, 80px, 0); } }
+@keyframes frameLock { from { opacity: 0; transform: scale(1.18); } to { opacity: .9; transform: none; } }
+@keyframes cardFocus { from { opacity: 0; transform: scale(.86) rotate(2deg); filter: blur(10px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes lensSweep { 0%, 52% { transform: translateX(-120%); opacity: 0; } 62% { opacity: .9; } 78%, 100% { transform: translateX(120%); opacity: 0; } }
+@keyframes titleReveal { from { opacity: 0; transform: translateY(34px) scale(1.08); } to { opacity: 1; transform: none; } }
+@keyframes chipIn { to { opacity: 1; transform: none; } }
+@keyframes photoFloat { 50% { translate: 0 -14px; } }
+@media (max-width: 900px) { .photo-card { opacity: .35; } .focus-frame { inset: 54px 34px 120px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }

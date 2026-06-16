@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="round-intro-manche2.css" />
+    <title>ZogQuiz - Manche 2</title>
+  </head>
+  <body>
+    <main class="round2-intro" aria-live="polite">
+      <div class="scan-grid" aria-hidden="true"></div>
+      <div class="focus-frame" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+      <section class="intro-card" aria-labelledby="round-title">
+        <p class="round-kicker">Manche 2</p>
+        <h1 id="round-title">Image</h1>
+        <div class="copy-stack">
+          <p>Une image est affichée.</p>
+          <p>Réponse écrite.</p>
+          <p>Œuvre + lieu.</p>
+        </div>
+      </section>
+
+      <div class="image-reveal" aria-hidden="true">
+        <div class="photo-card photo-card-a"></div>
+        <div class="photo-card photo-card-b"></div>
+        <div class="photo-card photo-card-c"></div>
+      </div>
+
+      <div class="intro-actions">
+        <button id="replay-animation" type="button">Rejouer</button>
+        <button id="toggle-voice" type="button" aria-pressed="false">Voix</button>
+      </div>
+    </main>
+    <script src="js/round-intro-manche2.js" defer></script>
+  </body>
+</html>
