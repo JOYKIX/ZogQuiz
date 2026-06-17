@@ -6,6 +6,7 @@ const ROUND5_PATH = "rounds/round5";
 const VIEWERS_PATH = "rooms/manche1/viewerLeaderboard";
 const DEFAULT_DURATION_MS = 60_000;
 const PLAYER_KEYS = ["participant", "viewer"];
+const SWITCH_BIND_STORAGE_KEY = "zogquiz.manche6.switchBind";
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({
   "&": "&amp;",
@@ -279,6 +280,11 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
   const questionDeckEmpty = $("m6-question-deck-empty");
   const participantAnswerInput = $("m6-answer-participant-input");
   const viewerAnswerInput = $("m6-answer-viewer-input");
+  const switchBindInput = $("m6-switch-bind");
+  const clearSwitchBindButton = $("m6-clear-switch-bind");
+  let switchBindCode = window.localStorage.getItem(SWITCH_BIND_STORAGE_KEY) || "";
+  let switchBindLabel = formatStoredKeyBind(switchBindCode);
+  let isCapturingSwitchBind = false;
 
   function isQuestionDeckEditorActive() {
     return Boolean(questionDeckList?.contains(document.activeElement));
@@ -472,6 +478,54 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
     await update(ref(db, ROUND6_PATH), { ...patch, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
   }
 
+  function renderSwitchBind() {
+    if (!switchBindInput) return;
+    switchBindInput.value = isCapturingSwitchBind ? "..." : switchBindLabel;
+  }
+
+  function formatStoredKeyBind(code) {
+    if (!code) return "";
+    if (code === "Space") return "Espace";
+    if (code.startsWith("Key")) return code.slice(3);
+    if (code.startsWith("Digit")) return code.slice(5);
+    return code;
+  }
+
+  function formatKeyBind(event) {
+    if (event.code === "Space") return "Espace";
+    return event.key?.length === 1 ? event.key.toUpperCase() : event.key || event.code;
+  }
+
+  function shouldIgnoreSwitchBind(event) {
+    if (!switchBindCode || event.code !== switchBindCode || event.repeat) return true;
+    const target = event.target;
+    const tagName = target?.tagName?.toLowerCase();
+    return Boolean(target?.isContentEditable || ["input", "textarea", "select", "button"].includes(tagName));
+  }
+
+  async function switchTimer() {
+    const deckToDrawFrom = await prepareQuestionDeckForDraw();
+    await runTransaction(ref(db, ROUND6_PATH), (curr) => {
+      const s = normalizeRound6(curr);
+      const now = Date.now();
+      const timers = snapshotTimers(s, now);
+      const winner = detectWinner(s, timers);
+      if (winner) return { ...s, timers, status: "finished", phase: "finished", winner, timerStartedAt: null, updatedAt: now, updatedBy: getCurrentAdminId?.() || "admin" };
+      const activePlayer = s.activePlayer === "participant" ? "viewer" : "participant";
+      return {
+        ...s,
+        ...buildNextQuestionPatch(s, deckToDrawFrom),
+        timers,
+        activePlayer,
+        status: "running",
+        phase: "playing",
+        timerStartedAt: now,
+        updatedAt: now,
+        updatedBy: getCurrentAdminId?.() || "admin",
+      };
+    });
+  }
+
   $("m6-init")?.addEventListener("click", async () => {
     const initial = buildInitialState({ round5, viewers, durationSeconds: Number(durationInput?.value || 60), currentState: state, questionBank });
     await set(ref(db, ROUND6_PATH), { ...initial, updatedAt: Date.now(), updatedBy: getCurrentAdminId?.() || "admin" });
@@ -502,28 +556,43 @@ export function initManche6Admin({ getCurrentAdminId, showToast } = {}) {
     });
   });
 
-  $("m6-switch")?.addEventListener("click", async () => {
-    const deckToDrawFrom = await prepareQuestionDeckForDraw();
-    await runTransaction(ref(db, ROUND6_PATH), (curr) => {
-      const s = normalizeRound6(curr);
-      const now = Date.now();
-      const timers = snapshotTimers(s, now);
-      const winner = detectWinner(s, timers);
-      if (winner) return { ...s, timers, status: "finished", phase: "finished", winner, timerStartedAt: null, updatedAt: now, updatedBy: getCurrentAdminId?.() || "admin" };
-      const activePlayer = s.activePlayer === "participant" ? "viewer" : "participant";
-      return {
-        ...s,
-        ...buildNextQuestionPatch(s, deckToDrawFrom),
-        timers,
-        activePlayer,
-        status: "running",
-        phase: "playing",
-        timerStartedAt: now,
-        updatedAt: now,
-        updatedBy: getCurrentAdminId?.() || "admin",
-      };
-    });
+  $("m6-switch")?.addEventListener("click", switchTimer);
+
+  switchBindInput?.addEventListener("focus", () => {
+    isCapturingSwitchBind = true;
+    renderSwitchBind();
   });
+
+  switchBindInput?.addEventListener("keydown", (event) => {
+    event.preventDefault();
+    if (event.key === "Escape") {
+      isCapturingSwitchBind = false;
+      switchBindInput.blur();
+      renderSwitchBind();
+      return;
+    }
+    switchBindCode = event.code;
+    switchBindLabel = formatKeyBind(event);
+    window.localStorage.setItem(SWITCH_BIND_STORAGE_KEY, switchBindCode);
+    isCapturingSwitchBind = false;
+    switchBindInput.blur();
+    renderSwitchBind();
+  });
+
+  clearSwitchBindButton?.addEventListener("click", () => {
+    switchBindCode = "";
+    switchBindLabel = "";
+    window.localStorage.removeItem(SWITCH_BIND_STORAGE_KEY);
+    renderSwitchBind();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (isCapturingSwitchBind || shouldIgnoreSwitchBind(event)) return;
+    event.preventDefault();
+    switchTimer();
+  });
+
+  renderSwitchBind();
 
   $("m6-pause")?.addEventListener("click", async () => {
     await runTransaction(ref(db, ROUND6_PATH), (curr) => {
