@@ -289,6 +289,7 @@ Monkey D. Luffy"></textarea>
                     <div class="row compact">
                       <label>Points<input id="viewer-points" type="number" min="1" value="1" /></label>
                       <label>Timer (s)<input id="viewer-timer" type="number" min="0" value="30" /></label>
+                      <label>Après question participants<input id="viewer-after-participant" type="number" min="0" value="0" /></label>
                     </div>
                     <label class="row"><input id="viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
                     <label class="row"><input id="viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
@@ -786,6 +787,7 @@ SNK OP1"></textarea></label>
               <nav class="subnav" aria-label="Sous navigation manche 5">
                 <button class="subnav-tab active" data-round="manche5" data-round-section="overview">Vue d’ensemble</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="questions">Questions</button>
+                <button class="subnav-tab" data-round="manche5" data-round-section="viewer-questions">Viewers</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="participants">Participants</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="live">Live</button>
                 <button class="subnav-tab" data-round="manche5" data-round-section="overlay">Overlay</button>
@@ -793,6 +795,21 @@ SNK OP1"></textarea></label>
 
                             <section class="round-section" data-round-section-panel="manche5:overview"><article class="subpanel compact-panel"><h3>Mort Subite</h3><div id="m5-admin" class="stack"><p id="m5-status" class="message"></p><p id="m5-buzz-live" class="highlight">Aucun buzz.</p><label>Dégâts par bonne réponse <input id="m5-damage" type="number" min="1" value="10" /></label><div class="row"><button id="m5-init-hp" class="btn btn-primary" type="button">Initialiser depuis scores</button><button id="m5-reset" class="btn btn-danger" type="button">Reset manche 5</button></div><div class="row"><label>Joueur actif<select id="m5-current-player"></select></label><button id="m5-set-active-player" class="btn btn-secondary" type="button">Modifier joueur actif</button></div><div class="row"><label>PV joueur<select id="m5-hp-player"></select></label><label>Montant<input id="m5-hp-amount" type="number" min="1" value="1" /></label><button id="m5-hp-plus" class="btn btn-primary" type="button">+PV</button><button id="m5-hp-minus" class="btn btn-danger" type="button">-PV</button></div><h4>Duel</h4><label>Question<input id="m5-question" /></label><div class="row"><label>Attaquant<select id="m5-duel-attacker"></select></label><label>Cible<select id="m5-duel-target"></select></label></div><div class="row"><button id="m5-start-duel" class="btn btn-primary" type="button">Démarrer duel</button><button id="m5-open-buzzer" class="btn btn-secondary" type="button">Ouvrir buzzer</button><button id="m5-close-buzzer" class="btn btn-secondary" type="button">Fermer / personne ne répond</button></div><div class="row"><button id="m5-mark-correct" class="btn btn-primary" type="button">Valider bonne réponse duel</button><button id="m5-mark-fail" class="btn btn-secondary" type="button">Ouvrir réponse des autres</button></div><div class="row"><label>Winner outsider<select id="m5-outsider-winner"></select></label><button id="m5-outsider-correct" class="btn btn-secondary" type="button">Valider outsider correct</button><button id="m5-next-turn" class="btn btn-primary" type="button">Tour suivant</button></div><h4>Participants</h4><ul id="m5-participants-live" class="list compact-list"></ul><h4>Réponses outsiders</h4><ul id="m5-outsider-live" class="list compact-list"></ul></div></article></section>
               <section class="round-section hidden" data-round-section-panel="manche5:questions"><article class="subpanel compact-panel"><h3>Console</h3></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche5:viewer-questions">
+                <div class="viewer-question-manager">
+                  <form id="m5-viewer-question-form" class="subpanel compact-panel stack viewer-panel question-form-panel">
+                    <h3>Question viewers</h3>
+                    <p id="m5-viewer-live-label" class="message">Aucune question active.</p>
+                    <label>Question viewers<input id="m5-viewer-prompt" required maxlength="240" /></label>
+                    <label>Réponse principale et alias acceptés<textarea id="m5-viewer-aliases" rows="4" required></textarea></label>
+                    <div class="row compact"><label>Points<input id="m5-viewer-points" type="number" min="1" value="1" /></label><label>Timer (s)<input id="m5-viewer-timer" type="number" min="0" value="30" /></label></div>
+                    <label class="row"><input id="m5-viewer-first-correct-only" type="checkbox" checked /><span>Premier bon uniquement</span></label>
+                    <label class="row"><input id="m5-viewer-allow-multi" type="checkbox" /><span>Plusieurs gagnants</span></label>
+                    <button type="submit" class="btn btn-primary add-question-button">Ajouter</button>
+                  </form>
+                  <article class="subpanel compact-panel question-list-panel"><h3>Questions viewers manche 5</h3><ul id="m5-viewer-questions-list" class="list"></ul></article>
+                </div>
+              </section>
               <section class="round-section hidden" data-round-section-panel="manche5:participants"><article class="subpanel compact-panel"></article></section>
               <section class="round-section hidden" data-round-section-panel="manche5:live"><article class="subpanel compact-panel"></article></section>
               <section class="round-section hidden" data-round-section-panel="manche5:overlay">

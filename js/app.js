@@ -62,6 +62,7 @@ const participantQuestionForm = $("participant-question-form");
 const viewerQuestionForm = $("viewer-question-form");
 const participantQuestionsList = $("participant-questions-list");
 const viewerQuestionsList = $("viewer-questions-list");
+const viewerAfterParticipantInput = $("viewer-after-participant");
 
 const toggleAnswerBtn = $("toggle-answer");
 const unlockBuzzerBtn = $("unlock-buzzer");
@@ -625,6 +626,7 @@ async function createRound1Question(type, questionInputId, answerInputId) {
     payload.answer = acceptedAnswers[0] || rawAnswer;
     payload.points = Math.max(1, Number($("viewer-points")?.value || 1));
     payload.timerSeconds = Math.max(0, Number($("viewer-timer")?.value || 0));
+    payload.afterParticipantOrder = Math.max(0, Number(viewerAfterParticipantInput?.value || 0));
     payload.settings = {
       firstCorrectOnly: Boolean($("viewer-first-correct-only")?.checked),
       allowMultipleWinners: Boolean($("viewer-allow-multi")?.checked),
@@ -641,6 +643,7 @@ async function createRound1Question(type, questionInputId, answerInputId) {
     if ($("viewer-timer")) $("viewer-timer").value = "30";
     if ($("viewer-first-correct-only")) $("viewer-first-correct-only").checked = true;
     if ($("viewer-allow-multi")) $("viewer-allow-multi").checked = false;
+    if (viewerAfterParticipantInput) viewerAfterParticipantInput.value = "0";
   }
   showToast("Question ajoutée");
 }
@@ -1446,7 +1449,8 @@ function renderRound1QuestionList(type, data, container) {
     li.className = "question-item";
     const isActive = liveState?.currentQuestionId === id;
     const aliases = Array.isArray(q.acceptedAnswers) && q.acceptedAnswers.length ? q.acceptedAnswers.join(' · ') : q.answer;
-    const modeLabel = type === 'viewers' ? `Mode viewers · ${Number(q.points || 1)} pt · ${Number(q.timerSeconds || 0)}s` : 'Mode participants';
+    const afterLabel = type === 'viewers' && Number(q.afterParticipantOrder || 0) > 0 ? ` · après QP${Number(q.afterParticipantOrder || 0)}` : '';
+    const modeLabel = type === 'viewers' ? `Mode viewers · ${Number(q.points || 1)} pt · ${Number(q.timerSeconds || 0)}s${afterLabel}` : 'Mode participants';
     li.innerHTML = `<div class="question-head"><strong>Q${q.order}</strong>${isActive ? '<span class="question-active-chip">Active</span>' : ""}</div><p>${q.text}</p><p class="muted">Réponses acceptées : ${aliases}</p><p class="muted">${modeLabel}</p>`;
 
     const actions = document.createElement("div");
@@ -1523,9 +1527,46 @@ function renderRound1QuestionList(type, data, container) {
 
 function getRound1OrderedQuestions() {
   return [
-    ...Object.entries(participantQuestions || {}).map(([id, question]) => ({ id, type: "participants", question })),
-    ...Object.entries(viewerQuestions || {}).map(([id, question]) => ({ id, type: "viewers", question })),
-  ].sort((a, b) => (a.question?.order || 0) - (b.question?.order || 0));
+    ...Object.entries(participantQuestions || {}).map(([id, question]) => ({ id, type: "participants", question, sortOrder: Number(question?.order || 0) })),
+    ...Object.entries(viewerQuestions || {}).map(([id, question]) => {
+      const afterParticipantOrder = Number(question?.afterParticipantOrder || 0);
+      return {
+        id,
+        type: "viewers",
+        question,
+        sortOrder: afterParticipantOrder > 0 ? afterParticipantOrder + 0.5 : Number(question?.order || 0),
+      };
+    }),
+  ].sort((a, b) => a.sortOrder - b.sortOrder || (a.question?.order || 0) - (b.question?.order || 0));
+}
+
+async function syncRound1ViewerLiveState(target, now) {
+  if (target?.type === "viewers") {
+    const q = target.question || {};
+    const timerSeconds = Number(q.timerSeconds || 0);
+    await set(ref(db, "rooms/viewers/liveState"), {
+      active: true,
+      status: "active",
+      mode: "viewer-question",
+      round: "manche1",
+      questionId: target.id,
+      settings: q.settings || { firstCorrectOnly: true, allowMultipleWinners: false, caseSensitive: false },
+      points: Number(q.points || 1),
+      timerSeconds,
+      startedAt: now,
+      endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
+      updatedAt: now,
+      updatedBy: currentAdminId || "admin",
+    });
+    return;
+  }
+  await update(ref(db, "rooms/viewers/liveState"), {
+    active: false,
+    status: "stopped",
+    endedAt: now,
+    updatedAt: now,
+    updatedBy: currentAdminId || "admin",
+  });
 }
 
 async function moveRound1Question(direction) {
@@ -1550,6 +1591,7 @@ async function moveRound1Question(direction) {
     lockedAt: 0,
     updatedAt: now,
   });
+  await syncRound1ViewerLiveState(target, now);
 }
 
 async function editRound1Question(type, questionId, currentQuestion) {
@@ -1591,11 +1633,19 @@ async function editRound1Question(type, questionId, currentQuestion) {
       confirmText: "Enregistrer",
     });
     if (timerRaw === null) return;
+    const afterRaw = await showPrompt("Passage après question participants", {
+      title: "Éditer le passage",
+      inputLabel: "Après question participants",
+      defaultValue: String(Math.max(0, Number(currentQuestion?.afterParticipantOrder || 0))),
+      confirmText: "Enregistrer",
+    });
+    if (afterRaw === null) return;
 
     const points = Math.max(1, Number(pointsRaw));
     const timerSeconds = Math.max(0, Number(timerRaw));
-    if (!Number.isFinite(points) || !Number.isFinite(timerSeconds)) {
-      return showToast("Points et timer doivent être des nombres valides.", "error");
+    const afterParticipantOrder = Math.max(0, Number(afterRaw));
+    if (!Number.isFinite(points) || !Number.isFinite(timerSeconds) || !Number.isFinite(afterParticipantOrder)) {
+      return showToast("Points, timer et passage doivent être des nombres valides.", "error");
     }
 
     const acceptedAnswers = parseAcceptedAnswers(nextAnswer);
@@ -1605,6 +1655,7 @@ async function editRound1Question(type, questionId, currentQuestion) {
     payload.answer = acceptedAnswers[0] || nextAnswer;
     payload.points = points;
     payload.timerSeconds = timerSeconds;
+    payload.afterParticipantOrder = afterParticipantOrder;
   }
   await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), payload);
   if (type === "viewers" && liveState?.currentType === "viewers" && liveState?.currentQuestionId === questionId) {

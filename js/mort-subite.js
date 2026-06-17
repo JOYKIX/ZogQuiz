@@ -1,5 +1,6 @@
 import { db, ref, onValue, update, runTransaction } from "./firebase.js";
 import { watchOverlayConfig } from "./overlay-config.js";
+import { playBuzzerSound } from "./audio.js";
 
 const ROUND5_PATH = "rounds/round5";
 const ROUND5_LEGACY_PATH = "rooms/manche5/state";
@@ -587,6 +588,7 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
   let legacyRound5 = null;
   let round5 = toRound5(defaultRound5);
   let buzzInFlight = false;
+  let lastBuzzSoundToken = null;
 
   const getMe = () => getCurrentSessionId?.() || null;
   const isGuestRoundVisible = () => !root.classList.contains("hidden");
@@ -624,6 +626,13 @@ export function initMortSubiteGuest({ getCurrentSessionId, getBuzzKeyCode, isTyp
     const attackerName = getParticipantName(round5, round5.duel.attackerId, "—");
     const targetName = getParticipantName(round5, round5.duel.targetId, "—");
     const buzzedName = getParticipantName(round5, round5.duel.buzzedBy, "");
+    const buzzSoundToken = round5.duel.buzzedBy ? `${round5.duel.buzzedBy}:${Number(round5.duel.buzzedAt || 0)}` : null;
+    if (!buzzSoundToken) {
+      lastBuzzSoundToken = null;
+    } else if (buzzSoundToken !== lastBuzzSoundToken) {
+      lastBuzzSoundToken = buzzSoundToken;
+      playBuzzerSound();
+    }
 
     renderHpList();
     els.playerState.textContent = me ? `${getParticipantName(round5, me, "—")} · ${role.alive ? "vivant" : "éliminé / spectateur"}` : "Non connecté";
