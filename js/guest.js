@@ -62,6 +62,7 @@ const m2AnswerStatus = document.getElementById("m2-answer-status");
 const m3GuestStatus = document.getElementById("m3-guest-status");
 const m3GuestPlayer = document.getElementById("m3-guest-player");
 const m3GuestTheme = document.getElementById("m3-guest-theme");
+const m3GuestTimer = document.getElementById("m3-guest-timer");
 const m3GuestHelp = document.getElementById("m3-guest-help");
 const m3ThemeButtons = document.getElementById("m3-theme-buttons");
 const m3AnswerForm = document.getElementById("m3-answer-form");
@@ -125,6 +126,7 @@ let guestCameraWallController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 let clientSessionHeartbeat = null;
+let round3TimerTicker = null;
 
 
 function safeFirebaseKey(value) {
@@ -797,6 +799,19 @@ function getRound3CurrentQuestion(activeTheme) {
   return questions[Number(round3State?.questionIndex || 0)] || null;
 }
 
+function getRound3RemainingMs() {
+  if (!round3State) return 0;
+  if (round3State.timerStatus === "running" && round3State.timerEndsAt) {
+    return Math.max(0, Number(round3State.timerEndsAt || 0) - Date.now());
+  }
+  return Math.max(0, Number(round3State.timerRemainingMs || 0));
+}
+
+function formatRound3GuestTimer(ms) {
+  const totalSeconds = Math.ceil(Math.max(0, ms) / 1000);
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
 function renderRound3AnswerForm(activeTheme) {
   if (!m3AnswerForm || !m3AnswerInput) return;
   const answerKey = getRound3AnswerKey();
@@ -861,6 +876,7 @@ function renderRound3() {
 
   m3GuestPlayer.textContent = `Joueur actif : ${activePlayerName}`;
   m3GuestTheme.textContent = `Thème actif : ${activeTheme?.name || "Aucun"}`;
+  if (m3GuestTimer) m3GuestTimer.textContent = `Timer : ${formatRound3GuestTimer(getRound3RemainingMs())}`;
 
   if (!getCurrentSessionId()) {
     m3GuestStatus.textContent = "Connectez-vous d’abord.";
@@ -1217,6 +1233,8 @@ manche4Controller = initManche4Guest({
 watchRound1State();
 watchingRound1 = true;
 renderByRound();
+round3TimerTicker = window.setInterval(() => { if (liveRound === "manche3") renderRound3(); }, 500);
+
 buzzKeybindCode = readStoredBuzzKeybind();
 renderBuzzKeybind();
 setGuestMessage("Reconnexion en cours…", "loading");

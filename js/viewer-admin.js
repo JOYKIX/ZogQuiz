@@ -50,11 +50,23 @@ const ROUND_CONFIGS = {
     firstCorrectOnlyId: "m4-viewer-first-correct-only",
     allowMultiId: "m4-viewer-allow-multi",
   },
+  manche5: {
+    createFormId: "m5-viewer-question-form",
+    listId: "m5-viewer-questions-list",
+    liveLabelId: "m5-viewer-live-label",
+    promptId: "m5-viewer-prompt",
+    aliasesId: "m5-viewer-aliases",
+    pointsId: "m5-viewer-points",
+    timerId: "m5-viewer-timer",
+    firstCorrectOnlyId: "m5-viewer-first-correct-only",
+    allowMultiId: "m5-viewer-allow-multi",
+  },
 };
 
 
 function formatRoundLabel(round) {
   if (round === "manche4") return "manche 4";
+  if (round === "manche5") return "manche 5";
   return round;
 }
 
