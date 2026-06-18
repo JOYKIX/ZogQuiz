@@ -31,8 +31,6 @@ const ROUND_CONFIGS = {
     liveLabelId: "m3-viewer-live-label",
     promptId: "m3-viewer-prompt",
     aliasesId: "m3-viewer-aliases",
-    mediaId: "m3-viewer-audio",
-    mediaKind: "audio",
     pointsId: "m3-viewer-points",
     timerId: "m3-viewer-timer",
     firstCorrectOnlyId: "m3-viewer-first-correct-only",

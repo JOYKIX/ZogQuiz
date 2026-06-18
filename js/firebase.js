@@ -94,6 +94,7 @@ export async function ensureRoundsSeed(uid) {
       activePlayerId: null,
       activeThemeId: null,
       questionIndex: 0,
+      showAnswer: false,
       timerStatus: "idle",
       timerRemainingMs: 90000,
       timerEndsAt: null,

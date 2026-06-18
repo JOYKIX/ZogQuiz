@@ -3,14 +3,61 @@ import { watchOverlayConfig } from "./overlay-config.js";
 
 const rootNode = document.querySelector(".overlay-round3");
 const themeNode = document.getElementById("m3-overlay-theme");
+const questionAudio = document.getElementById("m3-question-audio");
+const answerVideo = document.getElementById("m3-answer-video");
 
 let themes = {};
 let state = null;
 let overlayConfig = null;
+let currentAudioSrc = "";
+let currentVideoSrc = "";
+
+function getActiveTheme() {
+  return themes[state?.activeThemeId] || null;
+}
+
+function getActiveQuestion() {
+  const questions = Object.values(getActiveTheme()?.questions || {}).sort((a, b) => (a.order || 0) - (b.order || 0));
+  return questions[Number(state?.questionIndex || 0)] || null;
+}
 
 function getDisplayTheme() {
-  const theme = themes[state?.activeThemeId] || null;
-  return theme?.name || "Aucun thème sélectionné.";
+  return getActiveTheme()?.name || "Aucun thème sélectionné.";
+}
+
+function mediaUrl(folder, fileName) {
+  const cleanName = String(fileName || "").trim().split(/[\\/]/).pop();
+  return cleanName ? `public/manche3/${folder}/${encodeURIComponent(cleanName)}` : "";
+}
+
+function syncQuestionAudio(question) {
+  if (!questionAudio) return;
+  const src = mediaUrl("questions", question?.questionFileName || question?.text);
+  if (src === currentAudioSrc) return;
+  currentAudioSrc = src;
+  questionAudio.pause();
+  questionAudio.removeAttribute("src");
+  if (!src) return;
+  questionAudio.src = src;
+  questionAudio.load();
+  questionAudio.play().catch(() => {});
+}
+
+function syncAnswerVideo(question) {
+  if (!answerVideo) return;
+  const src = mediaUrl("reponses", question?.answerFileName);
+  if (src !== currentVideoSrc) {
+    currentVideoSrc = src;
+    answerVideo.pause();
+    answerVideo.removeAttribute("src");
+    if (src) {
+      answerVideo.src = src;
+      answerVideo.load();
+    }
+  }
+  answerVideo.classList.toggle("hidden", !src || !state?.showAnswer);
+  if (src && state?.showAnswer) answerVideo.play().catch(() => {});
+  else answerVideo.pause();
 }
 
 function applyOverlayConfig() {
@@ -29,7 +76,10 @@ function applyOverlayConfig() {
 }
 
 function render() {
+  const question = getActiveQuestion();
   themeNode.textContent = getDisplayTheme();
+  syncQuestionAudio(question);
+  syncAnswerVideo(question);
   applyOverlayConfig();
 }
 
@@ -47,4 +97,3 @@ watchOverlayConfig("round3", (config) => {
   overlayConfig = config;
   render();
 });
-
