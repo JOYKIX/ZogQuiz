@@ -30,6 +30,12 @@ function mediaUrl(folder, fileName) {
   return cleanName ? `public/manche3/${folder}/${encodeURIComponent(cleanName)}` : "";
 }
 
+function answerVideoUrl(value) {
+  const rawValue = String(value || "").trim();
+  if (/^https?:\/\//i.test(rawValue)) return rawValue;
+  return mediaUrl("reponses", rawValue);
+}
+
 function syncQuestionAudio(question) {
   if (!questionAudio) return;
   const src = mediaUrl("questions", question?.questionFileName || question?.text);
@@ -45,7 +51,7 @@ function syncQuestionAudio(question) {
 
 function syncAnswerVideo(question) {
   if (!answerVideo) return;
-  const src = mediaUrl("reponses", question?.answerFileName);
+  const src = answerVideoUrl(question?.answerFileName);
   if (src !== currentVideoSrc) {
     currentVideoSrc = src;
     answerVideo.pause();
