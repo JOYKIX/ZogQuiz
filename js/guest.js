@@ -921,6 +921,7 @@ function renderRound3() {
       await update(ref(db, "rooms/manche3/state"), {
         activeThemeId: id,
         questionIndex: 0,
+        showAnswer: false,
         timerRemainingMs: Number(round3State?.timerRemainingMs || 90_000),
         timerStatus: round3State?.timerStatus || "idle",
         updatedAt: Date.now(),

@@ -1037,6 +1037,7 @@ async function deleteGuestAccountById(accountId) {
       activePlayerId: null,
       activeThemeId: null,
       questionIndex: 0,
+      showAnswer: false,
       timerStatus: "idle",
       timerRemainingMs: ROUND3_DURATION_MS,
       timerEndsAt: null,
@@ -1091,6 +1092,7 @@ async function resetParticipantsAndLeaderboard() {
       activePlayerId: null,
       activeThemeId: null,
       questionIndex: 0,
+      showAnswer: false,
       timerStatus: "idle",
       timerRemainingMs: ROUND3_DURATION_MS,
       timerEndsAt: null,
@@ -1161,6 +1163,7 @@ async function resetCompleteQuiz() {
       activePlayerId: null,
       activeThemeId: null,
       questionIndex: 0,
+      showAnswer: false,
       timerStatus: "idle",
       timerRemainingMs: ROUND3_DURATION_MS,
       timerEndsAt: null,
@@ -1960,6 +1963,7 @@ function renderRound3Players() {
         "rooms/manche3/state/activePlayerId": p.id,
         "rooms/manche3/state/activeThemeId": null,
         "rooms/manche3/state/questionIndex": 0,
+        "rooms/manche3/state/showAnswer": false,
         "rooms/manche3/state/timerStatus": "idle",
         "rooms/manche3/state/timerRemainingMs": ROUND3_DURATION_MS,
         "rooms/manche3/state/timerEndsAt": null,
@@ -2001,21 +2005,26 @@ function renderRound3Themes() {
     const addForm = document.createElement("form");
     addForm.className = "row";
     const qInput = document.createElement("input");
-    qInput.placeholder = "Nouvelle question";
+    qInput.placeholder = "question.mp3";
     qInput.required = true;
-    qInput.setAttribute("aria-label", `Ajouter une question au thème ${theme.name}`);
+    qInput.setAttribute("aria-label", `Ajouter le fichier question au thème ${theme.name}`);
+    const answerInput = document.createElement("input");
+    answerInput.placeholder = "reponse.mp4";
+    answerInput.setAttribute("aria-label", `Ajouter le fichier réponse au thème ${theme.name}`);
     const addBtn = document.createElement("button");
     addBtn.type = "submit";
     addBtn.className = "btn btn-secondary";
     addBtn.textContent = "Ajouter question";
-    addForm.append(qInput, addBtn);
+    addForm.append(qInput, answerInput, addBtn);
     addForm.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const text = qInput.value.trim();
-      if (!text) return;
+      const questionFileName = qInput.value.trim();
+      const answerFileName = answerInput.value.trim();
+      if (!questionFileName) return;
       const qRef = push(ref(db, `rooms/manche3/themes/${themeId}/questions`));
-      await set(qRef, { text, order: questions.length + 1, createdAt: Date.now(), createdBy: currentAdminId });
+      await set(qRef, { text: questionFileName, questionFileName, answerFileName, order: questions.length + 1, createdAt: Date.now(), createdBy: currentAdminId });
       qInput.value = "";
+      answerInput.value = "";
     });
 
     const qList = document.createElement("ul");
@@ -2027,7 +2036,7 @@ function renderRound3Themes() {
         const item = document.createElement("li");
         item.className = "row";
         const label = document.createElement("span");
-        label.textContent = `${idx + 1}. ${q.text}`;
+        label.textContent = `${idx + 1}. ${q.questionFileName || q.text}${q.answerFileName ? ` → ${q.answerFileName}` : ""}`;
         const edit = document.createElement("button");
         edit.className = "btn btn-secondary mini-btn";
         edit.textContent = "Éditer";
@@ -2063,7 +2072,7 @@ function renderRound3Themes() {
       if (!(await showConfirm("Supprimer ce thème ?", { title: "Suppression du thème" }))) return;
       await remove(ref(db, `rooms/manche3/themes/${themeId}`));
       if (manche3State?.activeThemeId === themeId) {
-        await update(ref(db, "rooms/manche3/state"), { activeThemeId: null, questionIndex: 0, updatedAt: Date.now(), updatedBy: currentAdminId });
+        await update(ref(db, "rooms/manche3/state"), { activeThemeId: null, questionIndex: 0, showAnswer: false, updatedAt: Date.now(), updatedBy: currentAdminId });
       }
     });
     actions.append(renameBtn, deleteBtn);
@@ -2074,17 +2083,26 @@ function renderRound3Themes() {
 }
 
 async function editRound3Question(themeId, questionId, currentQuestion) {
-  const text = await showPrompt("Modifier la question", {
+  const questionFileName = await showPrompt("Modifier le fichier question", {
     title: "Éditer la question manche 3",
     inputLabel: "Question",
-    defaultValue: currentQuestion?.text || "",
+    defaultValue: currentQuestion?.questionFileName || currentQuestion?.text || "",
+    confirmText: "Suivant",
+  });
+  if (questionFileName === null) return;
+  const nextQuestionFileName = questionFileName.trim();
+  if (!nextQuestionFileName) return showToast("Le fichier question est obligatoire.", "error");
+  const answerFileName = await showPrompt("Modifier le fichier réponse", {
+    title: "Éditer la réponse manche 3",
+    inputLabel: "Réponse",
+    defaultValue: currentQuestion?.answerFileName || "",
     confirmText: "Enregistrer",
   });
-  if (text === null) return;
-  const nextText = text.trim();
-  if (!nextText) return showToast("Le texte de la question est obligatoire.", "error");
+  if (answerFileName === null) return;
   await update(ref(db, `rooms/manche3/themes/${themeId}/questions/${questionId}`), {
-    text: nextText,
+    text: nextQuestionFileName,
+    questionFileName: nextQuestionFileName,
+    answerFileName: answerFileName.trim(),
     updatedAt: Date.now(),
     updatedBy: currentAdminId,
   });
@@ -2101,11 +2119,11 @@ function renderRound3State() {
 
   m3ActivePlayer.textContent = getRound3ActivePlayerName();
   m3ActiveTheme.textContent = activeTheme?.name || "Aucun";
-  m3CurrentQuestion.textContent = current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
+  m3CurrentQuestion.textContent = current?.questionFileName || current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
   m3Timer.textContent = formatRound3Timer(remaining);
   if (m3LivePlayer) m3LivePlayer.textContent = getRound3ActivePlayerName();
   if (m3LiveTheme) m3LiveTheme.textContent = activeTheme?.name || "Aucun";
-  if (m3LiveQuestion) m3LiveQuestion.textContent = current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
+  if (m3LiveQuestion) m3LiveQuestion.textContent = current?.questionFileName || current?.text || (activeTheme ? "Fin de la liste." : "En attente du choix du thème");
   if (m3LiveTimer) m3LiveTimer.textContent = formatRound3Timer(remaining);
 
   if (remaining <= 0 || status === "ended") {
@@ -2137,6 +2155,7 @@ async function unlockRound3Themes() {
   if (!Object.keys(updates).length) return;
   updates["rooms/manche3/state/activeThemeId"] = null;
   updates["rooms/manche3/state/questionIndex"] = 0;
+  updates["rooms/manche3/state/showAnswer"] = false;
   updates["rooms/manche3/state/updatedAt"] = Date.now();
   updates["rooms/manche3/state/updatedBy"] = currentAdminId;
   await update(ref(db), updates);
@@ -2158,15 +2177,19 @@ async function round3Resume() { await round3Start(); }
 async function round3Reset() {
   await update(ref(db, "rooms/manche3/state"), {
     timerStatus: "idle", timerEndsAt: null, timerRemainingMs: ROUND3_DURATION_MS, turnEnded: false,
-    questionIndex: 0, updatedAt: Date.now(), updatedBy: currentAdminId,
+    questionIndex: 0, showAnswer: false, updatedAt: Date.now(), updatedBy: currentAdminId,
   });
 }
 
 async function round3Advance(isCorrect) {
   const remaining = round3RemainingMs();
   if (remaining <= 0 || manche3State?.timerStatus === "ended") return;
-  if (isCorrect && manche3State?.activePlayerId) await updateParticipantScore(manche3State.activePlayerId, 1);
-  await update(ref(db, "rooms/manche3/state"), { questionIndex: Number(manche3State?.questionIndex || 0) + 1, updatedAt: Date.now(), updatedBy: currentAdminId });
+  if (isCorrect) {
+    if (!manche3State?.showAnswer && manche3State?.activePlayerId) await updateParticipantScore(manche3State.activePlayerId, 1);
+    await update(ref(db, "rooms/manche3/state"), { showAnswer: true, updatedAt: Date.now(), updatedBy: currentAdminId });
+    return;
+  }
+  await update(ref(db, "rooms/manche3/state"), { questionIndex: Number(manche3State?.questionIndex || 0) + 1, showAnswer: false, updatedAt: Date.now(), updatedBy: currentAdminId });
 }
 
 function startRound3Ticker() {
