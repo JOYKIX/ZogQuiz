@@ -134,3 +134,16 @@ body { background-color: transparent; }
 .camera-preview-card {
   background: #000;
 }
+
+.camera-card {
+  left: 0;
+  top: 0;
+  contain: layout paint style;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.camera-card video {
+  transform: translateZ(0);
+  will-change: transform;
+}

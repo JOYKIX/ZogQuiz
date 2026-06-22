@@ -19,6 +19,9 @@ const renderedSegmentCounts = { participant: 0, viewer: 0 };
 let state = null;
 let overlayConfig = null;
 let ticker = 0;
+let lastRenderedText = {};
+let lastRenderedActiveCounts = {};
+let lastAppliedConfigKey = "";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -71,13 +74,16 @@ function renderSegmentGeometry(key, segmentCount) {
   renderedSegmentCounts[key] = segmentCount;
 }
 
-function renderSegments(key) {
+function renderSegments(key, remaining = remainingMs(key)) {
   const segmentsNode = segmentsNodes[key];
   if (!segmentsNode) return;
   const segmentCount = getSegmentCount();
-  const activeCount = clamp(Math.ceil(remainingMs(key) / 1000), 0, segmentCount);
-  shellNodes[key]?.classList.toggle("is-low", remainingMs(key) <= 10_000 && activeCount > 0);
+  const activeCount = clamp(Math.ceil(remaining / 1000), 0, segmentCount);
+  shellNodes[key]?.classList.toggle("is-low", remaining <= 10_000 && activeCount > 0);
   renderSegmentGeometry(key, segmentCount);
+  const cacheKey = `${segmentCount}:${activeCount}`;
+  if (lastRenderedActiveCounts[key] === cacheKey) return;
+  lastRenderedActiveCounts[key] = cacheKey;
   Array.from(segmentsNode.children).forEach((segment, index) => {
     segment.classList.toggle("is-active", index < activeCount);
     segment.classList.toggle("is-inactive", index >= activeCount);
@@ -86,6 +92,9 @@ function renderSegments(key) {
 
 function applyOverlayConfig() {
   if (!overlayConfig || !rootNode) return;
+  const configKey = JSON.stringify(overlayConfig);
+  if (lastAppliedConfigKey === configKey) return;
+  lastAppliedConfigKey = configKey;
   const shellMaxSizePx = Math.max(160, Number(overlayConfig.maxWidthPx) || 520);
   const shellMinSizePx = Math.min(220, shellMaxSizePx);
   const shellSizePx = clamp(Math.round(overlayConfig.timerFontSizePx * 4.2), shellMinSizePx, shellMaxSizePx);
@@ -106,20 +115,32 @@ function applyOverlayConfig() {
 
 function render() {
   PLAYER_KEYS.forEach((key) => {
-    if (timerNodes[key]) timerNodes[key].textContent = formatTimer(remainingMs(key), overlayConfig?.timerFormat);
-    renderSegments(key);
+    const remaining = remainingMs(key);
+    const text = formatTimer(remaining, overlayConfig?.timerFormat);
+    if (timerNodes[key] && lastRenderedText[key] !== text) {
+      timerNodes[key].textContent = text;
+      lastRenderedText[key] = text;
+    }
+    renderSegments(key, remaining);
   });
   applyOverlayConfig();
 }
 
 onValue(ref(db, "rooms/manche6/state"), (snap) => {
   state = snap.val() || {};
+  lastRenderedActiveCounts = {};
   render();
-  window.clearInterval(ticker);
-  ticker = window.setInterval(render, 100);
+  window.cancelAnimationFrame(ticker);
+  const tick = () => {
+    render();
+    ticker = window.requestAnimationFrame(tick);
+  };
+  ticker = window.requestAnimationFrame(tick);
 });
 
 watchOverlayConfig("round6Timer", (config) => {
   overlayConfig = config;
+  lastAppliedConfigKey = "";
+  lastRenderedText = {};
   render();
 });

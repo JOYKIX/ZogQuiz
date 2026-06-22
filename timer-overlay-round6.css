@@ -229,3 +229,13 @@ body {
 .m6-segmented-timer {
   transform: translate(-50%, -50%);
 }
+
+.m6-segmented-timer,
+.m6-timer-overlay-value {
+  contain: layout paint style;
+  will-change: transform;
+}
+
+.m6-timer-segment {
+  transition: none;
+}
