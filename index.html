@@ -927,7 +927,36 @@ SNK OP1"></textarea></label>
                   <button id="m6-clear-switch-bind" class="btn btn-secondary" type="button">Effacer</button>
                 </article>
               </section>
-              <section class="round-section hidden" data-round-section-panel="manche6:overlay"><article class="subpanel compact-panel"><a class="btn btn-secondary" href="overlay-round6.html" target="_blank" rel="noopener">Overlay M6</a></article></section>
+              <section class="round-section hidden" data-round-section-panel="manche6:overlay">
+                <article class="subpanel compact-panel stack">
+                  <div class="row">
+                    <a class="btn btn-secondary" href="overlay-round6.html" target="_blank" rel="noopener">Overlay M6</a>
+                    <a class="btn btn-secondary" href="timer-overlay-round6.html" target="_blank" rel="noopener">Timer M6</a>
+                  </div>
+                  <div class="stack overlay-settings-block">
+                    <h4>Question M6</h4>
+                    <label>Taille max texte (px)<input id="overlay-round6-question-size" type="number" min="20" value="80" /></label>
+                    <label>Taille min texte (px)<input id="overlay-round6-question-min-size" type="number" min="14" value="24" /></label>
+                    <label>Couleur texte<input id="overlay-round6-question-color" type="color" value="#ffffff" /></label>
+                    <label>Poids texte<input id="overlay-round6-question-font-weight" type="number" min="300" max="900" step="100" value="800" /></label>
+                    <label>Alignement<select id="overlay-round6-question-align"><option value="left">Gauche</option><option value="center" selected>Centre</option><option value="right">Droite</option></select></label>
+                    <label>Position verticale<select id="overlay-round6-question-vertical-align"><option value="top">Haut</option><option value="center" selected>Centre</option><option value="bottom">Bas</option></select></label>
+                    <label>Padding écran (px)<input id="overlay-round6-question-padding" type="number" min="0" value="40" /></label>
+                    <label>Largeur max texte (px)<input id="overlay-round6-question-max-width" type="number" min="400" value="1600" /></label>
+                  </div>
+                  <div class="stack overlay-settings-block">
+                    <h4>Timer M6</h4>
+                    <label>Taille chrono (px)<input id="overlay-round6-timer-size" type="number" min="20" value="72" /></label>
+                    <label>Couleur texte chrono<input id="overlay-round6-timer-color" type="color" value="#00d8ff" /></label>
+                    <label>Couleur segments chrono<input id="overlay-round6-timer-circle-color" type="color" value="#ff7a00" /></label>
+                    <label>Format chrono<select id="overlay-round6-timer-format"><option value="minutes-seconds" selected>Minutes + secondes (1:00)</option><option value="seconds">Secondes seules (60)</option></select></label>
+                    <label>Joueur 1 X (%)<input id="overlay-round6-timer-participant-x" type="number" min="0" max="100" value="25" /></label>
+                    <label>Joueur 1 Y (%)<input id="overlay-round6-timer-participant-y" type="number" min="0" max="100" value="50" /></label>
+                    <label>Joueur 2 X (%)<input id="overlay-round6-timer-viewer-x" type="number" min="0" max="100" value="75" /></label>
+                    <label>Joueur 2 Y (%)<input id="overlay-round6-timer-viewer-y" type="number" min="0" max="100" value="50" /></label>
+                  </div>
+                </article>
+              </section>
             </section>
           </section>
 
@@ -1036,7 +1065,8 @@ SNK OP1"></textarea></label>
                   <a class="broadcast-round-link" href="theme-orverlay.html" target="_blank" rel="noopener"><strong>Thèmes M3</strong><span>Thèmes</span></a>
                   <a class="broadcast-round-link" href="overlay-round4.html" target="_blank" rel="noopener"><strong>Manche 4</strong><span>Blindtest</span></a>
                   <a class="broadcast-round-link" href="overlay-round5.html" target="_blank" rel="noopener"><strong>Manche 5</strong><span>Mort Subite</span></a>
-                  <a class="broadcast-round-link" href="overlay-round6.html" target="_blank" rel="noopener"><strong>Manche 6</strong><span>Duel final</span></a>
+                  <a class="broadcast-round-link" href="overlay-round6.html" target="_blank" rel="noopener"><strong>Manche 6</strong><span>Question M6</span></a>
+                  <a class="broadcast-round-link" href="timer-overlay-round6.html" target="_blank" rel="noopener"><strong>Timer M6</strong><span>Timer M6</span></a>
                 </div>
               </article>
 

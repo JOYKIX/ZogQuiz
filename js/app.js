@@ -206,6 +206,23 @@ const overlayRound4LineHeightInput = $("overlay-round4-line-height");
 const overlayRound4MaxWidthInput = $("overlay-round4-max-width");
 const m4LiveScores = $("m4-live-scores");
 
+const overlayRound6QuestionSizeInput = $("overlay-round6-question-size");
+const overlayRound6QuestionMinSizeInput = $("overlay-round6-question-min-size");
+const overlayRound6QuestionColorInput = $("overlay-round6-question-color");
+const overlayRound6QuestionFontWeightInput = $("overlay-round6-question-font-weight");
+const overlayRound6QuestionAlignInput = $("overlay-round6-question-align");
+const overlayRound6QuestionVerticalAlignInput = $("overlay-round6-question-vertical-align");
+const overlayRound6QuestionPaddingInput = $("overlay-round6-question-padding");
+const overlayRound6QuestionMaxWidthInput = $("overlay-round6-question-max-width");
+const overlayRound6TimerSizeInput = $("overlay-round6-timer-size");
+const overlayRound6TimerColorInput = $("overlay-round6-timer-color");
+const overlayRound6TimerCircleColorInput = $("overlay-round6-timer-circle-color");
+const overlayRound6TimerFormatInput = $("overlay-round6-timer-format");
+const overlayRound6TimerParticipantXInput = $("overlay-round6-timer-participant-x");
+const overlayRound6TimerParticipantYInput = $("overlay-round6-timer-participant-y");
+const overlayRound6TimerViewerXInput = $("overlay-round6-timer-viewer-x");
+const overlayRound6TimerViewerYInput = $("overlay-round6-timer-viewer-y");
+
 const overlayRound5NameSizeInput = $("overlay-round5-name-size");
 const overlayRound5HpSizeInput = $("overlay-round5-hp-size");
 const overlayRound5TextColorInput = $("overlay-round5-text-color");
@@ -247,6 +264,8 @@ let overlayConfigs = {
   round3ThemeOverlay: { ...OVERLAY_DEFAULTS.round3ThemeOverlay },
   round4: { ...OVERLAY_DEFAULTS.round4 },
   round5: { ...OVERLAY_DEFAULTS.round5 },
+  round6: { ...OVERLAY_DEFAULTS.round6 },
+  round6Timer: { ...OVERLAY_DEFAULTS.round6Timer },
 };
 let sessionsById = {};
 let adminsById = {};
@@ -568,6 +587,14 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound4ShadowInput, overlayRound4AlignInput, overlayRound4PaddingInput, overlayRound4LineHeightInput, overlayRound4MaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round4")));
 [
+  overlayRound6QuestionSizeInput, overlayRound6QuestionMinSizeInput, overlayRound6QuestionColorInput, overlayRound6QuestionFontWeightInput,
+  overlayRound6QuestionAlignInput, overlayRound6QuestionVerticalAlignInput, overlayRound6QuestionPaddingInput, overlayRound6QuestionMaxWidthInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round6")));
+[
+  overlayRound6TimerSizeInput, overlayRound6TimerColorInput, overlayRound6TimerCircleColorInput, overlayRound6TimerFormatInput,
+  overlayRound6TimerParticipantXInput, overlayRound6TimerParticipantYInput, overlayRound6TimerViewerXInput, overlayRound6TimerViewerYInput,
+].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round6Timer")));
+[
   overlayRound5NameSizeInput, overlayRound5HpSizeInput, overlayRound5TextColorInput,
   overlayRound5HealthColorInput, overlayRound5DangerColorInput, overlayRound5BarHeightInput,
   overlayRound5CornerRadiusInput, overlayRound5MaxWidthInput, overlayRound5ScreenPaddingInput,
@@ -768,6 +795,14 @@ function initListeners() {
   });
   onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round5`), (snap) => {
     overlayConfigs.round5 = normalizeOverlayConfig("round5", snap.val() || OVERLAY_DEFAULTS.round5);
+    syncOverlayInputs();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round6`), (snap) => {
+    overlayConfigs.round6 = normalizeOverlayConfig("round6", snap.val() || OVERLAY_DEFAULTS.round6);
+    syncOverlayInputs();
+  });
+  onValue(ref(db, `${OVERLAY_CONFIGS_PATH}/round6Timer`), (snap) => {
+    overlayConfigs.round6Timer = normalizeOverlayConfig("round6Timer", snap.val() || OVERLAY_DEFAULTS.round6Timer);
     syncOverlayInputs();
   });
 
@@ -2272,6 +2307,26 @@ function syncOverlayInputs() {
   if (overlayRound4LineHeightInput) overlayRound4LineHeightInput.value = String(r4.lineHeight);
   if (overlayRound4MaxWidthInput) overlayRound4MaxWidthInput.value = String(r4.maxWidthPx);
 
+  const r6 = overlayConfigs.round6;
+  if (overlayRound6QuestionSizeInput) overlayRound6QuestionSizeInput.value = String(r6.maxFontSizePx);
+  if (overlayRound6QuestionMinSizeInput) overlayRound6QuestionMinSizeInput.value = String(r6.minFontSizePx);
+  if (overlayRound6QuestionColorInput) overlayRound6QuestionColorInput.value = r6.textColor;
+  if (overlayRound6QuestionFontWeightInput) overlayRound6QuestionFontWeightInput.value = String(r6.fontWeight);
+  if (overlayRound6QuestionAlignInput) overlayRound6QuestionAlignInput.value = r6.horizontalAlign;
+  if (overlayRound6QuestionVerticalAlignInput) overlayRound6QuestionVerticalAlignInput.value = r6.verticalAlign;
+  if (overlayRound6QuestionPaddingInput) overlayRound6QuestionPaddingInput.value = String(r6.safePaddingPx);
+  if (overlayRound6QuestionMaxWidthInput) overlayRound6QuestionMaxWidthInput.value = String(r6.maxWidthPx);
+
+  const r6Timer = overlayConfigs.round6Timer;
+  if (overlayRound6TimerSizeInput) overlayRound6TimerSizeInput.value = String(r6Timer.timerFontSizePx);
+  if (overlayRound6TimerColorInput) overlayRound6TimerColorInput.value = r6Timer.timerColor;
+  if (overlayRound6TimerCircleColorInput) overlayRound6TimerCircleColorInput.value = r6Timer.timerCircleColor;
+  if (overlayRound6TimerFormatInput) overlayRound6TimerFormatInput.value = r6Timer.timerFormat;
+  if (overlayRound6TimerParticipantXInput) overlayRound6TimerParticipantXInput.value = String(r6Timer.participantXPercent);
+  if (overlayRound6TimerParticipantYInput) overlayRound6TimerParticipantYInput.value = String(r6Timer.participantYPercent);
+  if (overlayRound6TimerViewerXInput) overlayRound6TimerViewerXInput.value = String(r6Timer.viewerXPercent);
+  if (overlayRound6TimerViewerYInput) overlayRound6TimerViewerYInput.value = String(r6Timer.viewerYPercent);
+
   const r5 = overlayConfigs.round5;
   if (overlayRound5NameSizeInput) overlayRound5NameSizeInput.value = String(r5.nameFontSizePx);
   if (overlayRound5HpSizeInput) overlayRound5HpSizeInput.value = String(r5.hpFontSizePx);
@@ -2368,6 +2423,30 @@ function readOverlayConfigInputs(roundKey) {
       paddingPx: overlayRound4PaddingInput?.value,
       lineHeight: overlayRound4LineHeightInput?.value,
       maxWidthPx: overlayRound4MaxWidthInput?.value,
+    };
+  }
+  if (roundKey === "round6") {
+    return {
+      maxFontSizePx: overlayRound6QuestionSizeInput?.value,
+      minFontSizePx: overlayRound6QuestionMinSizeInput?.value,
+      textColor: overlayRound6QuestionColorInput?.value,
+      fontWeight: overlayRound6QuestionFontWeightInput?.value,
+      horizontalAlign: overlayRound6QuestionAlignInput?.value,
+      verticalAlign: overlayRound6QuestionVerticalAlignInput?.value,
+      safePaddingPx: overlayRound6QuestionPaddingInput?.value,
+      maxWidthPx: overlayRound6QuestionMaxWidthInput?.value,
+    };
+  }
+  if (roundKey === "round6Timer") {
+    return {
+      timerFontSizePx: overlayRound6TimerSizeInput?.value,
+      timerColor: overlayRound6TimerColorInput?.value,
+      timerCircleColor: overlayRound6TimerCircleColorInput?.value,
+      timerFormat: overlayRound6TimerFormatInput?.value,
+      participantXPercent: overlayRound6TimerParticipantXInput?.value,
+      participantYPercent: overlayRound6TimerParticipantYInput?.value,
+      viewerXPercent: overlayRound6TimerViewerXInput?.value,
+      viewerYPercent: overlayRound6TimerViewerYInput?.value,
     };
   }
   if (roundKey === "round5") {
