@@ -74,6 +74,32 @@ export const OVERLAY_DEFAULTS = {
     lineHeight: 1.04,
     maxWidthPx: 1800,
   },
+  round6: {
+    maxFontSizePx: 80,
+    minFontSizePx: 24,
+    textColor: "#ffffff",
+    fontWeight: 800,
+    textShadow: true,
+    horizontalAlign: "center",
+    verticalAlign: "center",
+    safePaddingPx: 40,
+    lineHeight: 1.2,
+    maxWidthPx: 1600,
+  },
+  round6Timer: {
+    timerFontSizePx: 72,
+    timerColor: "#00d8ff",
+    timerCircleColor: "#ff7a00",
+    timerFormat: "minutes-seconds",
+    fontWeight: 950,
+    paddingPx: 40,
+    lineHeight: 0.9,
+    maxWidthPx: 2200,
+    participantXPercent: 25,
+    participantYPercent: 50,
+    viewerXPercent: 75,
+    viewerYPercent: 50,
+  },
   round5: {
     nameFontSizePx: 38,
     hpFontSizePx: 44,
@@ -225,6 +251,45 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
       paddingPx: clampInt(raw.paddingPx, defaults.paddingPx, 0, UNLIMITED_PX),
       lineHeight: clampFloat(raw.lineHeight, defaults.lineHeight, 0.8, 1.8),
       maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, UNLIMITED_PX),
+    };
+  }
+
+  if (roundKey === "round6") {
+    const textColor = asColor(raw.textColor ?? raw.questionColor, defaults.textColor);
+    const fontWeight = clampInt(raw.fontWeight ?? raw.questionFontWeight, defaults.fontWeight, 300, 900);
+    const horizontalAlign = asAlign(raw.horizontalAlign ?? raw.questionAlign, defaults.horizontalAlign);
+    const verticalAlign = V_ALIGN_VALUES.has(raw.verticalAlign) ? raw.verticalAlign : defaults.verticalAlign;
+    const maxFontSizePx = clampInt(raw.maxFontSizePx ?? raw.questionFontSizePx, defaults.maxFontSizePx, 36, UNLIMITED_PX);
+    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, UNLIMITED_PX);
+    const lineHeight = clampFloat(raw.lineHeight ?? raw.questionLineHeight, defaults.lineHeight, 1, 2);
+    return {
+      maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
+      minFontSizePx: Math.min(minFontSizePx, maxFontSizePx),
+      textColor,
+      fontWeight,
+      textShadow: Boolean(raw.textShadow ?? true),
+      horizontalAlign,
+      verticalAlign,
+      safePaddingPx: clampInt(raw.safePaddingPx ?? raw.paddingPx, defaults.safePaddingPx, 8, UNLIMITED_PX),
+      lineHeight,
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 400, UNLIMITED_PX),
+    };
+  }
+
+  if (roundKey === "round6Timer") {
+    return {
+      timerFontSizePx: clampInt(raw.timerFontSizePx, defaults.timerFontSizePx, 20, UNLIMITED_PX),
+      timerColor: asColor(raw.timerColor, defaults.timerColor),
+      timerCircleColor: asColor(raw.timerCircleColor, asColor(raw.timerColor, defaults.timerCircleColor)),
+      timerFormat: normalizeTimerFormat(raw.timerFormat, defaults.timerFormat),
+      fontWeight: clampInt(raw.fontWeight, defaults.fontWeight, 300, 1000),
+      paddingPx: clampInt(raw.paddingPx ?? raw.questionPaddingPx, defaults.paddingPx, 0, UNLIMITED_PX),
+      lineHeight: clampFloat(raw.lineHeight, defaults.lineHeight, 0.7, 1.4),
+      maxWidthPx: clampInt(raw.maxWidthPx, defaults.maxWidthPx, 200, UNLIMITED_PX),
+      participantXPercent: clampInt(raw.participantXPercent, defaults.participantXPercent, 0, 100),
+      participantYPercent: clampInt(raw.participantYPercent, defaults.participantYPercent, 0, 100),
+      viewerXPercent: clampInt(raw.viewerXPercent, defaults.viewerXPercent, 0, 100),
+      viewerYPercent: clampInt(raw.viewerYPercent, defaults.viewerYPercent, 0, 100),
     };
   }
 
