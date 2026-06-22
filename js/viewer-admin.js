@@ -1,5 +1,5 @@
 import { db, ref, set, push, update, remove, onValue } from "./firebase.js";
-import { showConfirm, showPrompt } from "./modal.js";
+import { showConfirm } from "./modal.js";
 import { validateYoutubeUrl } from "./blindtest/youtube.js";
 import { normalizeViewerAnswer, parseAcceptedAnswers } from "./viewer-utils.js";
 
@@ -167,6 +167,7 @@ function computeSessionKey(liveState) {
 export function initViewerAdmin(options) {
   const { getCurrentAdminId, showToast, setMessage } = options;
   const state = { liveState: null, questions: { manche2: {}, manche3: {}, manche4: {} }, attempts: {}, winners: {} };
+  const editingQuestionByRound = {};
 
   Object.entries(ROUND_CONFIGS).forEach(([round, cfg]) => {
     const form = document.getElementById(cfg.createFormId);
@@ -178,10 +179,26 @@ export function initViewerAdmin(options) {
       event.preventDefault();
       try {
         const payload = await buildQuestionPayload(round, cfg, getCurrentAdminId?.() || "admin");
-        const questionRef = push(ref(db, qPath(round)));
-        await set(questionRef, payload);
+        const editingQuestionId = editingQuestionByRound[round];
+        if (editingQuestionId) {
+          delete payload.createdAt;
+          delete payload.createdBy;
+          delete payload.active;
+          await update(ref(db, `${qPath(round)}/${editingQuestionId}`), {
+            ...payload,
+            updatedAt: Date.now(),
+            updatedBy: getCurrentAdminId?.() || "admin",
+          });
+          editingQuestionByRound[round] = null;
+          showToast?.(`Question viewers ${formatRoundLabel(round)} mise à jour`);
+        } else {
+          const questionRef = push(ref(db, qPath(round)));
+          await set(questionRef, payload);
+          showToast?.(`Question viewers ${formatRoundLabel(round)} ajoutée`);
+        }
         form.reset();
-        showToast?.(`Question viewers ${formatRoundLabel(round)} ajoutée`);
+        const submitButton = form.querySelector(".add-question-button, button[type=submit]");
+        if (submitButton) submitButton.textContent = "Ajouter";
       } catch (error) {
         setMessage?.(liveLabel, error.message, "error");
       }
@@ -189,13 +206,13 @@ export function initViewerAdmin(options) {
 
     onValue(ref(db, qPath(round)), (snap) => {
       state.questions[round] = snap.val() || {};
-      renderQuestionList(round, cfg, state, options);
+      renderQuestionList(round, cfg, state, { ...options, editingQuestionByRound });
     });
   });
 
   onValue(ref(db, LIVE_STATE_PATH), (snap) => {
     state.liveState = snap.val() || null;
-    Object.entries(ROUND_CONFIGS).forEach(([round, cfg]) => renderQuestionList(round, cfg, state, options));
+    Object.entries(ROUND_CONFIGS).forEach(([round, cfg]) => renderQuestionList(round, cfg, state, { ...options, editingQuestionByRound }));
     renderLivePanels(state);
   });
 
@@ -247,6 +264,33 @@ function renderLivePanels(state) {
   attemptsNode.innerHTML = attempts.length
     ? attempts.map((attempt) => `<li>${escapeHtml(attempt.username)} → ${escapeHtml(attempt.message)} ${attempt.correct ? "✅" : "❌"}</li>`).join("")
     : "<li class='empty-state'>Aucune tentative récente.</li>";
+}
+
+function fillViewerQuestionForm(round, cfg, questionId, question) {
+  const form = document.getElementById(cfg.createFormId);
+  if (!form) return;
+  const setValue = (id, value) => {
+    const input = id ? document.getElementById(id) : null;
+    if (input) input.value = value;
+  };
+  const setChecked = (id, value) => {
+    const input = id ? document.getElementById(id) : null;
+    if (input) input.checked = Boolean(value);
+  };
+
+  form.dataset.editingQuestionId = questionId;
+  setValue(cfg.promptId, question.prompt || question.text || question.questionText || "");
+  setValue(cfg.aliasesId, (question.acceptedAnswers || []).join("\n"));
+  setValue(cfg.pointsId, String(Math.max(1, Number(question.points || 1))));
+  setValue(cfg.timerId, String(Math.max(0, Number(question.timerSeconds || 0))));
+  setValue(cfg.youtubeUrlId, question.youtubeUrl || "");
+  setChecked(cfg.firstCorrectOnlyId, question.settings?.firstCorrectOnly);
+  setChecked(cfg.allowMultiId, question.settings?.allowMultipleWinners);
+  const mediaInput = cfg.mediaId ? document.getElementById(cfg.mediaId) : null;
+  if (mediaInput) mediaInput.value = "";
+  const submitButton = form.querySelector(".add-question-button, button[type=submit]");
+  if (submitButton) submitButton.textContent = "Enregistrer";
+  document.getElementById(cfg.promptId)?.focus();
 }
 
 function renderQuestionList(round, cfg, state, options) {
@@ -329,37 +373,9 @@ function renderQuestionList(round, cfg, state, options) {
     const editBtn = document.createElement("button");
     editBtn.className = "btn btn-secondary";
     editBtn.textContent = "Éditer";
-    editBtn.addEventListener("click", async () => {
-      const nextPrompt = await showPrompt("Modifier le prompt viewers", {
-        title: "Éditer question viewers",
-        inputLabel: "Prompt",
-        defaultValue: question.prompt || "",
-        confirmText: "Continuer",
-      });
-      if (nextPrompt === null) return;
-      const nextAliasesRaw = await showPrompt("Modifier les aliases (une ligne = une réponse)", {
-        title: "Éditer aliases",
-        inputLabel: "Réponses acceptées",
-        defaultValue: (question.acceptedAnswers || []).join("\n"),
-        confirmText: "Enregistrer",
-      });
-      if (nextAliasesRaw === null) return;
-      const acceptedAnswers = parseAcceptedAnswers(nextAliasesRaw);
-      if (!nextPrompt.trim() || !acceptedAnswers.length) {
-        options.showToast?.("Prompt / aliases invalides", "error");
-        return;
-      }
-      await update(ref(db, `${qPath(round)}/${id}`), {
-        prompt: nextPrompt.trim(),
-        text: nextPrompt.trim(),
-        questionText: nextPrompt.trim(),
-        acceptedAnswers,
-        aliases: acceptedAnswers,
-        normalizedAnswers: acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean),
-        answer: acceptedAnswers[0],
-        updatedAt: Date.now(),
-        updatedBy: options.getCurrentAdminId?.() || "admin",
-      });
+    editBtn.addEventListener("click", () => {
+      options.editingQuestionByRound[round] = id;
+      fillViewerQuestionForm(round, cfg, id, question);
     });
 
     const deleteBtn = document.createElement("button");

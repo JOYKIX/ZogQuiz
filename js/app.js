@@ -272,6 +272,7 @@ let sessionsById = {};
 let adminsById = {};
 let participantQuestions = {};
 let viewerQuestions = {};
+const round1EditingQuestion = { participants: null, viewers: null };
 let manche2Questions = {};
 let manche2State = null;
 let manche2Answers = {};
@@ -514,11 +515,11 @@ guestAccountForm?.addEventListener("submit", async (event) => {
 
 participantQuestionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  await createRound1Question("participants", "participant-question", "participant-answer");
+  await saveRound1Question("participants", "participant-question", "participant-answer");
 });
 viewerQuestionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  await createRound1Question("viewers", "viewer-question", "viewer-answer");
+  await saveRound1Question("viewers", "viewer-question", "viewer-answer");
 });
 m2QuestionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -635,17 +636,58 @@ async function loginSuccess(adminId) {
   showDashboard(adminId);
 }
 
-async function createRound1Question(type, questionInputId, answerInputId) {
+function resetRound1QuestionForm(type, questionInputId, answerInputId) {
+  const questionInput = $(questionInputId);
+  const answerInput = $(answerInputId);
+  if (questionInput) questionInput.value = "";
+  if (answerInput) answerInput.value = "";
+  round1EditingQuestion[type] = null;
+  const submitButton = (type === "viewers" ? viewerQuestionForm : participantQuestionForm)?.querySelector("button[type=submit]");
+  if (submitButton) submitButton.textContent = "Ajouter";
+  if (type === "viewers") {
+    if ($("viewer-points")) $("viewer-points").value = "1";
+    if ($("viewer-timer")) $("viewer-timer").value = "30";
+    if ($("viewer-first-correct-only")) $("viewer-first-correct-only").checked = true;
+    if ($("viewer-allow-multi")) $("viewer-allow-multi").checked = false;
+    if (viewerAfterParticipantInput) viewerAfterParticipantInput.value = "0";
+  }
+}
+
+function fillRound1QuestionForm(type, questionId, currentQuestion) {
+  const questionInputId = type === "viewers" ? "viewer-question" : "participant-question";
+  const answerInputId = type === "viewers" ? "viewer-answer" : "participant-answer";
+  const questionInput = $(questionInputId);
+  const answerInput = $(answerInputId);
+  round1EditingQuestion[type] = questionId;
+  const submitButton = (type === "viewers" ? viewerQuestionForm : participantQuestionForm)?.querySelector("button[type=submit]");
+  if (submitButton) submitButton.textContent = "Enregistrer";
+  if (questionInput) questionInput.value = currentQuestion?.text || "";
+  if (answerInput) {
+    answerInput.value = type === "viewers"
+      ? (currentQuestion?.acceptedAnswers || [currentQuestion?.answer || ""]).join("\n")
+      : (currentQuestion?.answer || "");
+  }
+  if (type === "viewers") {
+    if ($("viewer-points")) $("viewer-points").value = String(Math.max(1, Number(currentQuestion?.points || 1)));
+    if ($("viewer-timer")) $("viewer-timer").value = String(Math.max(0, Number(currentQuestion?.timerSeconds || 0)));
+    if ($("viewer-first-correct-only")) $("viewer-first-correct-only").checked = Boolean(currentQuestion?.settings?.firstCorrectOnly ?? true);
+    if ($("viewer-allow-multi")) $("viewer-allow-multi").checked = Boolean(currentQuestion?.settings?.allowMultipleWinners);
+    if (viewerAfterParticipantInput) viewerAfterParticipantInput.value = String(Math.max(0, Number(currentQuestion?.afterParticipantOrder || 0)));
+  }
+  questionInput?.focus();
+}
+
+async function saveRound1Question(type, questionInputId, answerInputId) {
   const questionInput = $(questionInputId);
   const answerInput = $(answerInputId);
   const question = questionInput.value.trim();
   const rawAnswer = answerInput.value.trim();
   if (!question || !rawAnswer) return;
 
-  const listSnap = await get(ref(db, `rooms/manche1/questions/${type}`));
-  const order = Object.keys(listSnap.val() || {}).length + 1;
-
-  const payload = { type, text: question, answer: rawAnswer, order, createdAt: Date.now(), createdBy: currentAdminId };
+  const editingQuestionId = round1EditingQuestion[type];
+  const payload = editingQuestionId
+    ? { text: question, answer: rawAnswer, updatedAt: Date.now(), updatedBy: currentAdminId }
+    : { type, text: question, answer: rawAnswer, order: 0, createdAt: Date.now(), createdBy: currentAdminId };
   if (type === "viewers") {
     const acceptedAnswers = parseAcceptedAnswers(rawAnswer);
     payload.acceptedAnswers = acceptedAnswers;
@@ -662,18 +704,27 @@ async function createRound1Question(type, questionInputId, answerInputId) {
     };
   }
 
-  const questionRef = push(ref(db, `rooms/manche1/questions/${type}`));
-  await set(questionRef, payload);
-  questionInput.value = "";
-  answerInput.value = "";
-  if (type === "viewers") {
-    if ($("viewer-points")) $("viewer-points").value = "1";
-    if ($("viewer-timer")) $("viewer-timer").value = "30";
-    if ($("viewer-first-correct-only")) $("viewer-first-correct-only").checked = true;
-    if ($("viewer-allow-multi")) $("viewer-allow-multi").checked = false;
-    if (viewerAfterParticipantInput) viewerAfterParticipantInput.value = "0";
+  if (editingQuestionId) {
+    await update(ref(db, `rooms/manche1/questions/${type}/${editingQuestionId}`), payload);
+    showToast("Question mise à jour");
+  } else {
+    const listSnap = await get(ref(db, `rooms/manche1/questions/${type}`));
+    payload.order = Object.keys(listSnap.val() || {}).length + 1;
+    const questionRef = push(ref(db, `rooms/manche1/questions/${type}`));
+    await set(questionRef, payload);
+    showToast("Question ajoutée");
   }
-  showToast("Question ajoutée");
+  if (type === "viewers" && editingQuestionId && liveState?.currentType === "viewers" && liveState?.currentQuestionId === editingQuestionId) {
+    const now = Date.now();
+    await update(ref(db, "rooms/viewers/liveState"), {
+      points: payload.points,
+      timerSeconds: payload.timerSeconds,
+      endsAt: payload.timerSeconds > 0 ? now + payload.timerSeconds * 1000 : null,
+      updatedAt: now,
+      updatedBy: currentAdminId || "admin",
+    });
+  }
+  resetRound1QuestionForm(type, questionInputId, answerInputId);
 }
 
 async function createRound2Question() {
@@ -1531,7 +1582,7 @@ function renderRound1QuestionList(type, data, container) {
     const editBtn = document.createElement("button");
     editBtn.className = "btn btn-secondary";
     editBtn.textContent = "Éditer";
-    editBtn.addEventListener("click", async () => editRound1Question(type, id, q));
+    editBtn.addEventListener("click", () => fillRound1QuestionForm(type, id, q));
 
     if (type === "viewers") {
       const stopBtn = document.createElement("button");
@@ -1631,83 +1682,6 @@ async function moveRound1Question(direction) {
     updatedAt: now,
   });
   await syncRound1ViewerLiveState(target, now);
-}
-
-async function editRound1Question(type, questionId, currentQuestion) {
-  const text = await showPrompt("Modifier le texte de la question", {
-    title: "Éditer la question",
-    inputLabel: "Texte de la question",
-    defaultValue: currentQuestion?.text || "",
-    confirmText: "Enregistrer",
-  });
-  if (text === null) return;
-  const answer = await showPrompt(type === "viewers" ? "Modifier les réponses acceptées (une ligne = un alias)" : "Modifier la réponse", {
-    title: "Éditer la réponse",
-    inputLabel: type === "viewers" ? "Réponses acceptées" : "Réponse",
-    defaultValue: type === "viewers" ? (currentQuestion?.acceptedAnswers || [currentQuestion?.answer || ""]).join("\n") : (currentQuestion?.answer || ""),
-    confirmText: "Enregistrer",
-  });
-  if (answer === null) return;
-  const nextText = text.trim();
-  const nextAnswer = answer.trim();
-  if (!nextText || !nextAnswer) return showToast("Question et réponse obligatoires.", "error");
-  const payload = {
-    text: nextText,
-    answer: nextAnswer,
-    updatedAt: Date.now(),
-    updatedBy: currentAdminId,
-  };
-  if (type === "viewers") {
-    const pointsRaw = await showPrompt("Modifier les points de la question viewers", {
-      title: "Éditer les points",
-      inputLabel: "Points",
-      defaultValue: String(Math.max(1, Number(currentQuestion?.points || 1))),
-      confirmText: "Enregistrer",
-    });
-    if (pointsRaw === null) return;
-    const timerRaw = await showPrompt("Modifier le timer viewers en secondes (0 = pas de limite)", {
-      title: "Éditer le timer",
-      inputLabel: "Timer (s)",
-      defaultValue: String(Math.max(0, Number(currentQuestion?.timerSeconds || 0))),
-      confirmText: "Enregistrer",
-    });
-    if (timerRaw === null) return;
-    const afterRaw = await showPrompt("Passage après question participants", {
-      title: "Éditer le passage",
-      inputLabel: "Après question participants",
-      defaultValue: String(Math.max(0, Number(currentQuestion?.afterParticipantOrder || 0))),
-      confirmText: "Enregistrer",
-    });
-    if (afterRaw === null) return;
-
-    const points = Math.max(1, Number(pointsRaw));
-    const timerSeconds = Math.max(0, Number(timerRaw));
-    const afterParticipantOrder = Math.max(0, Number(afterRaw));
-    if (!Number.isFinite(points) || !Number.isFinite(timerSeconds) || !Number.isFinite(afterParticipantOrder)) {
-      return showToast("Points, timer et passage doivent être des nombres valides.", "error");
-    }
-
-    const acceptedAnswers = parseAcceptedAnswers(nextAnswer);
-    payload.acceptedAnswers = acceptedAnswers;
-    payload.aliases = acceptedAnswers;
-    payload.normalizedAnswers = acceptedAnswers.map((value) => normalizeViewerAnswer(value)).filter(Boolean);
-    payload.answer = acceptedAnswers[0] || nextAnswer;
-    payload.points = points;
-    payload.timerSeconds = timerSeconds;
-    payload.afterParticipantOrder = afterParticipantOrder;
-  }
-  await update(ref(db, `rooms/manche1/questions/${type}/${questionId}`), payload);
-  if (type === "viewers" && liveState?.currentType === "viewers" && liveState?.currentQuestionId === questionId) {
-    const now = Date.now();
-    await update(ref(db, "rooms/viewers/liveState"), {
-      points: payload.points,
-      timerSeconds: payload.timerSeconds,
-      endsAt: payload.timerSeconds > 0 ? now + payload.timerSeconds * 1000 : null,
-      updatedAt: now,
-      updatedBy: currentAdminId || "admin",
-    });
-  }
-  showToast("Question mise à jour");
 }
 
 async function deleteRound1Question(type, questionId) {
