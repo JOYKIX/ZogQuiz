@@ -2308,8 +2308,7 @@ function syncOverlayInputs() {
   if (overlayRound4MaxWidthInput) overlayRound4MaxWidthInput.value = String(r4.maxWidthPx);
 
   const r6 = overlayConfigs.round6;
-  if (overlayRound6QuestionSizeInput) overlayRound6QuestionSizeInput.value = String(r6.maxFontSizePx);
-  if (overlayRound6QuestionMinSizeInput) overlayRound6QuestionMinSizeInput.value = String(r6.minFontSizePx);
+  if (overlayRound6QuestionSizeInput) overlayRound6QuestionSizeInput.value = String(r6.fontSizePx);
   if (overlayRound6QuestionColorInput) overlayRound6QuestionColorInput.value = r6.textColor;
   if (overlayRound6QuestionFontWeightInput) overlayRound6QuestionFontWeightInput.value = String(r6.fontWeight);
   if (overlayRound6QuestionAlignInput) overlayRound6QuestionAlignInput.value = r6.horizontalAlign;
@@ -2427,8 +2426,7 @@ function readOverlayConfigInputs(roundKey) {
   }
   if (roundKey === "round6") {
     return {
-      maxFontSizePx: overlayRound6QuestionSizeInput?.value,
-      minFontSizePx: overlayRound6QuestionMinSizeInput?.value,
+      fontSizePx: overlayRound6QuestionSizeInput?.value,
       textColor: overlayRound6QuestionColorInput?.value,
       fontWeight: overlayRound6QuestionFontWeightInput?.value,
       horizontalAlign: overlayRound6QuestionAlignInput?.value,

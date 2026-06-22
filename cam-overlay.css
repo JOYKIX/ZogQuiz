@@ -130,3 +130,7 @@ body { background-color: transparent; }
   height: 1px;
   overflow: hidden;
 }
+
+.camera-preview-card {
+  background: #000;
+}

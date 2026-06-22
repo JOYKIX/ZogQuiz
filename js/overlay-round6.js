@@ -16,8 +16,7 @@ function applyOverlayConfig() {
   questionNode.style.textShadow = overlayConfig.textShadow ? "0 2px 12px rgba(0,0,0,0.45)" : "none";
   questionNode.style.lineHeight = String(overlayConfig.lineHeight);
   questionNode.style.maxWidth = `${overlayConfig.maxWidthPx}px`;
-  questionNode.style.setProperty("--m6-min-font", `${overlayConfig.minFontSizePx}px`);
-  questionNode.style.setProperty("--m6-max-font", `${overlayConfig.maxFontSizePx}px`);
+  questionNode.style.setProperty("--m6-font-size", `${overlayConfig.fontSizePx}px`);
 }
 
 function render() {
