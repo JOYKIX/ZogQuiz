@@ -292,8 +292,10 @@ export async function ensureRoundsSeed(uid) {
       },
       round6Timer: {
         timerFontSizePx: 72,
-        timerColor: "#00d8ff",
+        timerColor: "#ffffff",
         timerCircleColor: "#ff7a00",
+        leftRectangleColor: "#006bff",
+        rightRectangleColor: "#ffd000",
         timerFormat: "minutes-seconds",
         fontWeight: 950,
         paddingPx: 40,

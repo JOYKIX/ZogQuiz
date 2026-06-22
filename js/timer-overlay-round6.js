@@ -105,6 +105,7 @@ function applyOverlayConfig() {
     if (!shellNode || !timerNode) return;
     shellNode.style.setProperty("--timer-text-color", overlayConfig.timerColor);
     shellNode.style.setProperty("--timer-circle-color", overlayConfig.timerCircleColor);
+    shellNode.style.setProperty("--timer-rectangle-color", key === "participant" ? overlayConfig.leftRectangleColor : overlayConfig.rightRectangleColor);
     shellNode.style.setProperty("--timer-size", `${shellSizePx}px`);
     shellNode.style.setProperty("--timer-font-size", `clamp(2rem, 16vmin, ${overlayConfig.timerFontSizePx}px)`);
     shellNode.style.setProperty("--timer-x", `${overlayConfig[`${key}XPercent`]}%`);

@@ -216,7 +216,8 @@ const overlayRound6QuestionPaddingInput = $("overlay-round6-question-padding");
 const overlayRound6QuestionMaxWidthInput = $("overlay-round6-question-max-width");
 const overlayRound6TimerSizeInput = $("overlay-round6-timer-size");
 const overlayRound6TimerColorInput = $("overlay-round6-timer-color");
-const overlayRound6TimerCircleColorInput = $("overlay-round6-timer-circle-color");
+const overlayRound6TimerLeftRectColorInput = $("overlay-round6-timer-left-rect-color");
+const overlayRound6TimerRightRectColorInput = $("overlay-round6-timer-right-rect-color");
 const overlayRound6TimerFormatInput = $("overlay-round6-timer-format");
 const overlayRound6TimerParticipantXInput = $("overlay-round6-timer-participant-x");
 const overlayRound6TimerParticipantYInput = $("overlay-round6-timer-participant-y");
@@ -591,7 +592,7 @@ buzzMinusBtn.addEventListener("click", async () => {
   overlayRound6QuestionAlignInput, overlayRound6QuestionVerticalAlignInput, overlayRound6QuestionPaddingInput, overlayRound6QuestionMaxWidthInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round6")));
 [
-  overlayRound6TimerSizeInput, overlayRound6TimerColorInput, overlayRound6TimerCircleColorInput, overlayRound6TimerFormatInput,
+  overlayRound6TimerSizeInput, overlayRound6TimerColorInput, overlayRound6TimerLeftRectColorInput, overlayRound6TimerRightRectColorInput, overlayRound6TimerFormatInput,
   overlayRound6TimerParticipantXInput, overlayRound6TimerParticipantYInput, overlayRound6TimerViewerXInput, overlayRound6TimerViewerYInput,
 ].forEach((input) => input?.addEventListener("input", async () => saveOverlayConfig("round6Timer")));
 [
@@ -2319,7 +2320,8 @@ function syncOverlayInputs() {
   const r6Timer = overlayConfigs.round6Timer;
   if (overlayRound6TimerSizeInput) overlayRound6TimerSizeInput.value = String(r6Timer.timerFontSizePx);
   if (overlayRound6TimerColorInput) overlayRound6TimerColorInput.value = r6Timer.timerColor;
-  if (overlayRound6TimerCircleColorInput) overlayRound6TimerCircleColorInput.value = r6Timer.timerCircleColor;
+  if (overlayRound6TimerLeftRectColorInput) overlayRound6TimerLeftRectColorInput.value = r6Timer.leftRectangleColor;
+  if (overlayRound6TimerRightRectColorInput) overlayRound6TimerRightRectColorInput.value = r6Timer.rightRectangleColor;
   if (overlayRound6TimerFormatInput) overlayRound6TimerFormatInput.value = r6Timer.timerFormat;
   if (overlayRound6TimerParticipantXInput) overlayRound6TimerParticipantXInput.value = String(r6Timer.participantXPercent);
   if (overlayRound6TimerParticipantYInput) overlayRound6TimerParticipantYInput.value = String(r6Timer.participantYPercent);
@@ -2439,7 +2441,8 @@ function readOverlayConfigInputs(roundKey) {
     return {
       timerFontSizePx: overlayRound6TimerSizeInput?.value,
       timerColor: overlayRound6TimerColorInput?.value,
-      timerCircleColor: overlayRound6TimerCircleColorInput?.value,
+      leftRectangleColor: overlayRound6TimerLeftRectColorInput?.value,
+      rightRectangleColor: overlayRound6TimerRightRectColorInput?.value,
       timerFormat: overlayRound6TimerFormatInput?.value,
       participantXPercent: overlayRound6TimerParticipantXInput?.value,
       participantYPercent: overlayRound6TimerParticipantYInput?.value,
