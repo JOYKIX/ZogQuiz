@@ -22,6 +22,7 @@ const ROUND_CONFIGS = {
     mediaKind: "image",
     pointsId: "m2-viewer-points",
     timerId: "m2-viewer-timer",
+    afterParticipantId: "m2-viewer-after-participant",
     firstCorrectOnlyId: "m2-viewer-first-correct-only",
     allowMultiId: "m2-viewer-allow-multi",
   },
@@ -33,6 +34,7 @@ const ROUND_CONFIGS = {
     aliasesId: "m3-viewer-aliases",
     pointsId: "m3-viewer-points",
     timerId: "m3-viewer-timer",
+    afterParticipantId: "m3-viewer-after-participant",
     firstCorrectOnlyId: "m3-viewer-first-correct-only",
     allowMultiId: "m3-viewer-allow-multi",
   },
@@ -45,6 +47,7 @@ const ROUND_CONFIGS = {
     youtubeUrlId: "m4-viewer-youtube-url",
     pointsId: "m4-viewer-points",
     timerId: "m4-viewer-timer",
+    afterParticipantId: "m4-viewer-after-participant",
     firstCorrectOnlyId: "m4-viewer-first-correct-only",
     allowMultiId: "m4-viewer-allow-multi",
   },
@@ -56,6 +59,7 @@ const ROUND_CONFIGS = {
     aliasesId: "m5-viewer-aliases",
     pointsId: "m5-viewer-points",
     timerId: "m5-viewer-timer",
+    afterParticipantId: "m5-viewer-after-participant",
     firstCorrectOnlyId: "m5-viewer-first-correct-only",
     allowMultiId: "m5-viewer-allow-multi",
   },
@@ -120,6 +124,7 @@ async function buildQuestionPayload(round, cfg, adminId) {
   const acceptedAnswers = parseAcceptedAnswers(document.getElementById(cfg.aliasesId)?.value || "");
   const points = Math.max(1, Number(document.getElementById(cfg.pointsId)?.value || 1));
   const timerSeconds = Math.max(0, Number(document.getElementById(cfg.timerId)?.value || 0));
+  const afterParticipantOrder = Math.max(0, Number(document.getElementById(cfg.afterParticipantId)?.value || 0));
   const firstCorrectOnly = Boolean(document.getElementById(cfg.firstCorrectOnlyId)?.checked);
   const allowMultipleWinners = Boolean(document.getElementById(cfg.allowMultiId)?.checked);
   const youtubeUrl = cfg.youtubeUrlId ? String(document.getElementById(cfg.youtubeUrlId)?.value || "").trim() : "";
@@ -149,6 +154,7 @@ async function buildQuestionPayload(round, cfg, adminId) {
     active: false,
     points,
     timerSeconds,
+    afterParticipantOrder,
     settings: {
       firstCorrectOnly,
       allowMultipleWinners,
@@ -283,6 +289,7 @@ function fillViewerQuestionForm(round, cfg, questionId, question) {
   setValue(cfg.aliasesId, (question.acceptedAnswers || []).join("\n"));
   setValue(cfg.pointsId, String(Math.max(1, Number(question.points || 1))));
   setValue(cfg.timerId, String(Math.max(0, Number(question.timerSeconds || 0))));
+  setValue(cfg.afterParticipantId, String(Math.max(0, Number(question.afterParticipantOrder || 0))));
   setValue(cfg.youtubeUrlId, question.youtubeUrl || "");
   setChecked(cfg.firstCorrectOnlyId, question.settings?.firstCorrectOnly);
   setChecked(cfg.allowMultiId, question.settings?.allowMultipleWinners);
@@ -320,7 +327,7 @@ function renderQuestionList(round, cfg, state, options) {
       ${mediaPreview}
       <p>${escapeHtml(question.prompt || question.text || question.questionText)}</p>
       <p class="muted">Aliases (${(question.acceptedAnswers || []).length}) : ${(question.acceptedAnswers || []).map((a) => escapeHtml(a)).join(" · ")}</p>
-      <p class="muted">Points ${Number(question.points || 1)} · Timer ${Number(question.timerSeconds || 0)}s · ${question.settings?.firstCorrectOnly ? "1er bon" : "multi"}</p>
+      <p class="muted">Points ${Number(question.points || 1)} · Timer ${Number(question.timerSeconds || 0)}s${Number(question.afterParticipantOrder || 0) > 0 ? ` · après QP${Number(question.afterParticipantOrder || 0)}` : ""} · ${question.settings?.firstCorrectOnly ? "1er bon" : "multi"}</p>
     `;
 
     const row = document.createElement("div");
