@@ -75,8 +75,7 @@ export const OVERLAY_DEFAULTS = {
     maxWidthPx: 1800,
   },
   round6: {
-    maxFontSizePx: 80,
-    minFontSizePx: 24,
+    fontSizePx: 80,
     textColor: "#ffffff",
     fontWeight: 800,
     textShadow: true,
@@ -259,12 +258,11 @@ export function normalizeOverlayConfig(roundKey, raw = {}) {
     const fontWeight = clampInt(raw.fontWeight ?? raw.questionFontWeight, defaults.fontWeight, 300, 900);
     const horizontalAlign = asAlign(raw.horizontalAlign ?? raw.questionAlign, defaults.horizontalAlign);
     const verticalAlign = V_ALIGN_VALUES.has(raw.verticalAlign) ? raw.verticalAlign : defaults.verticalAlign;
-    const maxFontSizePx = clampInt(raw.maxFontSizePx ?? raw.questionFontSizePx, defaults.maxFontSizePx, 36, UNLIMITED_PX);
-    const minFontSizePx = clampInt(raw.minFontSizePx, defaults.minFontSizePx, 14, UNLIMITED_PX);
+    const legacyFontSize = raw.fontSizePx ?? raw.maxFontSizePx ?? raw.questionFontSizePx;
+    const fontSizePx = Number.isFinite(Number(legacyFontSize)) ? Math.round(Number(legacyFontSize)) : defaults.fontSizePx;
     const lineHeight = clampFloat(raw.lineHeight ?? raw.questionLineHeight, defaults.lineHeight, 1, 2);
     return {
-      maxFontSizePx: Math.max(minFontSizePx, maxFontSizePx),
-      minFontSizePx: Math.min(minFontSizePx, maxFontSizePx),
+      fontSizePx,
       textColor,
       fontWeight,
       textShadow: Boolean(raw.textShadow ?? true),

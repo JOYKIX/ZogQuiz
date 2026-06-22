@@ -100,7 +100,6 @@ function applyOverlayConfig() {
     shellNode.style.setProperty("--timer-font-size", `clamp(2rem, 16vmin, ${overlayConfig.timerFontSizePx}px)`);
     shellNode.style.setProperty("--timer-x", `${overlayConfig[`${key}XPercent`]}%`);
     shellNode.style.setProperty("--timer-y", `${overlayConfig[`${key}YPercent`]}%`);
-    timerNode.style.color = overlayConfig.timerColor;
     timerNode.style.fontWeight = String(overlayConfig.fontWeight);
   });
 }
