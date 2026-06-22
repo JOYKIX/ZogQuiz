@@ -277,6 +277,7 @@ export function initCameraOverlay(roundKey) {
   let roundAnswers = { round2: {}, round3: {} };
   let roundStates = {};
   let retryTimer = null;
+  let reconcileFrame = 0;
 
   function slotName(slot, nickname) {
     return slot?.label || nickname || "Invité";
@@ -332,8 +333,7 @@ export function initCameraOverlay(roundKey) {
 
   function applyCardLayout(entry, slot) {
     if (!entry?.card || !slot) return;
-    entry.card.style.left = formatPx(slot.x);
-    entry.card.style.top = formatPx(slot.y);
+    entry.card.style.transform = `translate3d(${formatPx(slot.x)}, ${formatPx(slot.y)}, 0)`;
     entry.card.style.width = formatPx(slot.width);
     entry.card.style.height = formatPx(slot.height);
     entry.card.style.borderRadius = formatPx(slot.borderRadius);
@@ -345,7 +345,7 @@ export function initCameraOverlay(roundKey) {
     currentConfig = config;
     grid.classList.toggle("names-hidden", true);
     grid.classList.toggle("disabled", !config.enabled && !config.preview);
-    reconcile();
+    scheduleReconcile();
   }
 
   function activePresenceEntries() {
@@ -508,7 +508,15 @@ export function initCameraOverlay(roundKey) {
 
   function scheduleReconnect() {
     clearTimeout(retryTimer);
-    retryTimer = setTimeout(reconcile, OVERLAY_RETRY_MS);
+    retryTimer = setTimeout(scheduleReconcile, OVERLAY_RETRY_MS);
+  }
+
+  function scheduleReconcile() {
+    if (reconcileFrame) return;
+    reconcileFrame = window.requestAnimationFrame(() => {
+      reconcileFrame = 0;
+      reconcile();
+    });
   }
 
   function reconcile() {
@@ -540,13 +548,13 @@ export function initCameraOverlay(roundKey) {
   [...extraRoundStatePaths, ...(CAMERA_ROUND_STATE_PATHS[roundKey] || [])].forEach((path) => {
     onValue(ref(db, path), (snap) => {
       roundStates[roundKey] = chooseFreshestRoundState(roundStates[roundKey], snap.val() || {});
-      reconcile();
+      scheduleReconcile();
       updateAnswerOverlays();
     });
   });
   onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
     presence = snap.val() || {};
-    reconcile();
+    scheduleReconcile();
   });
   onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
     guestSessions = snap.val() || {};
@@ -590,6 +598,7 @@ export function initGuestCameraWall({
   let presence = {};
   let liveRoom = "manche1";
   let retryTimer = null;
+  let reconcileFrame = 0;
 
   function currentRoundKey() {
     return ROOM_TO_ROUND_KEY[liveRoom === "finale" ? "manche5" : liveRoom] || "round1";
@@ -770,7 +779,15 @@ export function initGuestCameraWall({
 
   function scheduleReconnect() {
     clearTimeout(retryTimer);
-    retryTimer = setTimeout(reconcile, OVERLAY_RETRY_MS);
+    retryTimer = setTimeout(scheduleReconcile, OVERLAY_RETRY_MS);
+  }
+
+  function scheduleReconcile() {
+    if (reconcileFrame) return;
+    reconcileFrame = window.requestAnimationFrame(() => {
+      reconcileFrame = 0;
+      reconcile();
+    });
   }
 
   function reconcile() {
@@ -822,7 +839,7 @@ export function initGuestCameraWall({
   });
   onValue(ref(db, CAMERA_PRESENCE_PATH), (snap) => {
     presence = snap.val() || {};
-    reconcile();
+    scheduleReconcile();
   });
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
