@@ -1,4 +1,4 @@
-import { db, ref, update } from "./firebase.js";
+import { db, ref, set, update, onValue } from "./firebase.js";
 import {
   activeTracks,
   watchBlindtestTracks,
@@ -247,8 +247,72 @@ export function initManche4Admin(options) {
 
   let tracks = [];
   let liveState = defaultBlindtestLiveState();
+  let viewerLiveState = null;
+  let viewerQuestions = {};
   let editingTrackId = null;
   let lastAppliedSyncVersion = -1;
+
+  function sortedViewerQuestions() {
+    return Object.entries(viewerQuestions || {}).sort((a, b) => {
+      const afterDiff = Number(a[1]?.afterParticipantOrder || 0) - Number(b[1]?.afterParticipantOrder || 0);
+      if (afterDiff) return afterDiff;
+      return Number(a[1]?.createdAt || 0) - Number(b[1]?.createdAt || 0);
+    });
+  }
+
+  function buildTrackViewerSequence(enabledTracks) {
+    const viewersByParticipantOrder = new Map();
+    sortedViewerQuestions().forEach(([id, question]) => {
+      const afterOrder = Number(question?.afterParticipantOrder || 0);
+      if (afterOrder <= 0) return;
+      const list = viewersByParticipantOrder.get(afterOrder) || [];
+      list.push({ type: "viewer", id, question });
+      viewersByParticipantOrder.set(afterOrder, list);
+    });
+
+    return enabledTracks.flatMap((track, index) => {
+      const participantOrder = Number(track?.order || index + 1);
+      return [
+        { type: "participant", id: track.id, track, index },
+        ...(viewersByParticipantOrder.get(participantOrder) || []),
+      ];
+    });
+  }
+
+  async function activateViewerQuestion(questionId, question) {
+    const now = Date.now();
+    const timerSeconds = Number(question?.timerSeconds || 0);
+    await set(ref(db, "rooms/viewers/liveState"), {
+      active: true,
+      status: "active",
+      mode: "viewer-question",
+      round: "manche4",
+      questionId,
+      settings: question?.settings || {},
+      points: Number(question?.points || 1),
+      timerSeconds,
+      media: question?.audioDataUrl
+        ? { kind: "audio", fileName: question.audioFileName || "musique" }
+        : question?.youtubeUrl
+          ? { kind: "youtube", youtubeUrl: question.youtubeUrl, videoId: question.videoId || "" }
+          : null,
+      startedAt: now,
+      endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
+      updatedAt: now,
+      updatedBy: getCurrentAdminId?.() || "admin",
+    });
+  }
+
+  async function stopViewerQuestion() {
+    await update(ref(db, "rooms/viewers/liveState"), {
+      active: false,
+      status: "stopped",
+      endedAt: Date.now(),
+      updatedAt: Date.now(),
+      updatedBy: getCurrentAdminId?.() || "admin",
+    });
+  }
+
   function resetTrackForm() {
     editingTrackId = null;
     els.trackForm.reset();
@@ -462,8 +526,13 @@ export function initManche4Admin(options) {
     els.replayBtn.disabled = !hasTracks || !hasCurrentTrack;
     els.stopBtn.disabled = !hasTracks || liveState.playbackState === "stopped";
     els.resetAnswersBtn.disabled = !hasTracks;
-    els.nextBtn.disabled = !hasTracks || currentIndex < 0 || currentIndex >= enabledTracks.length - 1;
-    els.prevBtn.disabled = !hasTracks || currentIndex <= 0;
+    const sequence = buildTrackViewerSequence(enabledTracks);
+    const currentViewerId = viewerLiveState?.active && viewerLiveState?.round === "manche4" ? viewerLiveState.questionId : null;
+    const sequenceIndex = currentViewerId
+      ? sequence.findIndex((item) => item.type === "viewer" && item.id === currentViewerId)
+      : sequence.findIndex((item) => item.type === "participant" && item.id === currentTrack?.id);
+    els.nextBtn.disabled = !hasTracks || sequenceIndex < 0 || sequenceIndex >= sequence.length - 1;
+    els.prevBtn.disabled = !hasTracks || sequenceIndex <= 0;
     if (els.showAnswerBtn) {
       els.showAnswerBtn.disabled = !hasCurrentTrack;
       els.showAnswerBtn.textContent = liveState.showAnswer ? "Masquer la réponse (manuel)" : "Afficher la réponse (manuel)";
@@ -472,16 +541,29 @@ export function initManche4Admin(options) {
 
   async function moveTrack(step) {
     const enabledTracks = getEnabledTracks();
-    if (!enabledTracks.length) return;
+    const sequence = buildTrackViewerSequence(enabledTracks);
+    if (!sequence.length) return;
+
+    const currentViewerId = viewerLiveState?.active && viewerLiveState?.round === "manche4" ? viewerLiveState.questionId : null;
     const currentTrack = getCurrentTrack(enabledTracks);
-    const currentIndex = currentTrack ? enabledTracks.findIndex((track) => track.id === currentTrack.id) : 0;
-    const nextIndex = Math.max(0, Math.min(enabledTracks.length - 1, currentIndex + step));
-    const nextTrack = enabledTracks[nextIndex] || null;
+    const currentIndex = currentViewerId
+      ? sequence.findIndex((item) => item.type === "viewer" && item.id === currentViewerId)
+      : sequence.findIndex((item) => item.type === "participant" && item.id === currentTrack?.id);
+    const fallbackIndex = currentIndex < 0 ? (step > 0 ? -1 : sequence.length) : currentIndex;
+    const nextIndex = Math.max(0, Math.min(sequence.length - 1, fallbackIndex + step));
+    const nextItem = sequence[nextIndex];
+    if (!nextItem) return;
 
-    if (!nextTrack || nextTrack.id === currentTrack?.id) return;
+    if (nextItem.type === "viewer") {
+      if (currentViewerId === nextItem.id) return;
+      await activateViewerQuestion(nextItem.id, nextItem.question);
+      return;
+    }
 
+    if (!currentViewerId && nextItem.id === currentTrack?.id) return;
+    await stopViewerQuestion();
     await writeBlindtestLive(
-      () => patchForTrackSelection(nextTrack, nextIndex, liveState.playbackState),
+      () => patchForTrackSelection(nextItem.track, nextItem.index, liveState.playbackState),
       liveState,
       getCurrentAdminId?.() || "admin"
     );
@@ -626,6 +708,9 @@ export function initManche4Admin(options) {
     await writeBlindtestLive(() => ({ stopOnAnswer: Boolean(els.stopOnAnswerInput?.checked) }), liveState, getCurrentAdminId?.() || "admin");
   });
   els.prevBtn.addEventListener("click", async () => moveTrack(-1));
+
+  onValue(ref(db, "rooms/viewers/liveState"), (snap) => { viewerLiveState = snap.val() || null; renderLiveState(); });
+  onValue(ref(db, "rooms/viewers/questions/manche4"), (snap) => { viewerQuestions = snap.val() || {}; renderLiveState(); });
 
   watchBlindtestTracks(async (nextTracks) => {
     tracks = nextTracks;

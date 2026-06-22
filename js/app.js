@@ -276,6 +276,8 @@ const round1EditingQuestion = { participants: null, viewers: null };
 let manche2Questions = {};
 let manche2State = null;
 let manche2Answers = {};
+let viewerLiveState = null;
+let manche2ViewerQuestions = {};
 let selectedManche2QuestionId = null;
 let buzzesById = {};
 let guestAccountsById = {};
@@ -861,6 +863,8 @@ function initListeners() {
   onValue(ref(db, "rooms/manche2/questions"), (snap) => { manche2Questions = snap.val() || {}; renderRound2Questions(); updateRound2Status(); });
   onValue(ref(db, "rooms/manche2/state"), (snap) => { manche2State = snap.val() || {}; renderRound2Questions(); updateRound2Status(); });
   onValue(ref(db, "rooms/manche2/answers"), (snap) => { manche2Answers = snap.val() || {}; updateRound2Status(); });
+  onValue(ref(db, "rooms/viewers/liveState"), (snap) => { viewerLiveState = snap.val() || null; updateRound2Status(); });
+  onValue(ref(db, "rooms/viewers/questions/manche2"), (snap) => { manche2ViewerQuestions = snap.val() || {}; updateRound2Status(); });
   onValue(ref(db, "rooms/manche3/themes"), (snap) => { manche3Themes = snap.val() || {}; renderRound3Themes(); renderRound3State(); });
   onValue(ref(db, "rooms/manche3/state"), (snap) => {
     manche3State = snap.val() || null;
@@ -1801,15 +1805,92 @@ function sortedRound2Entries() {
   return Object.entries(manche2Questions || {}).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
 }
 
+function sortedViewerQuestionsForRound(roundQuestions) {
+  return Object.entries(roundQuestions || {}).sort((a, b) => {
+    const afterDiff = Number(a[1]?.afterParticipantOrder || 0) - Number(b[1]?.afterParticipantOrder || 0);
+    if (afterDiff) return afterDiff;
+    return Number(a[1]?.createdAt || 0) - Number(b[1]?.createdAt || 0);
+  });
+}
+
+function buildParticipantViewerSequence(participantEntries, viewerQuestions) {
+  const viewersByParticipantOrder = new Map();
+  sortedViewerQuestionsForRound(viewerQuestions).forEach(([id, question]) => {
+    const afterOrder = Number(question?.afterParticipantOrder || 0);
+    if (afterOrder <= 0) return;
+    const list = viewersByParticipantOrder.get(afterOrder) || [];
+    list.push({ type: "viewer", id, question });
+    viewersByParticipantOrder.set(afterOrder, list);
+  });
+
+  return participantEntries.flatMap(([id, question], index) => {
+    const participantOrder = Number(question?.order || index + 1);
+    return [
+      { type: "participant", id, question },
+      ...(viewersByParticipantOrder.get(participantOrder) || []),
+    ];
+  });
+}
+
+async function activateViewerQuestion(round, questionId, question) {
+  const now = Date.now();
+  const timerSeconds = Number(question?.timerSeconds || 0);
+  await set(ref(db, "rooms/viewers/liveState"), {
+    active: true,
+    status: "active",
+    mode: "viewer-question",
+    round,
+    questionId,
+    settings: question?.settings || {},
+    points: Number(question?.points || 1),
+    timerSeconds,
+    media: question?.imageDataUrl
+      ? { kind: "image", fileName: question.fileName || "image" }
+      : question?.audioDataUrl
+        ? { kind: "audio", fileName: question.audioFileName || "musique" }
+        : question?.youtubeUrl
+          ? { kind: "youtube", youtubeUrl: question.youtubeUrl, videoId: question.videoId || "" }
+          : null,
+    startedAt: now,
+    endsAt: timerSeconds > 0 ? now + timerSeconds * 1000 : null,
+    updatedAt: now,
+    updatedBy: currentAdminId || "admin",
+  });
+}
+
+async function stopViewerQuestion() {
+  await update(ref(db, "rooms/viewers/liveState"), {
+    active: false,
+    status: "stopped",
+    endedAt: Date.now(),
+    updatedAt: Date.now(),
+    updatedBy: currentAdminId || "admin",
+  });
+}
+
 async function moveRound2Image(step) {
-  const entries = sortedRound2Entries();
-  if (!entries.length) return;
-  const currentIndex = entries.findIndex(([id]) => id === manche2State?.activeQuestionId);
-  const fallbackIndex = currentIndex < 0 ? 0 : currentIndex;
-  const nextIndex = Math.max(0, Math.min(entries.length - 1, fallbackIndex + step));
-  const [nextId] = entries[nextIndex];
-  if (!nextId || nextId === manche2State?.activeQuestionId) return;
-  await update(ref(db, "rooms/manche2/state"), { activeQuestionId: nextId, updatedAt: Date.now(), updatedBy: currentAdminId });
+  const participantEntries = sortedRound2Entries();
+  const sequence = buildParticipantViewerSequence(participantEntries, manche2ViewerQuestions);
+  if (!sequence.length) return;
+
+  const currentViewerId = viewerLiveState?.active && viewerLiveState?.round === "manche2" ? viewerLiveState.questionId : null;
+  const currentIndex = currentViewerId
+    ? sequence.findIndex((item) => item.type === "viewer" && item.id === currentViewerId)
+    : sequence.findIndex((item) => item.type === "participant" && item.id === manche2State?.activeQuestionId);
+  const fallbackIndex = currentIndex < 0 ? (step > 0 ? -1 : sequence.length) : currentIndex;
+  const nextIndex = Math.max(0, Math.min(sequence.length - 1, fallbackIndex + step));
+  const nextItem = sequence[nextIndex];
+  if (!nextItem) return;
+
+  if (nextItem.type === "viewer") {
+    if (currentViewerId === nextItem.id) return;
+    await activateViewerQuestion("manche2", nextItem.id, nextItem.question);
+    return;
+  }
+
+  if (!currentViewerId && nextItem.id === manche2State?.activeQuestionId) return;
+  await stopViewerQuestion();
+  await update(ref(db, "rooms/manche2/state"), { activeQuestionId: nextItem.id, updatedAt: Date.now(), updatedBy: currentAdminId });
 }
 
 function refreshRound1Snapshot() {
