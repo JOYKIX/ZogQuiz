@@ -2,6 +2,7 @@ const DEFAULTS = {
   gateThreshold: 0.035,
   outputGain: 1,
   bypass: false,
+  monitoring: false,
 };
 
 export class AudioProcessor {
@@ -15,6 +16,7 @@ export class AudioProcessor {
     this.outputGain = null;
     this.analyser = null;
     this.destination = null;
+    this.monitorGain = null;
     this.inputStream = null;
     this.outputTrack = null;
     this.animationFrame = 0;
@@ -57,6 +59,8 @@ export class AudioProcessor {
     this.compressor.release.value = 0.18;
 
     this.outputGain = this.context.createGain();
+    this.monitorGain = this.context.createGain();
+    this.monitorGain.gain.value = 0;
     this.analyser = this.context.createAnalyser();
     this.analyser.fftSize = 1024;
     this.levelData = new Float32Array(this.analyser.fftSize);
@@ -68,10 +72,13 @@ export class AudioProcessor {
     this.gate.connect(this.compressor);
     this.compressor.connect(this.outputGain);
     this.outputGain.connect(this.destination);
+    this.outputGain.connect(this.monitorGain);
+    this.monitorGain.connect(this.context.destination);
 
     this.setGateThreshold(this.options.gateThreshold);
     this.setOutputGain(this.options.outputGain);
     this.setBypass(this.options.bypass);
+    this.setMonitoring(this.options.monitoring);
     this.outputTrack = this.destination.stream.getAudioTracks()[0] || null;
     this.startLevelMeter();
     this.prepareRnnoiseHook();
@@ -89,6 +96,11 @@ export class AudioProcessor {
 
   setBypass(enabled) {
     this.options.bypass = Boolean(enabled);
+  }
+
+  setMonitoring(enabled) {
+    this.options.monitoring = Boolean(enabled);
+    if (this.monitorGain) this.monitorGain.gain.setTargetAtTime(this.options.monitoring ? 1 : 0, this.context.currentTime, 0.015);
   }
 
   getOutputTrack() {
