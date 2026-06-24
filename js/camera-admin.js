@@ -30,6 +30,7 @@ const adminCameraStatus = document.getElementById("admin-camera-status");
 const adminCameraPreview = document.getElementById("admin-camera-preview");
 const adminCameraDevice = document.getElementById("admin-camera-device");
 const adminCameraDeviceField = document.getElementById("admin-camera-device-field");
+const adminCameraDelay = document.getElementById("admin-camera-delay");
 
 if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
   createCameraPublisherController({
@@ -43,6 +44,7 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       preview: adminCameraPreview,
       deviceSelect: adminCameraDevice,
       deviceField: adminCameraDeviceField,
+      delayInput: adminCameraDelay,
     },
   });
 }

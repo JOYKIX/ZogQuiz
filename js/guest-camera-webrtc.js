@@ -16,6 +16,8 @@ const GUEST_HEARTBEAT_MS = 15000;
 const OVERLAY_RETRY_MS = 3500;
 const PRESENCE_STALE_MS = 45000;
 const SIGNAL_TTL_MS = 120000;
+const CAMERA_DELAY_MIN_MS = 0;
+const CAMERA_DELAY_MAX_MS = 5000;
 
 function safeKey(value) {
   return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120);
@@ -44,6 +46,12 @@ function createClientId(prefix) {
 
 function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
+}
+
+function normalizeCameraDelayMs(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(CAMERA_DELAY_MIN_MS, Math.min(CAMERA_DELAY_MAX_MS, Math.round(numeric)));
 }
 
 
@@ -127,6 +135,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       sourceType,
       isAdmin: sourceType === "admin",
       active: true,
+      displayDelayMs: normalizeCameraDelayMs(elements.delayInput?.value),
       tracks: state.stream.getVideoTracks().map((track) => ({ id: track.id, label: track.label, enabled: track.enabled })),
       updatedAt: Date.now(),
     });
@@ -198,6 +207,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
 
   async function closeRequest(requestId, removeSignal = false) {
     const entry = state.peers.get(requestId);
+    clearTimeout(entry?.playDelayTimer);
     closePeer(entry);
     state.peers.delete(requestId);
     if (removeSignal && getSessionId()) await remove(ref(db, `${CAMERA_SIGNALING_PATH}/${safeKey(getSessionId())}/${requestId}`)).catch(() => {});
@@ -252,6 +262,11 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     if (!state.stream) return;
     await stop({ skipRender: true });
     await start();
+  });
+  elements.delayInput?.addEventListener("input", () => {
+    const normalizedDelay = normalizeCameraDelayMs(elements.delayInput.value);
+    if (String(elements.delayInput.value) !== String(normalizedDelay)) elements.delayInput.value = String(normalizedDelay);
+    if (state.stream) writePresence().catch(console.warn);
   });
   navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn));
   window.addEventListener("beforeunload", () => { stopStream(state.stream); removePresence(); });
@@ -371,7 +386,7 @@ export function initCameraOverlay(roundKey) {
       if (!guestId) return [];
       used.add(guestId);
       const item = activeById.get(guestId) || {};
-      return [{ guestId, nickname: item.nickname || (guestId === ADMIN_CAMERA_ID ? "Admin" : "Invité"), slot, slotIndex }];
+      return [{ guestId, nickname: item.nickname || (guestId === ADMIN_CAMERA_ID ? "Admin" : "Invité"), displayDelayMs: normalizeCameraDelayMs(item.displayDelayMs), slot, slotIndex }];
     });
   }
 
@@ -411,10 +426,25 @@ export function initCameraOverlay(roundKey) {
   }
 
 
-  function ensureCard(guestId, nickname, slot, slotIndex) {
+  function playOverlayStream(entry, stream, delayMs = 0) {
+    clearTimeout(entry.playDelayTimer);
+    entry.playDelayMs = normalizeCameraDelayMs(delayMs);
+    if (entry.video.srcObject !== stream) entry.video.srcObject = stream;
+    entry.video.pause();
+    entry.card.classList.add("connecting");
+    entry.playDelayTimer = setTimeout(() => {
+      entry.video.play().catch(console.warn);
+      entry.card.classList.remove("connecting");
+    }, entry.playDelayMs);
+  }
+
+  function ensureCard(guestId, nickname, displayDelayMs, slot, slotIndex) {
     let entry = peers.get(guestId);
     if (entry?.card) {
+      const previousDelayMs = entry.displayDelayMs;
       entry.nickname = nickname;
+      entry.displayDelayMs = normalizeCameraDelayMs(displayDelayMs);
+      if (entry.video?.srcObject && previousDelayMs !== entry.displayDelayMs) playOverlayStream(entry, entry.video.srcObject, entry.displayDelayMs);
       entry.slot = slot;
       entry.slotIndex = slotIndex;
       entry.name.textContent = slotName(slot, nickname);
@@ -441,7 +471,7 @@ export function initCameraOverlay(roundKey) {
     answer.className = "camera-answer hidden";
     card.append(video, name, answer);
     grid.append(card);
-    entry = { ...(entry || {}), card, video, name, answer, guestId, nickname, slot, slotIndex };
+    entry = { ...(entry || {}), card, video, name, answer, guestId, nickname, displayDelayMs: normalizeCameraDelayMs(displayDelayMs), slot, slotIndex };
     peers.set(guestId, entry);
     const visibleAnswer = getVisibleAnswerForGuest(guestId);
     answer.textContent = visibleAnswer;
@@ -450,8 +480,8 @@ export function initCameraOverlay(roundKey) {
     return entry;
   }
 
-  async function connectGuest(guestId, nickname, slot, slotIndex) {
-    const entry = ensureCard(guestId, nickname, slot, slotIndex);
+  async function connectGuest(guestId, nickname, displayDelayMs, slot, slotIndex) {
+    const entry = ensureCard(guestId, nickname, displayDelayMs, slot, slotIndex);
     if (entry.pc && !["failed", "closed", "disconnected"].includes(entry.pc.connectionState)) return;
     closePeer(entry);
 
@@ -462,8 +492,7 @@ export function initCameraOverlay(roundKey) {
 
     pc.ontrack = (event) => {
       const [stream] = event.streams;
-      entry.video.srcObject = stream;
-      entry.card.classList.remove("connecting");
+      playOverlayStream(entry, stream, entry.displayDelayMs);
     };
     pc.onicecandidate = async (event) => {
       const candidate = toPlainCandidate(event.candidate);
@@ -537,7 +566,7 @@ export function initCameraOverlay(roundKey) {
     for (const guestId of [...peers.keys()]) {
       if (!desiredIds.has(guestId)) disconnectGuest(guestId).catch(console.warn);
     }
-    desired.forEach(({ guestId, nickname, slot, slotIndex }) => connectGuest(guestId, nickname, slot, slotIndex).catch(console.warn));
+    desired.forEach(({ guestId, nickname, displayDelayMs, slot, slotIndex }) => connectGuest(guestId, nickname, displayDelayMs, slot, slotIndex).catch(console.warn));
     if (status) status.textContent = currentConfig.enabled ? `${desired.length}/${currentConfig.cameraCount} caméra(s) connectée(s)` : "Caméras désactivées pour cette manche";
     updateLayout();
     updateAnswerOverlays();
