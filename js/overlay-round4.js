@@ -1,3 +1,4 @@
+import { db, ref, onValue } from "./firebase.js";
 import { activeTracks, watchBlindtestTracks } from "./blindtest/tracks.js";
 import { computeTargetSeconds, defaultBlindtestLiveState, watchBlindtestLive } from "./blindtest/live-sync.js";
 import { YoutubeAudioPlayer, parseYoutubeError } from "./blindtest/youtube.js";
@@ -14,9 +15,14 @@ const CATEGORY_PROMPTS = {
 };
 
 let tracks = [];
+let viewerQuestions = {};
+let viewerLiveState = null;
 let liveState = defaultBlindtestLiveState();
 let overlayConfig = null;
 let lastAppliedSyncVersion = -1;
+const localAudio = new Audio();
+localAudio.preload = "auto";
+let lastAudioSource = "";
 
 const player = new YoutubeAudioPlayer({
   hostId: "m4-overlay-youtube-host",
@@ -49,7 +55,13 @@ function getAnswerForTrack(track) {
   return answer || "Réponse indisponible";
 }
 
-function getOverlayText(currentTrack, hasEnabledTracks) {
+function getActiveViewerQuestion() {
+  if (!viewerLiveState?.active || viewerLiveState?.round !== "manche4" || !viewerLiveState?.questionId) return null;
+  return viewerQuestions[viewerLiveState.questionId] || null;
+}
+
+function getOverlayText(currentTrack, hasEnabledTracks, viewerQuestion) {
+  if (viewerQuestion) return viewerQuestion.prompt || viewerQuestion.text || viewerQuestion.questionText || CATEGORY_PROMPTS.opening;
   if (liveState.showAnswer && currentTrack) return getAnswerForTrack(currentTrack);
   return hasEnabledTracks ? getPromptForTrack(currentTrack) : CATEGORY_PROMPTS.opening;
 }
@@ -69,8 +81,9 @@ function applyConfig() {
 function render() {
   const { enabled, currentTrack } = resolveCurrentTrack();
 
-  promptNode.textContent = getOverlayText(currentTrack, enabled.length > 0);
-  promptNode.classList.toggle("is-answer", Boolean(liveState.showAnswer && currentTrack));
+  const viewerQuestion = getActiveViewerQuestion();
+  promptNode.textContent = getOverlayText(currentTrack, enabled.length > 0, viewerQuestion);
+  promptNode.classList.toggle("is-answer", Boolean(!viewerQuestion && liveState.showAnswer && currentTrack));
 
   if (errorNode && liveState.lastError) {
     errorNode.textContent = liveState.lastError;
@@ -83,7 +96,42 @@ function render() {
   applyConfig();
 }
 
+function syncLocalAudio(sourceUrl, shouldPlay) {
+  player.stop();
+  if (!sourceUrl) {
+    localAudio.pause();
+    localAudio.removeAttribute("src");
+    lastAudioSource = "";
+    return;
+  }
+  if (lastAudioSource !== sourceUrl) {
+    lastAudioSource = sourceUrl;
+    localAudio.src = sourceUrl;
+    localAudio.currentTime = 0;
+  }
+  if (shouldPlay) localAudio.play().catch(() => {});
+  else localAudio.pause();
+}
+
 async function syncAudio() {
+  const viewerQuestion = getActiveViewerQuestion();
+  if (viewerQuestion) {
+    if (viewerQuestion.audioDataUrl) {
+      syncLocalAudio(viewerQuestion.audioDataUrl, true);
+      return;
+    }
+    syncLocalAudio("", false);
+    const videoId = viewerQuestion.videoId || (viewerQuestion.youtubeUrl ? (viewerQuestion.youtubeUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/) || [])[1] : null);
+    if (!videoId) {
+      player.stop();
+      return;
+    }
+    await player.loadVideo(videoId, 0, false);
+    player.play();
+    return;
+  }
+
+  syncLocalAudio("", false);
   const { currentTrack } = resolveCurrentTrack();
   const sourceUrl = liveState.showAnswer && currentTrack?.revealYoutubeUrl ? currentTrack.revealYoutubeUrl : currentTrack?.youtubeUrl;
   const videoId = sourceUrl ? (sourceUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/) || [])[1] : null;
@@ -108,6 +156,18 @@ async function syncAudio() {
 watchBlindtestTracks((nextTracks) => {
   tracks = nextTracks;
   render();
+});
+
+onValue(ref(db, "rooms/viewers/questions/manche4"), (snap) => {
+  viewerQuestions = snap.val() || {};
+  render();
+  syncAudio().catch(() => {});
+});
+
+onValue(ref(db, "rooms/viewers/liveState"), (snap) => {
+  viewerLiveState = snap.val() || null;
+  render();
+  syncAudio().catch(() => {});
 });
 
 watchBlindtestLive(async (nextLiveState) => {

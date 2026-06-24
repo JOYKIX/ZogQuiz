@@ -5,7 +5,9 @@ const imageNode = document.getElementById("m2-overlay-image");
 const emptyNode = document.getElementById("m2-overlay-empty");
 
 let questions = {};
+let viewerQuestions = {};
 let state = null;
+let viewerLiveState = null;
 let overlayConfig = null;
 
 function applyOverlayConfig() {
@@ -13,9 +15,16 @@ function applyOverlayConfig() {
   imageNode.style.borderRadius = `${overlayConfig.borderRadiusPx}px`;
 }
 
+function getActiveQuestion() {
+  if (viewerLiveState?.active && viewerLiveState?.round === "manche2" && viewerLiveState?.questionId) {
+    return viewerQuestions[viewerLiveState.questionId] || null;
+  }
+  return state?.activeQuestionId ? questions[state.activeQuestionId] : null;
+}
+
 function render() {
   applyOverlayConfig();
-  const active = state?.activeQuestionId ? questions[state.activeQuestionId] : null;
+  const active = getActiveQuestion();
   if (!active?.imageDataUrl) {
     imageNode.removeAttribute("src");
     imageNode.classList.add("hidden");
@@ -30,6 +39,16 @@ function render() {
 
 onValue(ref(db, "rooms/manche2/questions"), (snap) => {
   questions = snap.val() || {};
+  render();
+});
+
+onValue(ref(db, "rooms/viewers/questions/manche2"), (snap) => {
+  viewerQuestions = snap.val() || {};
+  render();
+});
+
+onValue(ref(db, "rooms/viewers/liveState"), (snap) => {
+  viewerLiveState = snap.val() || null;
   render();
 });
 

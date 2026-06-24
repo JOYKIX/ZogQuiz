@@ -1824,7 +1824,7 @@ function buildParticipantViewerSequence(participantEntries, viewerQuestions) {
   });
 
   return participantEntries.flatMap(([id, question], index) => {
-    const participantOrder = Number(question?.order || index + 1);
+    const participantOrder = index + 1;
     return [
       { type: "participant", id, question },
       ...(viewersByParticipantOrder.get(participantOrder) || []),
@@ -1990,9 +1990,14 @@ function renderRound2LiveAnswers() {
 }
 
 function updateRound2Status() {
-  const active = manche2State?.activeQuestionId ? manche2Questions[manche2State.activeQuestionId] : null;
-  const answerCount = manche2State?.activeQuestionId ? Object.values(manche2Answers?.[manche2State.activeQuestionId] || {}).filter((item) => String(item?.answer || "").trim()).length : 0;
-  const statusText = active ? `Image live : ${active.work} • ${answerCount} réponse${answerCount > 1 ? "s" : ""}` : "Aucune image active.";
+  const activeViewer = viewerLiveState?.active && viewerLiveState?.round === "manche2" && viewerLiveState?.questionId
+    ? manche2ViewerQuestions[viewerLiveState.questionId]
+    : null;
+  const active = activeViewer || (manche2State?.activeQuestionId ? manche2Questions[manche2State.activeQuestionId] : null);
+  const answerCount = activeViewer ? 0 : (manche2State?.activeQuestionId ? Object.values(manche2Answers?.[manche2State.activeQuestionId] || {}).filter((item) => String(item?.answer || "").trim()).length : 0);
+  const statusText = activeViewer
+    ? `Image viewers live : ${activeViewer.prompt || activeViewer.text || activeViewer.questionText || "—"}`
+    : active ? `Image live : ${active.work} • ${answerCount} réponse${answerCount > 1 ? "s" : ""}` : "Aucune image active.";
   setMessage(m2LiveStatus, statusText);
   setMessage(m2OverviewStatus, statusText);
   if (m2LiveCurrentImage) {
@@ -2004,9 +2009,9 @@ function updateRound2Status() {
       m2LiveCurrentImage.classList.add("hidden");
     }
   }
-  if (m2LiveCurrentTitle) m2LiveCurrentTitle.textContent = active?.work || "—";
-  if (m2LiveCurrentLocation) m2LiveCurrentLocation.textContent = active?.location || "—";
-  if (m2LiveCurrentQuestion) m2LiveCurrentQuestion.textContent = active?.questionText || "—";
+  if (m2LiveCurrentTitle) m2LiveCurrentTitle.textContent = activeViewer ? "Viewers" : (active?.work || "—");
+  if (m2LiveCurrentLocation) m2LiveCurrentLocation.textContent = activeViewer ? "—" : (active?.location || "—");
+  if (m2LiveCurrentQuestion) m2LiveCurrentQuestion.textContent = activeViewer ? (activeViewer.prompt || activeViewer.text || activeViewer.questionText || "—") : (active?.questionText || "—");
   renderRound2LiveAnswers();
   const entries = sortedRound2Entries();
   const currentIndex = entries.findIndex(([id]) => id === manche2State?.activeQuestionId);
