@@ -1364,3 +1364,7 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .card > *,
 .scoreboard-card > *,
 .compact-panel > * { z-index: 1; }
+.microphone-panel { display: grid; gap: .5rem; margin: .55rem 0; }
+.audio-controls { display: grid; gap: .45rem; }
+.audio-controls label { display: grid; gap: .25rem; }
+.audio-controls meter { width: 100%; height: .8rem; }

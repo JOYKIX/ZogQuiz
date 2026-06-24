@@ -42,6 +42,12 @@ const guestCameraStatus = document.getElementById("guest-camera-status");
 const guestCameraPreview = document.getElementById("guest-camera-preview");
 const guestCameraDevice = document.getElementById("guest-camera-device");
 const guestCameraDeviceField = document.getElementById("guest-camera-device-field");
+const guestMicrophoneToggle = document.getElementById("guest-microphone-toggle");
+const guestAudioControls = document.getElementById("guest-audio-controls");
+const guestNoiseGate = document.getElementById("guest-noise-gate");
+const guestMicrophoneGain = document.getElementById("guest-microphone-gain");
+const guestMicrophoneLevel = document.getElementById("guest-microphone-level");
+const guestAudioBypass = document.getElementById("guest-audio-bypass");
 const guestSelfCameraRender = document.getElementById("guest-self-camera-render");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
@@ -1206,6 +1212,12 @@ guestCameraController = createGuestCameraController({
     preview: guestCameraPreview,
     deviceSelect: guestCameraDevice,
     deviceField: guestCameraDeviceField,
+    microphoneButton: guestMicrophoneToggle,
+    audioControls: guestAudioControls,
+    gateThreshold: guestNoiseGate,
+    microphoneGain: guestMicrophoneGain,
+    microphoneLevel: guestMicrophoneLevel,
+    bypassNoiseReduction: guestAudioBypass,
   },
 });
 

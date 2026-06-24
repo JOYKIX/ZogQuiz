@@ -993,6 +993,19 @@ SNK OP1"></textarea></label>
                 <label id="admin-camera-device-field" class="camera-device-field hidden">Caméra
                   <select id="admin-camera-device"></select>
                 </label>
+                <div class="microphone-panel">
+                  <button id="admin-microphone-toggle" class="btn btn-secondary" type="button">Activer micro</button>
+                  <div id="admin-audio-controls" class="audio-controls hidden">
+                    <label>Noise gate
+                      <input id="admin-noise-gate" type="range" min="0.005" max="0.12" step="0.005" value="0.035" />
+                    </label>
+                    <label>Gain micro
+                      <input id="admin-microphone-gain" type="range" min="0" max="2" step="0.05" value="1" />
+                    </label>
+                    <meter id="admin-microphone-level" min="0" max="1" value="0"></meter>
+                    <label class="toggle-line"><input id="admin-audio-bypass" type="checkbox" /> Bypass anti-bruit</label>
+                  </div>
+                </div>
                 <p id="admin-camera-status" class="message camera-status off">Cam désactivée.</p>
                 <video id="admin-camera-preview" class="guest-camera-preview hidden" autoplay muted playsinline></video>
               </section>

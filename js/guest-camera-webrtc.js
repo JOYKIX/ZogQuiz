@@ -9,6 +9,7 @@ import {
   update,
   remove,
 } from "./firebase.js";
+import { AudioProcessor } from "./audio-processor.js";
 import { ADMIN_CAMERA_ID, CAMERA_PRESENCE_PATH, CAMERA_ROUND_STATE_PATHS, CAMERA_SIGNALING_PATH, ROOM_TO_ROUND_KEY, getActiveParticipantIdsForRound, getCameraRoleParticipantIds, getCameraRoleParticipantNames, getCameraSlotPreviewLabel, resolveCameraSlotGuestId, watchCameraConfig } from "./camera-config.js";
 
 const RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
@@ -70,6 +71,8 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     unsubscribeRequestRemovals: null,
     heartbeat: null,
     selectedDeviceId: "",
+    audioProcessor: null,
+    audioEnabled: false,
   };
 
   function render(status = state.status, text = "") {
@@ -89,6 +92,77 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     }
     elements.preview.classList.toggle("hidden", !state.stream);
     if (state.stream && elements.preview.srcObject !== state.stream) elements.preview.srcObject = state.stream;
+  }
+
+
+  function updateAudioControls() {
+    elements.microphoneButton?.classList.toggle("active", state.audioEnabled);
+    if (elements.microphoneButton) elements.microphoneButton.textContent = state.audioEnabled ? "Désactiver micro" : "Activer micro";
+    elements.audioControls?.classList.toggle("hidden", !state.audioEnabled);
+  }
+
+  function setMicrophoneLevel(value = 0) {
+    if (elements.microphoneLevel) elements.microphoneLevel.value = String(Math.max(0, Math.min(1, value)));
+  }
+
+  async function renegotiatePeer(entry) {
+    if (!entry?.pc || !entry.signalPath || entry.pc.signalingState === "closed") return;
+    const offer = await entry.pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
+    await entry.pc.setLocalDescription(offer);
+    await update(ref(db, entry.signalPath), {
+      offer: toPlainDescription(entry.pc.localDescription),
+      offeredAt: Date.now(),
+    });
+  }
+
+  function updatePeerAudioTrack(track) {
+    state.peers.forEach((entry) => {
+      const sender = entry.pc?.getSenders?.().find((item) => item.track?.kind === "audio");
+      if (sender) {
+        sender.replaceTrack(track || null).catch(console.warn);
+      } else if (track && state.stream) {
+        entry.pc.addTrack(track, state.stream);
+        renegotiatePeer(entry).catch(console.warn);
+      }
+    });
+  }
+
+  async function enableMicrophone() {
+    if (!state.stream) return;
+    try {
+      state.audioProcessor = state.audioProcessor || new AudioProcessor({
+        gateThreshold: elements.gateThreshold?.value,
+        outputGain: elements.microphoneGain?.value,
+        bypass: elements.bypassNoiseReduction?.checked,
+      });
+      const track = await state.audioProcessor.start({ onLevel: setMicrophoneLevel });
+      state.stream.getAudioTracks().forEach((oldTrack) => {
+        state.stream.removeTrack(oldTrack);
+        oldTrack.stop();
+      });
+      if (track) state.stream.addTrack(track);
+      state.audioEnabled = Boolean(track);
+      updatePeerAudioTrack(track);
+      await writePresence();
+      updateAudioControls();
+    } catch (error) {
+      state.audioEnabled = false;
+      updateAudioControls();
+      setMicrophoneLevel(0);
+      render("error", error?.name === "NotAllowedError" ? "Permission micro refusée." : `Impossible d’activer le micro : ${error.message || error}`);
+    }
+  }
+
+  async function disableMicrophone() {
+    const audioTracks = state.stream?.getAudioTracks?.() || [];
+    audioTracks.forEach((track) => { state.stream.removeTrack(track); track.stop(); });
+    updatePeerAudioTrack(null);
+    await state.audioProcessor?.stop();
+    state.audioProcessor = null;
+    state.audioEnabled = false;
+    setMicrophoneLevel(0);
+    updateAudioControls();
+    await writePresence().catch(console.warn);
   }
 
   function cameraConstraints() {
@@ -127,6 +201,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       sourceType,
       isAdmin: sourceType === "admin",
       active: true,
+      audio: state.stream.getAudioTracks().some((track) => track.enabled),
       tracks: state.stream.getVideoTracks().map((track) => ({ id: track.id, label: track.label, enabled: track.enabled })),
       updatedAt: Date.now(),
     });
@@ -159,6 +234,9 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     state.peers.set(requestId, entry);
 
     state.stream.getTracks().forEach((track) => pc.addTrack(track, state.stream));
+    if (!pc.getSenders().some((sender) => sender.track?.kind === "audio")) {
+      pc.addTransceiver("audio", { direction: "sendonly" });
+    }
     pc.onicecandidate = async (event) => {
       const candidate = toPlainCandidate(event.candidate);
       if (!candidate) return;
@@ -240,6 +318,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     state.unsubscribeRequests = null;
     state.unsubscribeRequestRemovals = null;
     for (const requestId of [...state.peers.keys()]) await closeRequest(requestId, true);
+    await disableMicrophone().catch(console.warn);
     stopStream(state.stream);
     state.stream = null;
     await removePresence().catch(() => {});
@@ -247,6 +326,10 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   }
 
   elements.button.addEventListener("click", () => (state.stream ? stop({ keepMessage: true }) : start()));
+  elements.microphoneButton?.addEventListener("click", () => (state.audioEnabled ? disableMicrophone() : enableMicrophone()));
+  elements.gateThreshold?.addEventListener("input", () => state.audioProcessor?.setGateThreshold(elements.gateThreshold.value));
+  elements.microphoneGain?.addEventListener("input", () => state.audioProcessor?.setOutputGain(elements.microphoneGain.value));
+  elements.bypassNoiseReduction?.addEventListener("change", () => state.audioProcessor?.setBypass(elements.bypassNoiseReduction.checked));
   elements.deviceSelect?.addEventListener("change", async () => {
     state.selectedDeviceId = elements.deviceSelect.value;
     if (!state.stream) return;
@@ -256,6 +339,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn));
   window.addEventListener("beforeunload", () => { stopStream(state.stream); removePresence(); });
   render("off");
+  updateAudioControls();
   refreshDeviceList().catch(console.warn);
 
   return { start, stop, isActive: () => Boolean(state.stream), refreshIdentity: writePresence };
@@ -433,7 +517,7 @@ export function initCameraOverlay(roundKey) {
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
-    video.muted = true;
+    video.muted = false;
     const name = document.createElement("span");
     name.className = "camera-name";
     name.textContent = slotName(slot, nickname);
