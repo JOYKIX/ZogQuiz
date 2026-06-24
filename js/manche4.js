@@ -271,7 +271,7 @@ export function initManche4Admin(options) {
     });
 
     return enabledTracks.flatMap((track, index) => {
-      const participantOrder = Number(track?.order || index + 1);
+      const participantOrder = index + 1;
       return [
         { type: "participant", id: track.id, track, index },
         ...(viewersByParticipantOrder.get(participantOrder) || []),
