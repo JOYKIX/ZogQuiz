@@ -30,6 +30,12 @@ const adminCameraStatus = document.getElementById("admin-camera-status");
 const adminCameraPreview = document.getElementById("admin-camera-preview");
 const adminCameraDevice = document.getElementById("admin-camera-device");
 const adminCameraDeviceField = document.getElementById("admin-camera-device-field");
+const adminMicrophoneToggle = document.getElementById("admin-microphone-toggle");
+const adminAudioControls = document.getElementById("admin-audio-controls");
+const adminNoiseGate = document.getElementById("admin-noise-gate");
+const adminMicrophoneGain = document.getElementById("admin-microphone-gain");
+const adminMicrophoneLevel = document.getElementById("admin-microphone-level");
+const adminAudioBypass = document.getElementById("admin-audio-bypass");
 
 if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
   createCameraPublisherController({
@@ -43,6 +49,12 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       preview: adminCameraPreview,
       deviceSelect: adminCameraDevice,
       deviceField: adminCameraDeviceField,
+      microphoneButton: adminMicrophoneToggle,
+      audioControls: adminAudioControls,
+      gateThreshold: adminNoiseGate,
+      microphoneGain: adminMicrophoneGain,
+      microphoneLevel: adminMicrophoneLevel,
+      bypassNoiseReduction: adminAudioBypass,
     },
   });
 }

@@ -99,6 +99,19 @@
                   />
                   Ma cam
                 </label>
+                <div class="microphone-panel">
+                  <button id="guest-microphone-toggle" class="btn btn-secondary" type="button">Activer micro</button>
+                  <div id="guest-audio-controls" class="audio-controls hidden">
+                    <label>Noise gate
+                      <input id="guest-noise-gate" type="range" min="0.005" max="0.12" step="0.005" value="0.035" />
+                    </label>
+                    <label>Gain micro
+                      <input id="guest-microphone-gain" type="range" min="0" max="2" step="0.05" value="1" />
+                    </label>
+                    <meter id="guest-microphone-level" min="0" max="1" value="0"></meter>
+                    <label class="toggle-line"><input id="guest-audio-bypass" type="checkbox" /> Bypass anti-bruit</label>
+                  </div>
+                </div>
                 <p id="guest-camera-status" class="message camera-status off">Caméra désactivée.</p>
                 <video
                   id="guest-camera-preview"
