@@ -1,7 +1,5 @@
 const DEFAULTS = {
   gateThreshold: 0.02,
-  bypass: false,
-  monitoring: false,
 };
 
 const GATE_FLOOR_GAIN = 0.12;
@@ -15,27 +13,23 @@ export class AudioProcessor {
     this.options = { ...DEFAULTS, ...options };
     this.context = null;
     this.source = null;
-    this.highPass = null;
     this.gate = null;
-    this.compressor = null;
     this.analyser = null;
     this.destination = null;
-    this.monitorGain = null;
     this.inputStream = null;
     this.outputTrack = null;
     this.animationFrame = 0;
     this.levelData = null;
     this.onLevel = null;
-    this.rnnoise = null;
     this.gateOpen = false;
     this.lastVoiceAt = 0;
   }
 
   static getMicrophoneConstraints(deviceId = "") {
     const audio = {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
     };
     if (deviceId) audio.deviceId = { exact: deviceId };
     return { audio };
@@ -50,56 +44,27 @@ export class AudioProcessor {
     await this.context.resume();
 
     this.source = this.context.createMediaStreamSource(this.inputStream);
-    this.highPass = this.context.createBiquadFilter();
-    this.highPass.type = "highpass";
-    this.highPass.frequency.value = 90;
-    this.highPass.Q.value = 0.7;
 
     // Le noise gate est piloté par le niveau RMS analysé dans le navigateur.
     this.gate = this.context.createGain();
     this.gate.gain.value = 1;
-    this.compressor = this.context.createDynamicsCompressor();
-    this.compressor.threshold.value = -24;
-    this.compressor.knee.value = 18;
-    this.compressor.ratio.value = 3;
-    this.compressor.attack.value = 0.006;
-    this.compressor.release.value = 0.28;
-
-    this.monitorGain = this.context.createGain();
-    this.monitorGain.gain.value = 0;
     this.analyser = this.context.createAnalyser();
     this.analyser.fftSize = 1024;
     this.levelData = new Float32Array(this.analyser.fftSize);
     this.destination = this.context.createMediaStreamDestination();
 
-    this.source.connect(this.highPass);
-    this.highPass.connect(this.analyser);
-    this.highPass.connect(this.gate);
-    this.gate.connect(this.compressor);
-    this.compressor.connect(this.destination);
-    this.compressor.connect(this.monitorGain);
-    this.monitorGain.connect(this.context.destination);
+    this.source.connect(this.analyser);
+    this.source.connect(this.gate);
+    this.gate.connect(this.destination);
 
     this.setGateThreshold(this.options.gateThreshold);
-    this.setBypass(this.options.bypass);
-    this.setMonitoring(this.options.monitoring);
     this.outputTrack = this.destination.stream.getAudioTracks()[0] || null;
     this.startLevelMeter();
-    this.prepareRnnoiseHook();
     return this.outputTrack;
   }
 
   setGateThreshold(value) {
     this.options.gateThreshold = Math.max(0.005, Math.min(0.12, Number(value) || DEFAULTS.gateThreshold));
-  }
-
-  setBypass(enabled) {
-    this.options.bypass = Boolean(enabled);
-  }
-
-  setMonitoring(enabled) {
-    this.options.monitoring = Boolean(enabled);
-    if (this.monitorGain) this.monitorGain.gain.setTargetAtTime(this.options.monitoring ? 1 : 0, this.context.currentTime, 0.015);
   }
 
   getOutputTrack() {
@@ -131,14 +96,14 @@ export class AudioProcessor {
       const openThreshold = this.options.gateThreshold;
       const closeThreshold = openThreshold * GATE_HYSTERESIS_RATIO;
 
-      if (this.options.bypass || rms >= openThreshold || (this.gateOpen && rms >= closeThreshold)) {
+      if (rms >= openThreshold || (this.gateOpen && rms >= closeThreshold)) {
         this.gateOpen = true;
         this.lastVoiceAt = now;
       } else if (now - this.lastVoiceAt > GATE_HOLD_MS) {
         this.gateOpen = false;
       }
 
-      const gateGain = this.options.bypass || this.gateOpen ? 1 : GATE_FLOOR_GAIN;
+      const gateGain = this.gateOpen ? 1 : GATE_FLOOR_GAIN;
       this.gate.gain.setTargetAtTime(
         gateGain,
         this.context.currentTime,
@@ -148,15 +113,5 @@ export class AudioProcessor {
       this.animationFrame = requestAnimationFrame(tick);
     };
     tick();
-  }
-
-  async prepareRnnoiseHook() {
-    // Hook optionnel : un futur module RNNoise WASM peut exposer window.createRnnoiseProcessor.
-    if (typeof window.createRnnoiseProcessor !== "function") return;
-    try {
-      this.rnnoise = await window.createRnnoiseProcessor(this.context);
-    } catch (error) {
-      console.warn("RNNoise WASM indisponible", error);
-    }
   }
 }
