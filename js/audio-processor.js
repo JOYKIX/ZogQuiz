@@ -1,8 +1,14 @@
 const DEFAULTS = {
-  gateThreshold: 0.035,
+  gateThreshold: 0.02,
   bypass: false,
   monitoring: false,
 };
+
+const GATE_FLOOR_GAIN = 0.12;
+const GATE_HYSTERESIS_RATIO = 0.72;
+const GATE_HOLD_MS = 420;
+const GATE_ATTACK_SECONDS = 0.008;
+const GATE_RELEASE_SECONDS = 0.22;
 
 export class AudioProcessor {
   constructor(options = {}) {
@@ -21,6 +27,8 @@ export class AudioProcessor {
     this.levelData = null;
     this.onLevel = null;
     this.rnnoise = null;
+    this.gateOpen = false;
+    this.lastVoiceAt = 0;
   }
 
   static getMicrophoneConstraints(deviceId = "") {
@@ -49,12 +57,13 @@ export class AudioProcessor {
 
     // Le noise gate est piloté par le niveau RMS analysé dans le navigateur.
     this.gate = this.context.createGain();
+    this.gate.gain.value = 1;
     this.compressor = this.context.createDynamicsCompressor();
     this.compressor.threshold.value = -24;
     this.compressor.knee.value = 18;
     this.compressor.ratio.value = 3;
-    this.compressor.attack.value = 0.008;
-    this.compressor.release.value = 0.18;
+    this.compressor.attack.value = 0.006;
+    this.compressor.release.value = 0.28;
 
     this.monitorGain = this.context.createGain();
     this.monitorGain.gain.value = 0;
@@ -109,14 +118,32 @@ export class AudioProcessor {
   }
 
   startLevelMeter() {
+    this.gateOpen = true;
+    this.lastVoiceAt = performance.now();
+
     const tick = () => {
       if (!this.analyser || !this.gate || !this.context) return;
       this.analyser.getFloatTimeDomainData(this.levelData);
       let sum = 0;
       for (const sample of this.levelData) sum += sample * sample;
       const rms = Math.sqrt(sum / this.levelData.length);
-      const gateGain = this.options.bypass || rms >= this.options.gateThreshold ? 1 : 0.06;
-      this.gate.gain.setTargetAtTime(gateGain, this.context.currentTime, gateGain === 1 ? 0.01 : 0.06);
+      const now = performance.now();
+      const openThreshold = this.options.gateThreshold;
+      const closeThreshold = openThreshold * GATE_HYSTERESIS_RATIO;
+
+      if (this.options.bypass || rms >= openThreshold || (this.gateOpen && rms >= closeThreshold)) {
+        this.gateOpen = true;
+        this.lastVoiceAt = now;
+      } else if (now - this.lastVoiceAt > GATE_HOLD_MS) {
+        this.gateOpen = false;
+      }
+
+      const gateGain = this.options.bypass || this.gateOpen ? 1 : GATE_FLOOR_GAIN;
+      this.gate.gain.setTargetAtTime(
+        gateGain,
+        this.context.currentTime,
+        gateGain === 1 ? GATE_ATTACK_SECONDS : GATE_RELEASE_SECONDS,
+      );
       this.onLevel?.(Math.min(1, rms / 0.22));
       this.animationFrame = requestAnimationFrame(tick);
     };
