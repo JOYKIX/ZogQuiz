@@ -16,6 +16,8 @@ export class AudioProcessor {
     this.gate = null;
     this.analyser = null;
     this.destination = null;
+    this.monitorGain = null;
+    this.monitorEnabled = false;
     this.inputStream = null;
     this.outputTrack = null;
     this.animationFrame = 0;
@@ -56,6 +58,9 @@ export class AudioProcessor {
     this.source.connect(this.analyser);
     this.source.connect(this.gate);
     this.gate.connect(this.destination);
+    this.monitorGain = this.context.createGain();
+    this.monitorGain.gain.value = 1;
+    this.setMonitorEnabled(this.monitorEnabled);
 
     this.setGateThreshold(this.options.gateThreshold);
     this.outputTrack = this.destination.stream.getAudioTracks()[0] || null;
@@ -65,6 +70,17 @@ export class AudioProcessor {
 
   setGateThreshold(value) {
     this.options.gateThreshold = Math.max(0.005, Math.min(0.12, Number(value) || DEFAULTS.gateThreshold));
+  }
+
+  setMonitorEnabled(enabled) {
+    this.monitorEnabled = Boolean(enabled);
+    if (!this.gate || !this.monitorGain || !this.context?.destination) return;
+    try { this.gate.disconnect(this.monitorGain); } catch {}
+    try { this.monitorGain.disconnect(this.context.destination); } catch {}
+    if (this.monitorEnabled) {
+      this.gate.connect(this.monitorGain);
+      this.monitorGain.connect(this.context.destination);
+    }
   }
 
   getOutputTrack() {
@@ -78,6 +94,7 @@ export class AudioProcessor {
     this.inputStream?.getTracks?.().forEach((track) => track.stop());
     await this.context?.close?.().catch(() => {});
     this.context = null;
+    this.monitorGain = null;
     this.inputStream = null;
     this.outputTrack = null;
   }
