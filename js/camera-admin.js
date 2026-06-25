@@ -33,7 +33,6 @@ const adminCameraDeviceField = document.getElementById("admin-camera-device-fiel
 const adminMicrophoneToggle = document.getElementById("admin-microphone-toggle");
 const adminAudioControls = document.getElementById("admin-audio-controls");
 const adminNoiseGate = document.getElementById("admin-noise-gate");
-const adminMicrophoneGain = document.getElementById("admin-microphone-gain");
 const adminMicrophoneLevel = document.getElementById("admin-microphone-level");
 const adminAudioBypass = document.getElementById("admin-audio-bypass");
 const adminMicrophoneMonitoring = document.getElementById("admin-microphone-monitoring");
@@ -53,7 +52,6 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       microphoneButton: adminMicrophoneToggle,
       audioControls: adminAudioControls,
       gateThreshold: adminNoiseGate,
-      microphoneGain: adminMicrophoneGain,
       microphoneLevel: adminMicrophoneLevel,
       bypassNoiseReduction: adminAudioBypass,
       microphoneMonitoring: adminMicrophoneMonitoring,
