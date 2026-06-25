@@ -1,6 +1,5 @@
 const DEFAULTS = {
   gateThreshold: 0.035,
-  outputGain: 1,
   bypass: false,
   monitoring: false,
 };
@@ -13,7 +12,6 @@ export class AudioProcessor {
     this.highPass = null;
     this.gate = null;
     this.compressor = null;
-    this.outputGain = null;
     this.analyser = null;
     this.destination = null;
     this.monitorGain = null;
@@ -58,7 +56,6 @@ export class AudioProcessor {
     this.compressor.attack.value = 0.008;
     this.compressor.release.value = 0.18;
 
-    this.outputGain = this.context.createGain();
     this.monitorGain = this.context.createGain();
     this.monitorGain.gain.value = 0;
     this.analyser = this.context.createAnalyser();
@@ -70,13 +67,11 @@ export class AudioProcessor {
     this.highPass.connect(this.analyser);
     this.highPass.connect(this.gate);
     this.gate.connect(this.compressor);
-    this.compressor.connect(this.outputGain);
-    this.outputGain.connect(this.destination);
-    this.outputGain.connect(this.monitorGain);
+    this.compressor.connect(this.destination);
+    this.compressor.connect(this.monitorGain);
     this.monitorGain.connect(this.context.destination);
 
     this.setGateThreshold(this.options.gateThreshold);
-    this.setOutputGain(this.options.outputGain);
     this.setBypass(this.options.bypass);
     this.setMonitoring(this.options.monitoring);
     this.outputTrack = this.destination.stream.getAudioTracks()[0] || null;
@@ -87,11 +82,6 @@ export class AudioProcessor {
 
   setGateThreshold(value) {
     this.options.gateThreshold = Math.max(0.005, Math.min(0.12, Number(value) || DEFAULTS.gateThreshold));
-  }
-
-  setOutputGain(value) {
-    this.options.outputGain = Math.max(0, Math.min(2, Number(value) || DEFAULTS.outputGain));
-    if (this.outputGain) this.outputGain.gain.setTargetAtTime(this.options.outputGain, this.context.currentTime, 0.015);
   }
 
   setBypass(enabled) {
