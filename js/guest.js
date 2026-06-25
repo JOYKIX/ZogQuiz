@@ -48,6 +48,7 @@ const guestMicrophoneDeviceField = document.getElementById("guest-microphone-dev
 const guestAudioControls = document.getElementById("guest-audio-controls");
 const guestNoiseGate = document.getElementById("guest-noise-gate");
 const guestMicrophoneLevel = document.getElementById("guest-microphone-level");
+const guestMicrophoneMonitor = document.getElementById("guest-microphone-monitor");
 const guestSelfCameraRender = document.getElementById("guest-self-camera-render");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
@@ -1218,6 +1219,7 @@ guestCameraController = createGuestCameraController({
     audioControls: guestAudioControls,
     gateThreshold: guestNoiseGate,
     microphoneLevel: guestMicrophoneLevel,
+    microphoneMonitor: guestMicrophoneMonitor,
   },
 });
 
