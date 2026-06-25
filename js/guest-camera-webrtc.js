@@ -71,6 +71,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     unsubscribeRequestRemovals: null,
     heartbeat: null,
     selectedDeviceId: "",
+    selectedMicrophoneDeviceId: "",
     audioProcessor: null,
     audioEnabled: false,
   };
@@ -135,7 +136,10 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
         bypass: elements.bypassNoiseReduction?.checked,
         monitoring: elements.microphoneMonitoring?.checked,
       });
-      const track = await state.audioProcessor.start({ onLevel: setMicrophoneLevel });
+      const track = await state.audioProcessor.start({
+        onLevel: setMicrophoneLevel,
+        deviceId: state.selectedMicrophoneDeviceId || elements.microphoneDeviceSelect?.value || "",
+      });
       state.stream.getAudioTracks().forEach((oldTrack) => {
         state.stream.removeTrack(oldTrack);
         oldTrack.stop();
@@ -173,22 +177,42 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   }
 
   async function refreshDeviceList() {
-    if (!elements.deviceSelect || !navigator.mediaDevices?.enumerateDevices) return;
-    const currentValue = state.selectedDeviceId || elements.deviceSelect.value;
+    if (!navigator.mediaDevices?.enumerateDevices) return;
     const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
-    const cameras = devices.filter((device) => device.kind === "videoinput");
-    elements.deviceSelect.replaceChildren();
-    cameras.forEach((device, index) => {
-      const option = document.createElement("option");
-      option.value = device.deviceId;
-      option.textContent = device.label || `Caméra ${index + 1}`;
-      elements.deviceSelect.append(option);
-    });
-    const hasCurrent = cameras.some((device) => device.deviceId === currentValue);
-    state.selectedDeviceId = hasCurrent ? currentValue : (cameras[0]?.deviceId || "");
-    elements.deviceSelect.value = state.selectedDeviceId;
-    elements.deviceSelect.hidden = cameras.length <= 1;
-    elements.deviceField?.classList.toggle("hidden", cameras.length <= 1);
+
+    if (elements.deviceSelect) {
+      const currentValue = state.selectedDeviceId || elements.deviceSelect.value;
+      const cameras = devices.filter((device) => device.kind === "videoinput");
+      elements.deviceSelect.replaceChildren();
+      cameras.forEach((device, index) => {
+        const option = document.createElement("option");
+        option.value = device.deviceId;
+        option.textContent = device.label || `Caméra ${index + 1}`;
+        elements.deviceSelect.append(option);
+      });
+      const hasCurrent = cameras.some((device) => device.deviceId === currentValue);
+      state.selectedDeviceId = hasCurrent ? currentValue : (cameras[0]?.deviceId || "");
+      elements.deviceSelect.value = state.selectedDeviceId;
+      elements.deviceSelect.hidden = cameras.length <= 1;
+      elements.deviceField?.classList.toggle("hidden", cameras.length <= 1);
+    }
+
+    if (elements.microphoneDeviceSelect) {
+      const currentValue = state.selectedMicrophoneDeviceId || elements.microphoneDeviceSelect.value;
+      const microphones = devices.filter((device) => device.kind === "audioinput");
+      elements.microphoneDeviceSelect.replaceChildren();
+      microphones.forEach((device, index) => {
+        const option = document.createElement("option");
+        option.value = device.deviceId;
+        option.textContent = device.label || `Micro ${index + 1}`;
+        elements.microphoneDeviceSelect.append(option);
+      });
+      const hasCurrent = microphones.some((device) => device.deviceId === currentValue);
+      state.selectedMicrophoneDeviceId = hasCurrent ? currentValue : (microphones[0]?.deviceId || "");
+      elements.microphoneDeviceSelect.value = state.selectedMicrophoneDeviceId;
+      elements.microphoneDeviceSelect.hidden = microphones.length <= 1;
+      elements.microphoneDeviceField?.classList.toggle("hidden", microphones.length <= 1);
+    }
   }
 
   async function writePresence() {
@@ -330,6 +354,11 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   elements.gateThreshold?.addEventListener("input", () => state.audioProcessor?.setGateThreshold(elements.gateThreshold.value));
   elements.bypassNoiseReduction?.addEventListener("change", () => state.audioProcessor?.setBypass(elements.bypassNoiseReduction.checked));
   elements.microphoneMonitoring?.addEventListener("change", () => state.audioProcessor?.setMonitoring(elements.microphoneMonitoring.checked));
+  elements.microphoneDeviceSelect?.addEventListener("change", async () => {
+    state.selectedMicrophoneDeviceId = elements.microphoneDeviceSelect.value;
+    if (!state.audioEnabled) return;
+    await enableMicrophone();
+  });
   elements.deviceSelect?.addEventListener("change", async () => {
     state.selectedDeviceId = elements.deviceSelect.value;
     if (!state.stream) return;

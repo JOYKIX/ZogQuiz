@@ -23,21 +23,21 @@ export class AudioProcessor {
     this.rnnoise = null;
   }
 
-  static getMicrophoneConstraints() {
-    return {
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
+  static getMicrophoneConstraints(deviceId = "") {
+    const audio = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
     };
+    if (deviceId) audio.deviceId = { exact: deviceId };
+    return { audio };
   }
 
-  async start({ onLevel } = {}) {
+  async start({ onLevel, deviceId = "" } = {}) {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error("Micro indisponible sur ce navigateur ou sans HTTPS.");
     await this.stop();
     this.onLevel = onLevel || null;
-    this.inputStream = await navigator.mediaDevices.getUserMedia(AudioProcessor.getMicrophoneConstraints());
+    this.inputStream = await navigator.mediaDevices.getUserMedia(AudioProcessor.getMicrophoneConstraints(deviceId));
     this.context = new (window.AudioContext || window.webkitAudioContext)();
     await this.context.resume();
 
