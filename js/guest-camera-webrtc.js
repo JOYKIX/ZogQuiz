@@ -84,22 +84,35 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     audioEnabled: false,
   };
 
+  function hasVideoTrack() {
+    return state.stream?.getVideoTracks?.().some((track) => track.readyState !== "ended") || false;
+  }
+
+  function hasAudioTrack() {
+    return state.stream?.getAudioTracks?.().some((track) => track.readyState !== "ended") || false;
+  }
+
+  function ensureStream() {
+    if (!state.stream) state.stream = new MediaStream();
+    return state.stream;
+  }
+
   function render(status = state.status, text = "") {
     state.status = status;
-    const active = status === "active" || status === "starting";
+    const videoActive = hasVideoTrack();
     elements.button.disabled = status === "starting";
-    elements.button.textContent = active ? "Désactiver la caméra" : "Activer la caméra";
+    elements.button.textContent = videoActive || status === "starting" ? "Désactiver la caméra" : "Activer la caméra";
     if (elements.deviceSelect) elements.deviceSelect.disabled = status === "starting";
     if (elements.status) {
       elements.status.className = `message camera-status ${status}`;
       elements.status.textContent = text || {
         off: "Caméra désactivée.",
         starting: "Demande d’autorisation caméra…",
-        active: activeLabel,
+        active: videoActive ? activeLabel : (hasAudioTrack() ? "Micro actif." : activeLabel),
         error: "Erreur caméra.",
       }[status] || "";
     }
-    elements.preview.classList.toggle("hidden", !state.stream);
+    elements.preview.classList.toggle("hidden", !hasVideoTrack());
     if (state.stream && elements.preview.srcObject !== state.stream) elements.preview.srcObject = state.stream;
   }
 
@@ -138,8 +151,10 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   }
 
   async function enableMicrophone() {
-    if (!state.stream) return;
+    if (!getSessionId()) { render("error", "Connectez-vous avant d’activer le micro."); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { render("error", "Micro indisponible sur ce navigateur ou sans HTTPS."); return; }
     try {
+      ensureStream();
       state.audioProcessor = state.audioProcessor || new AudioProcessor({
         gateThreshold: elements.gateThreshold?.value,
       });
@@ -156,6 +171,10 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       state.audioEnabled = Boolean(track);
       updatePeerAudioTrack(track);
       await writePresence();
+      await onDisconnect(ref(db, `${CAMERA_PRESENCE_PATH}/${safeKey(getSessionId())}`)).remove();
+      startHeartbeat();
+      watchRequests();
+      render(hasVideoTrack() ? "active" : "off", hasVideoTrack() ? undefined : "Micro actif.");
       updateAudioControls();
     } catch (error) {
       state.audioEnabled = false;
@@ -174,7 +193,21 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     state.audioEnabled = false;
     setMicrophoneLevel(0);
     updateAudioControls();
-    await writePresence().catch(console.warn);
+    if (hasVideoTrack()) {
+      render("active");
+      await writePresence().catch(console.warn);
+    } else {
+      clearInterval(state.heartbeat);
+      state.heartbeat = null;
+      state.unsubscribeRequests?.();
+      state.unsubscribeRequestRemovals?.();
+      state.unsubscribeRequests = null;
+      state.unsubscribeRequestRemovals = null;
+      for (const requestId of [...state.peers.keys()]) await closeRequest(requestId, true);
+      state.stream = null;
+      await removePresence().catch(() => {});
+      render("off");
+    }
   }
 
   function cameraConstraints() {
@@ -331,7 +364,19 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     await refreshDeviceList();
     render("starting");
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
+      const stream = ensureStream();
+      stream.getVideoTracks().forEach((oldTrack) => { stream.removeTrack(oldTrack); oldTrack.stop(); });
+      cameraStream.getVideoTracks().forEach((track) => stream.addTrack(track));
+      state.peers.forEach((entry) => {
+        const videoTrack = stream.getVideoTracks()[0] || null;
+        const sender = entry.pc?.getSenders?.().find((item) => item.track?.kind === "video");
+        if (sender) sender.replaceTrack(videoTrack).catch(console.warn);
+        else if (videoTrack) {
+          entry.pc.addTrack(videoTrack, stream);
+          renegotiatePeer(entry).catch(console.warn);
+        }
+      });
       await refreshDeviceList();
       render("active");
       await writePresence();
@@ -339,13 +384,23 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       startHeartbeat();
       watchRequests();
     } catch (error) {
-      stopStream(state.stream);
-      state.stream = null;
+      state.stream?.getVideoTracks?.().forEach((track) => { state.stream.removeTrack(track); track.stop(); });
+      if (!hasAudioTrack()) state.stream = null;
       render("error", error?.name === "NotAllowedError" ? "Permission caméra refusée." : `Impossible d’activer la caméra : ${error.message || error}`);
     }
   }
 
   async function stop({ keepMessage = false, skipRender = false } = {}) {
+    state.stream?.getVideoTracks?.().forEach((track) => { state.stream.removeTrack(track); track.stop(); });
+    state.peers.forEach((entry) => {
+      const sender = entry.pc?.getSenders?.().find((item) => item.track?.kind === "video");
+      sender?.replaceTrack(null).catch(console.warn);
+    });
+    if (hasAudioTrack()) {
+      await writePresence().catch(console.warn);
+      if (!skipRender) render("off", keepMessage ? "Caméra désactivée." : "Micro actif.");
+      return;
+    }
     clearInterval(state.heartbeat);
     state.heartbeat = null;
     state.unsubscribeRequests?.();
@@ -353,14 +408,13 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     state.unsubscribeRequests = null;
     state.unsubscribeRequestRemovals = null;
     for (const requestId of [...state.peers.keys()]) await closeRequest(requestId, true);
-    await disableMicrophone().catch(console.warn);
     stopStream(state.stream);
     state.stream = null;
     await removePresence().catch(() => {});
     if (!skipRender) render("off", keepMessage ? "Caméra désactivée." : undefined);
   }
 
-  elements.button.addEventListener("click", () => (state.stream ? stop({ keepMessage: true }) : start()));
+  elements.button.addEventListener("click", () => (hasVideoTrack() ? stop({ keepMessage: true }) : start()));
   elements.microphoneButton?.addEventListener("click", () => (state.audioEnabled ? disableMicrophone() : enableMicrophone()));
   elements.gateThreshold?.addEventListener("input", () => state.audioProcessor?.setGateThreshold(elements.gateThreshold.value));
   elements.microphoneMonitor?.addEventListener("change", () => state.audioProcessor?.setMonitorEnabled(elements.microphoneMonitor.checked));
@@ -830,7 +884,7 @@ export function initGuestCameraWall({
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
-    video.muted = true;
+    video.muted = false;
     const name = document.createElement("span");
     name.className = "guest-remote-camera-name";
     name.textContent = nickname;
