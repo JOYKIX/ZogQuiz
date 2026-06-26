@@ -1,9 +1,7 @@
 const LEVEL_NORMALIZER = 0.18;
-const DEFAULT_MIC_GAIN = 2.4;
+const DEFAULT_MIC_GAIN = 1;
 const MIN_MIC_GAIN = 1;
-const MAX_MIC_GAIN = 4;
-const RNNOISE_WORKLET_URL = new URL("./rnnoise-worklet.js", import.meta.url);
-
+const MAX_MIC_GAIN = 2;
 export class AudioProcessor {
   constructor(options = {}) {
     this.context = null;
@@ -29,12 +27,12 @@ export class AudioProcessor {
   static getMicrophoneConstraints(deviceId = "") {
     const audio = {
       echoCancellation: { ideal: true },
-      noiseSuppression: { ideal: true },
-      autoGainControl: { ideal: true },
+      noiseSuppression: { ideal: false },
+      autoGainControl: { ideal: false },
       channelCount: { ideal: 1 },
       sampleRate: { ideal: 48000 },
       sampleSize: { ideal: 16 },
-      latency: { ideal: 0.02 },
+      latency: { ideal: 0.04 },
     };
     if (deviceId) audio.deviceId = { exact: deviceId };
     return { audio };
@@ -62,18 +60,18 @@ export class AudioProcessor {
     this.source = this.context.createMediaStreamSource(this.inputStream);
     this.highPassFilter = this.context.createBiquadFilter();
     this.highPassFilter.type = "highpass";
-    this.highPassFilter.frequency.value = 90;
+    this.highPassFilter.frequency.value = 70;
     this.highPassFilter.Q.value = 0.7;
     this.lowPassFilter = this.context.createBiquadFilter();
     this.lowPassFilter.type = "lowpass";
-    this.lowPassFilter.frequency.value = 7800;
+    this.lowPassFilter.frequency.value = 12000;
     this.lowPassFilter.Q.value = 0.7;
     this.compressor = this.context.createDynamicsCompressor();
-    this.compressor.threshold.value = -30;
-    this.compressor.knee.value = 16;
-    this.compressor.ratio.value = 8;
-    this.compressor.attack.value = 0.003;
-    this.compressor.release.value = 0.18;
+    this.compressor.threshold.value = -18;
+    this.compressor.knee.value = 24;
+    this.compressor.ratio.value = 2.5;
+    this.compressor.attack.value = 0.008;
+    this.compressor.release.value = 0.28;
     this.microphoneGain = this.context.createGain();
     this.setGain(gain);
     this.analyser = this.context.createAnalyser();
@@ -82,7 +80,7 @@ export class AudioProcessor {
     this.levelData = new Float32Array(this.analyser.fftSize);
     this.destination = this.context.createMediaStreamDestination();
 
-    const processedNode = await this.createRNNoiseNode();
+    const processedNode = this.createBypassNode();
     this.source.connect(this.highPassFilter);
     this.highPassFilter.connect(processedNode);
     processedNode.connect(this.lowPassFilter);
@@ -92,39 +90,12 @@ export class AudioProcessor {
     this.microphoneGain.connect(this.destination);
 
     this.monitorGain = this.context.createGain();
-    this.monitorGain.gain.value = 0.85;
+    this.monitorGain.gain.value = 0.65;
     this.setMonitorEnabled(this.monitorEnabled);
 
     this.outputTrack = this.destination.stream.getAudioTracks()[0] || null;
     this.startLevelMeter();
     return this.outputTrack;
-  }
-
-  async createRNNoiseNode() {
-    if (!this.context.audioWorklet || typeof AudioWorkletNode === "undefined") {
-      return this.createBypassNode();
-    }
-
-    try {
-      await this.context.audioWorklet.addModule(RNNOISE_WORKLET_URL.href);
-      const node = new AudioWorkletNode(this.context, "rnnoise-processor", {
-        numberOfInputs: 1,
-        numberOfOutputs: 1,
-        outputChannelCount: [1],
-      });
-      node.port.onmessage = (event) => {
-        if (event.data?.type === "ready") this.rnnoiseReady = true;
-        if (event.data?.type === "error") this.rnnoiseReady = false;
-      };
-      node.onprocessorerror = () => {
-        this.rnnoiseReady = false;
-      };
-      this.rnnoiseNode = node;
-      return node;
-    } catch {
-      this.rnnoiseReady = false;
-      return this.createBypassNode();
-    }
   }
 
   createBypassNode() {

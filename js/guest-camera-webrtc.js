@@ -66,7 +66,7 @@ async function tuneAudioSender(sender) {
   if (!sender?.track || sender.track.kind !== "audio" || !sender.getParameters || !sender.setParameters) return;
   const params = sender.getParameters();
   params.encodings = params.encodings?.length ? params.encodings : [{}];
-  params.encodings[0].maxBitrate = 128000;
+  params.encodings[0].maxBitrate = 192000;
   await sender.setParameters(params).catch(console.warn);
 }
 
