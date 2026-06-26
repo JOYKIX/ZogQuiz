@@ -1,18 +1,40 @@
 const DEFAULTS = {
-  gateThreshold: 0.01,
+  gateThreshold: 0.012,
 };
 
-const GATE_FLOOR_GAIN = 0.08;
-const GATE_HYSTERESIS_RATIO = 0.62;
-const GATE_HOLD_MS = 520;
-const GATE_ATTACK_SECONDS = 0.004;
-const GATE_RELEASE_SECONDS = 0.18;
+const GATE_FLOOR_GAIN = 0.015;
+const GATE_HYSTERESIS_RATIO = 0.58;
+const GATE_HOLD_MS = 430;
+const GATE_ATTACK_SECONDS = 0.003;
+const GATE_RELEASE_SECONDS = 0.14;
 const TARGET_RMS = 0.095;
 const MIN_AUTO_GAIN = 1;
-const MAX_AUTO_GAIN = 5.5;
-const AUTO_GAIN_ATTACK = 0.025;
-const AUTO_GAIN_RELEASE = 0.45;
+const MAX_AUTO_GAIN = 4.4;
+const AUTO_GAIN_ATTACK = 0.04;
+const AUTO_GAIN_RELEASE = 0.6;
 const LEVEL_NORMALIZER = 0.18;
+const FLOOR_LEARN_RATE = 0.018;
+const FLOOR_MIN = 0.0035;
+const FLOOR_MAX = 0.04;
+const TRANSIENT_PEAK_RATIO = 8.5;
+const TRANSIENT_RMS_LIMIT = 0.06;
+const TRANSIENT_MUTE_MS = 90;
+const VOICE_BAND_LOW_HZ = 110;
+const VOICE_BAND_HIGH_HZ = 3600;
+const SIBILANCE_HIGH_HZ = 7800;
+const VOICE_RATIO_OPEN = 0.46;
+const VOICE_RATIO_CLOSE = 0.31;
+const NOISE_GATE_MULTIPLIER = 2.6;
+const NOISE_GATE_OFFSET = 0.004;
+const LOW_SHELF_CUT_DB = -9;
+const HIGH_SHELF_CUT_DB = -4;
+
+function setFilter(filter, type, frequency, q = 0.7, gain = 0) {
+  filter.type = type;
+  filter.frequency.value = frequency;
+  filter.Q.value = q;
+  filter.gain.value = gain;
+}
 
 export class AudioProcessor {
   constructor(options = {}) {
@@ -20,6 +42,10 @@ export class AudioProcessor {
     this.context = null;
     this.source = null;
     this.highpass = null;
+    this.lowShelf = null;
+    this.presence = null;
+    this.highShelf = null;
+    this.notchFilters = [];
     this.compressor = null;
     this.autoGain = null;
     this.limiter = null;
@@ -35,6 +61,9 @@ export class AudioProcessor {
     this.onLevel = null;
     this.gateOpen = false;
     this.lastVoiceAt = 0;
+    this.noiseFloor = FLOOR_MIN;
+    this.lastTransientAt = 0;
+    this.frequencyData = null;
   }
 
   static getMicrophoneConstraints(deviceId = "") {
@@ -45,6 +74,7 @@ export class AudioProcessor {
       channelCount: { ideal: 1 },
       sampleRate: { ideal: 48000 },
       sampleSize: { ideal: 16 },
+      latency: { ideal: 0.02 },
     };
     if (deviceId) audio.deviceId = { exact: deviceId };
     return { audio };
@@ -61,16 +91,29 @@ export class AudioProcessor {
     this.source = this.context.createMediaStreamSource(this.inputStream);
 
     this.highpass = this.context.createBiquadFilter();
-    this.highpass.type = "highpass";
-    this.highpass.frequency.value = 85;
-    this.highpass.Q.value = 0.7;
+    setFilter(this.highpass, "highpass", 115, 0.85);
+
+    this.lowShelf = this.context.createBiquadFilter();
+    setFilter(this.lowShelf, "lowshelf", 180, 0.7, LOW_SHELF_CUT_DB);
+
+    this.notchFilters = [60, 120, 240, 480].map((frequency) => {
+      const filter = this.context.createBiquadFilter();
+      setFilter(filter, "notch", frequency, frequency === 60 ? 18 : 12);
+      return filter;
+    });
+
+    this.presence = this.context.createBiquadFilter();
+    setFilter(this.presence, "peaking", 2300, 0.95, 2.2);
+
+    this.highShelf = this.context.createBiquadFilter();
+    setFilter(this.highShelf, "highshelf", SIBILANCE_HIGH_HZ, 0.65, HIGH_SHELF_CUT_DB);
 
     this.compressor = this.context.createDynamicsCompressor();
-    this.compressor.threshold.value = -28;
-    this.compressor.knee.value = 18;
-    this.compressor.ratio.value = 4;
-    this.compressor.attack.value = 0.006;
-    this.compressor.release.value = 0.16;
+    this.compressor.threshold.value = -30;
+    this.compressor.knee.value = 20;
+    this.compressor.ratio.value = 3.2;
+    this.compressor.attack.value = 0.012;
+    this.compressor.release.value = 0.18;
 
     this.autoGain = this.context.createGain();
     this.autoGain.gain.value = 1.8;
@@ -85,13 +128,24 @@ export class AudioProcessor {
     this.gate = this.context.createGain();
     this.gate.gain.value = 1;
     this.analyser = this.context.createAnalyser();
-    this.analyser.fftSize = 2048;
-    this.analyser.smoothingTimeConstant = 0.35;
+    this.analyser.fftSize = 4096;
+    this.analyser.smoothingTimeConstant = 0.22;
     this.levelData = new Float32Array(this.analyser.fftSize);
+    this.frequencyData = new Float32Array(this.analyser.frequencyBinCount);
     this.destination = this.context.createMediaStreamDestination();
 
-    this.source.connect(this.highpass);
-    this.highpass.connect(this.compressor);
+    let previousNode = this.source;
+    [
+      this.highpass,
+      this.lowShelf,
+      ...this.notchFilters,
+      this.presence,
+      this.highShelf,
+      this.compressor,
+    ].forEach((node) => {
+      previousNode.connect(node);
+      previousNode = node;
+    });
     this.compressor.connect(this.autoGain);
     this.autoGain.connect(this.limiter);
     this.limiter.connect(this.analyser);
@@ -136,6 +190,10 @@ export class AudioProcessor {
     this.source = null;
     this.highpass = null;
     this.compressor = null;
+    this.lowShelf = null;
+    this.presence = null;
+    this.highShelf = null;
+    this.notchFilters = [];
     this.autoGain = null;
     this.limiter = null;
     this.gate = null;
@@ -149,25 +207,44 @@ export class AudioProcessor {
   startLevelMeter() {
     this.gateOpen = true;
     this.lastVoiceAt = performance.now();
+    this.noiseFloor = FLOOR_MIN;
+    this.lastTransientAt = 0;
 
     const tick = () => {
       if (!this.analyser || !this.gate || !this.context) return;
       this.analyser.getFloatTimeDomainData(this.levelData);
+      this.analyser.getFloatFrequencyData(this.frequencyData);
       let sum = 0;
-      for (const sample of this.levelData) sum += sample * sample;
+      let peak = 0;
+      for (const sample of this.levelData) {
+        const absSample = Math.abs(sample);
+        sum += sample * sample;
+        if (absSample > peak) peak = absSample;
+      }
       const rms = Math.sqrt(sum / this.levelData.length);
       const now = performance.now();
-      const openThreshold = this.options.gateThreshold;
+      const voiceRatio = this.getVoiceRatio();
+      const isTransient = peak > rms * TRANSIENT_PEAK_RATIO && rms < TRANSIENT_RMS_LIMIT;
+      if (isTransient) this.lastTransientAt = now;
+      const transientMuted = now - this.lastTransientAt < TRANSIENT_MUTE_MS;
+      const userThreshold = this.options.gateThreshold;
+      const adaptiveThreshold = Math.max(userThreshold, this.noiseFloor * NOISE_GATE_MULTIPLIER + NOISE_GATE_OFFSET);
+      const openThreshold = adaptiveThreshold;
       const closeThreshold = openThreshold * GATE_HYSTERESIS_RATIO;
+      const voiceLike = voiceRatio >= (this.gateOpen ? VOICE_RATIO_CLOSE : VOICE_RATIO_OPEN);
 
       if (this.autoGain) {
-        const desiredGain = rms > 0.002 ? TARGET_RMS / rms : MAX_AUTO_GAIN;
+        const desiredGain = voiceLike && !transientMuted && rms > 0.002 ? TARGET_RMS / rms : MIN_AUTO_GAIN;
         const nextGain = Math.max(MIN_AUTO_GAIN, Math.min(MAX_AUTO_GAIN, desiredGain));
         const isBoosting = nextGain > this.autoGain.gain.value;
         this.autoGain.gain.setTargetAtTime(nextGain, this.context.currentTime, isBoosting ? AUTO_GAIN_ATTACK : AUTO_GAIN_RELEASE);
       }
 
-      if (rms >= openThreshold || (this.gateOpen && rms >= closeThreshold)) {
+      if (!this.gateOpen && !voiceLike && rms < adaptiveThreshold * 1.8) {
+        this.noiseFloor = Math.max(FLOOR_MIN, Math.min(FLOOR_MAX, this.noiseFloor + (rms - this.noiseFloor) * FLOOR_LEARN_RATE));
+      }
+
+      if (!transientMuted && voiceLike && (rms >= openThreshold || (this.gateOpen && rms >= closeThreshold))) {
         this.gateOpen = true;
         this.lastVoiceAt = now;
       } else if (now - this.lastVoiceAt > GATE_HOLD_MS) {
@@ -184,5 +261,23 @@ export class AudioProcessor {
       this.animationFrame = requestAnimationFrame(tick);
     };
     tick();
+  }
+
+  getVoiceRatio() {
+    if (!this.frequencyData?.length || !this.context?.sampleRate) return 1;
+    const nyquist = this.context.sampleRate / 2;
+    const binHz = nyquist / this.frequencyData.length;
+    let totalEnergy = 0;
+    let voiceEnergy = 0;
+    for (let index = 1; index < this.frequencyData.length; index += 1) {
+      const frequency = index * binHz;
+      if (frequency > SIBILANCE_HIGH_HZ) break;
+      const db = this.frequencyData[index];
+      if (!Number.isFinite(db)) continue;
+      const energy = 10 ** (db / 10);
+      totalEnergy += energy;
+      if (frequency >= VOICE_BAND_LOW_HZ && frequency <= VOICE_BAND_HIGH_HZ) voiceEnergy += energy;
+    }
+    return totalEnergy > 0 ? voiceEnergy / totalEnergy : 0;
   }
 }
