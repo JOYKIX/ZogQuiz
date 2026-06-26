@@ -64,6 +64,7 @@ const guestVoiceMonitor = document.getElementById("guest-voice-monitor");
 const guestVoiceLevel = document.getElementById("guest-voice-level");
 const guestVoiceNoiseReduction = document.getElementById("guest-voice-noise-reduction");
 const guestVoiceSensitivity = document.getElementById("guest-voice-sensitivity");
+const guestVoiceMuteKey = document.getElementById("guest-voice-mute-key");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -1250,6 +1251,7 @@ guestVoiceController = createVoiceChatController({
     level: guestVoiceLevel,
     noiseReductionSelect: guestVoiceNoiseReduction,
     micSensitivity: guestVoiceSensitivity,
+    muteKeyButton: guestVoiceMuteKey,
   },
 });
 

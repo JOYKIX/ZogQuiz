@@ -54,15 +54,39 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
+function normalizeKeyCode(code) {
+  return String(code || DEFAULT_MUTE_KEY).trim() || DEFAULT_MUTE_KEY;
+}
+
+function formatKeyLabel(code) {
+  const normalized = normalizeKeyCode(code);
+  if (normalized === "Space") return "Espace";
+  if (normalized.startsWith("Key")) return normalized.slice(3).toUpperCase();
+  if (normalized.startsWith("Digit")) return normalized.slice(5);
+  return normalized;
+}
+
+function preferContinuousOpus(sdp = "") {
+  return sdp.replace(/a=fmtp:(\d+) ([^\r\n]*useinbandfec=1[^\r\n]*)/g, (line) => {
+    let next = line;
+    if (!/maxaveragebitrate=/.test(next)) next += ";maxaveragebitrate=128000";
+    if (!/stereo=/.test(next)) next += ";stereo=0";
+    if (!/usedtx=/.test(next)) next += ";usedtx=0";
+    return next;
+  });
+}
+
 const NOISE_REDUCTION_MODES = {
-  off: { label: "Off", rnnoise: false, strength: 0, attenuation: 1, sensitivity: 1, highPass: 95, lowPass: 14200, rumbleCut: 0, hissCut: 0 },
-  standard: { label: "Standard", rnnoise: true, strength: 0.58, attenuation: 0.22, sensitivity: 1, highPass: 115, lowPass: 8200, rumbleCut: -5, hissCut: -3 },
-  strong: { label: "Forte", rnnoise: true, strength: 0.76, attenuation: 0.14, sensitivity: 0.92, highPass: 135, lowPass: 7200, rumbleCut: -7, hissCut: -4.5 },
+  off: { label: "Off", rnnoise: false, strength: 0, attenuation: 1, sensitivity: 1, highPass: 80, lowPass: 16000, rumbleCut: 0, hissCut: 0 },
+  standard: { label: "Standard", rnnoise: true, strength: 0.46, attenuation: 0.42, sensitivity: 1, highPass: 85, lowPass: 14000, rumbleCut: -2.5, hissCut: -1.5 },
+  strong: { label: "Forte", rnnoise: true, strength: 0.62, attenuation: 0.3, sensitivity: 0.96, highPass: 95, lowPass: 12000, rumbleCut: -4, hissCut: -2.5 },
 };
 
+const DEFAULT_MUTE_KEY = "KeyM";
 const DEFAULT_VOICE_SETTINGS = {
   noiseReduction: "standard",
   micSensitivity: 1,
+  muteKeyCode: DEFAULT_MUTE_KEY,
 };
 
 function getNoiseMode(value) {
@@ -80,6 +104,7 @@ function loadVoiceSettings() {
       noiseReduction: getNoiseMode(saved.noiseReduction),
       micSensitivity: clampMicSensitivity(saved.micSensitivity),
       selectedDeviceId: String(saved.selectedDeviceId || ""),
+      muteKeyCode: normalizeKeyCode(saved.muteKeyCode || DEFAULT_MUTE_KEY),
     };
   } catch {
     return { ...DEFAULT_VOICE_SETTINGS, selectedDeviceId: "" };
@@ -106,7 +131,7 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
     channelCount: { ideal: 1, max: 1 },
     sampleRate: { ideal: 48000 },
     sampleSize: { ideal: 16 },
-    latency: { ideal: 0.01 },
+    latency: { ideal: 0.02 },
   };
   if (deviceId) audioConstraints.deviceId = { exact: deviceId };
   const rawStream = await navigator.mediaDevices.getUserMedia({
@@ -190,11 +215,11 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
   lowPass.Q.value = 0.72;
 
   const compressor = audioContext.createDynamicsCompressor();
-  compressor.threshold.value = -28;
-  compressor.knee.value = 28;
-  compressor.ratio.value = 1.8;
-  compressor.attack.value = 0.014;
-  compressor.release.value = 0.28;
+  compressor.threshold.value = -24;
+  compressor.knee.value = 30;
+  compressor.ratio.value = 1.55;
+  compressor.attack.value = 0.018;
+  compressor.release.value = 0.22;
 
   const gain = audioContext.createGain();
   gain.gain.value = micSensitivity;
@@ -236,6 +261,8 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     monitorEnabled: false,
     monitorAudio: null,
     voiceSettings: { noiseReduction: initialSettings.noiseReduction, micSensitivity: initialSettings.micSensitivity },
+    muteKeyCode: normalizeKeyCode(initialSettings.muteKeyCode),
+    capturingMuteKey: false,
   };
 
   function render() {
@@ -249,6 +276,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     }
     if (elements.noiseReductionSelect) elements.noiseReductionSelect.value = state.voiceSettings.noiseReduction;
     if (elements.micSensitivity) elements.micSensitivity.value = String(state.voiceSettings.micSensitivity);
+    if (elements.muteKeyButton) elements.muteKeyButton.textContent = state.capturingMuteKey ? "Appuyez sur une touche…" : formatKeyLabel(state.muteKeyCode);
     setHidden(elements.panel, false);
     const activePeople = Object.values(state.participants).filter((p) => Date.now() - Number(p.updatedAt || 0) < STALE_MS);
     elements.list.replaceChildren(...activePeople.map((participant) => {
@@ -287,7 +315,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
 
 
   function persistSettings() {
-    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId });
+    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId, muteKeyCode: state.muteKeyCode });
   }
 
   function currentLocalTrack() {
@@ -417,7 +445,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       const sender = pc.addTrack(track, state.localStream);
       const parameters = sender.getParameters?.() || {};
       parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
-      parameters.encodings[0] = { ...parameters.encodings[0], maxBitrate: 64000, priority: "high", networkPriority: "high" };
+      parameters.encodings[0] = { ...parameters.encodings[0], maxBitrate: 128000, priority: "high", networkPriority: "high", dtx: false };
       sender.setParameters?.(parameters).catch(() => {});
     });
     pc.ontrack = (event) => {
@@ -471,6 +499,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
         if (transceiver.sender?.track?.kind === "audio") transceiver.direction = "sendrecv";
       });
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
+      offer.sdp = preferContinuousOpus(offer.sdp);
       await pc.setLocalDescription(offer);
       await update(ref(db, signalPath), { from: state.clientId, to: remoteId, offer: toPlainDescription(pc.localDescription), createdAt: Date.now() });
     } else {
@@ -480,6 +509,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
         await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
         await flushPendingCandidates();
         const answer = await pc.createAnswer();
+        answer.sdp = preferContinuousOpus(answer.sdp);
         await pc.setLocalDescription(answer);
         await update(ref(db, signalPath), { answer: toPlainDescription(pc.localDescription), answeredAt: Date.now() });
       });
@@ -609,12 +639,36 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     render();
   }
 
+  function startMuteKeyCapture() {
+    state.capturingMuteKey = true;
+    render();
+  }
+
+  function handleMuteKeyDown(event) {
+    const pressedCode = normalizeKeyCode(event.code || event.key);
+    if (state.capturingMuteKey) {
+      event.preventDefault();
+      state.muteKeyCode = pressedCode;
+      state.capturingMuteKey = false;
+      persistSettings();
+      render();
+      return;
+    }
+    const target = event.target;
+    const isTyping = target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName || "");
+    if (isTyping || event.ctrlKey || event.altKey || event.metaKey || pressedCode !== state.muteKeyCode) return;
+    event.preventDefault();
+    toggleMute();
+  }
+
   elements.joinButton?.addEventListener("click", join);
   elements.muteButton?.addEventListener("click", toggleMute);
+  elements.muteKeyButton?.addEventListener("click", startMuteKeyCapture);
   elements.deviceSelect?.addEventListener("change", () => changeMicrophone().catch(console.warn));
   elements.monitorButton?.addEventListener("click", toggleMonitor);
   elements.noiseReductionSelect?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
   elements.micSensitivity?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
+  document.addEventListener("keydown", handleMuteKeyDown);
   navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshMicrophones().catch(console.warn));
   refreshMicrophones().catch(console.warn);
   window.addEventListener("beforeunload", () => { if (state.joined) remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`)); });
