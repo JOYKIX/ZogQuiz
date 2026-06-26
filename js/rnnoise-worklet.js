@@ -64,8 +64,8 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
       const rms = Math.sqrt(sum / Math.max(1, source.length));
       const zcr = zeroCrossings / Math.max(1, source.length);
       this.envelope = Math.max(rms, (this.envelope * 0.94) + (rms * 0.06));
-      const transientLikely = peak > Math.max(0.05, this.envelope * 6.5) && zcr > 0.19;
-      const voiceLikely = rms > Math.max(0.0085, this.noiseFloor * (this.mode === "strong" ? 1.95 : 1.8)) && zcr > 0.012 && zcr < 0.26 && !transientLikely;
+      const transientLikely = peak > Math.max(0.05, this.envelope * 6.5) && zcr > 0.18;
+      const voiceLikely = rms > Math.max(0.0085, this.noiseFloor * (this.mode === "strong" ? 1.95 : 1.8)) && zcr > 0.012 && zcr < 0.22 && !transientLikely;
       const floorRate = voiceLikely ? 0.00025 : 0.012;
       this.noiseFloor = (this.noiseFloor * (1 - floorRate)) + (Math.min(rms, 0.07) * floorRate);
       this.noiseFloor = Math.min(0.04, Math.max(0.0025, this.noiseFloor));
@@ -79,7 +79,7 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
       let targetGate = 1;
       if (rms < closeAt && !inRelease) targetGate = this.attenuation;
       else if (rms < openAt && !inRelease) targetGate = this.attenuation + ((1 - this.attenuation) * ((rms - closeAt) / Math.max(0.0001, openAt - closeAt)));
-      if (transientLikely && !inRelease) targetGate *= this.mode === "strong" ? 0.42 : 0.58;
+      if (transientLikely && !inRelease) targetGate *= this.mode === "strong" ? 0.36 : 0.5;
       targetGate = Math.max(this.mode === "strong" ? 0.12 : 0.18, Math.min(1, targetGate));
 
       const attack = targetGate > this.gateGain ? 0.72 : 0.035;
