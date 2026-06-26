@@ -1419,3 +1419,20 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
   transform-origin: left center;
   background: var(--success, #35d07f);
 }
+
+.voice-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: .65rem;
+}
+
+.voice-settings label {
+  display: grid;
+  gap: .35rem;
+  font-weight: 900;
+}
+
+.voice-settings select,
+.voice-settings input {
+  width: 100%;
+}

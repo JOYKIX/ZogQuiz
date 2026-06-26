@@ -124,6 +124,18 @@
               <label id="admin-voice-device-field" class="voice-device-field hidden">Micro
                 <select id="admin-voice-device"></select>
               </label>
+              <div class="voice-settings">
+                <label>Réduction de bruit
+                  <select id="admin-voice-noise-reduction">
+                    <option value="off">Off</option>
+                    <option value="standard" selected>Standard</option>
+                    <option value="strong">Forte</option>
+                  </select>
+                </label>
+                <label>Sensibilité micro
+                  <input id="admin-voice-sensitivity" type="range" min="0.7" max="1.4" step="0.05" value="1">
+                </label>
+              </div>
               <div class="row compact">
                 <button id="admin-voice-mute" class="btn btn-secondary" type="button" disabled>Mute</button>
                 <button id="admin-voice-monitor" class="btn btn-secondary" type="button" disabled>Retour voix</button>
