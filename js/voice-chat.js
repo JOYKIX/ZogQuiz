@@ -55,9 +55,9 @@ function stopStream(stream) {
 }
 
 const NOISE_REDUCTION_MODES = {
-  off: { label: "Off", rnnoise: false, strength: 0, attenuation: 1, sensitivity: 1 },
-  standard: { label: "Standard", rnnoise: true, strength: 0.58, attenuation: 0.22, sensitivity: 1 },
-  strong: { label: "Forte", rnnoise: true, strength: 0.76, attenuation: 0.14, sensitivity: 0.92 },
+  off: { label: "Off", rnnoise: false, strength: 0, attenuation: 1, sensitivity: 1, highPass: 95, lowPass: 14200, rumbleCut: 0, hissCut: 0 },
+  standard: { label: "Standard", rnnoise: true, strength: 0.58, attenuation: 0.22, sensitivity: 1, highPass: 115, lowPass: 8200, rumbleCut: -5, hissCut: -3 },
+  strong: { label: "Forte", rnnoise: true, strength: 0.76, attenuation: 0.14, sensitivity: 0.92, highPass: 135, lowPass: 7200, rumbleCut: -7, hissCut: -4.5 },
 };
 
 const DEFAULT_VOICE_SETTINGS = {
@@ -157,8 +157,14 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
 
   const highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
-  highPass.frequency.value = rnnoiseActive ? 82 : 95;
-  highPass.Q.value = 0.7;
+  highPass.frequency.value = rnnoiseActive ? mode.highPass : 105;
+  highPass.Q.value = 0.82;
+
+  const rumbleCut = audioContext.createBiquadFilter();
+  rumbleCut.type = "lowshelf";
+  rumbleCut.frequency.value = 180;
+  rumbleCut.Q.value = 0.7;
+  rumbleCut.gain.value = rnnoiseActive ? mode.rumbleCut : -3.5;
 
   const keyboardCut = audioContext.createBiquadFilter();
   keyboardCut.type = "peaking";
@@ -172,10 +178,16 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
   mouseCut.Q.value = 4.2;
   mouseCut.gain.value = rnnoiseActive ? -2.4 : -4.8;
 
+  const hissCut = audioContext.createBiquadFilter();
+  hissCut.type = "highshelf";
+  hissCut.frequency.value = 6200;
+  hissCut.Q.value = 0.7;
+  hissCut.gain.value = rnnoiseActive ? mode.hissCut : -3;
+
   const lowPass = audioContext.createBiquadFilter();
   lowPass.type = "lowpass";
-  lowPass.frequency.value = 14200;
-  lowPass.Q.value = 0.65;
+  lowPass.frequency.value = rnnoiseActive ? mode.lowPass : 9500;
+  lowPass.Q.value = 0.72;
 
   const compressor = audioContext.createDynamicsCompressor();
   compressor.threshold.value = -28;
@@ -195,7 +207,7 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
   limiter.release.value = 0.08;
 
   const destination = audioContext.createMediaStreamDestination();
-  currentNode.connect(highPass).connect(keyboardCut).connect(mouseCut).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
+  currentNode.connect(highPass).connect(rumbleCut).connect(keyboardCut).connect(mouseCut).connect(hissCut).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
   destination.stream.getAudioTracks().forEach((track) => { track.contentHint = "speech"; });
   return { rawStream, outputStream: destination.stream, audioContext, rnnoiseActive };
 }
