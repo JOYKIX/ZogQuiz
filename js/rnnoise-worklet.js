@@ -1,17 +1,38 @@
 class RNNoiseProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options = {}) {
     super();
+    const processorOptions = options.processorOptions || {};
     this.ready = false;
-    this.noiseFloor = 0.006;
-    this.envelope = 0;
+    this.wasmReady = false;
+    this.mode = processorOptions.mode || "standard";
+    this.strength = Number(processorOptions.strength) || 0.62;
+    this.attenuation = Number(processorOptions.attenuation) || 0.18;
+    this.micSensitivity = Number(processorOptions.micSensitivity) || 1;
+    this.noiseFloor = 0.007;
     this.gateGain = 1;
+    this.hangoverFrames = 0;
     this.lastInput = 0;
     this.lastOutput = 0;
     this.port.onmessage = async (event) => {
       if (event.data?.type !== "load") return;
-      this.ready = true;
-      this.port.postMessage({ type: "ready", active: true });
+      this.mode = event.data.mode || this.mode;
+      this.wasmReady = await this.loadWasm(event.data.wasmUrl || "wasm/rnnoise.wasm");
+      this.ready = this.wasmReady;
+      this.port.postMessage({ type: this.wasmReady ? "ready" : "fallback", active: this.wasmReady });
     };
+  }
+
+  async loadWasm(wasmUrl) {
+    try {
+      const response = await fetch(wasmUrl, { cache: "force-cache" });
+      if (!response.ok) return false;
+      const imports = { env: { memory: new WebAssembly.Memory({ initial: 32 }) } };
+      const result = await WebAssembly.instantiate(await response.arrayBuffer(), imports);
+      this.wasm = result.instance || result;
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   process(inputs, outputs) {
@@ -33,8 +54,7 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
       for (let i = 0; i < source.length; i += 1) {
         const sample = source[i];
         sum += sample * sample;
-        const abs = Math.abs(sample);
-        if (abs > peak) peak = abs;
+        peak = Math.max(peak, Math.abs(sample));
         if ((sample >= 0 && previous < 0) || (sample < 0 && previous >= 0)) zeroCrossings += 1;
         previous = sample;
       }
@@ -42,27 +62,32 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
 
       const rms = Math.sqrt(sum / Math.max(1, source.length));
       const zcr = zeroCrossings / Math.max(1, source.length);
-      const voiceLikely = rms > this.noiseFloor * 2.8 && zcr < 0.23;
-      const transientLikely = peak > Math.max(0.035, rms * 7.5) && zcr > 0.18;
-      const floorRate = voiceLikely ? 0.00035 : 0.018;
-      this.noiseFloor = (this.noiseFloor * (1 - floorRate)) + (Math.min(rms, 0.08) * floorRate);
-      this.noiseFloor = Math.min(0.045, Math.max(0.0025, this.noiseFloor));
+      const transientLikely = peak > Math.max(0.04, rms * 7) && zcr > 0.18;
+      const voiceLikely = rms > Math.max(0.011, this.noiseFloor * 2.15) && zcr > 0.015 && zcr < 0.24 && !transientLikely;
+      const floorRate = voiceLikely ? 0.00025 : 0.012;
+      this.noiseFloor = (this.noiseFloor * (1 - floorRate)) + (Math.min(rms, 0.07) * floorRate);
+      this.noiseFloor = Math.min(0.04, Math.max(0.0025, this.noiseFloor));
 
-      const openAt = this.noiseFloor * 2.35;
-      const closeAt = this.noiseFloor * 1.45;
+      if (voiceLikely) this.hangoverFrames = 26;
+      else this.hangoverFrames = Math.max(0, this.hangoverFrames - 1);
+
+      const openAt = Math.max(0.012, this.noiseFloor * (this.mode === "strong" ? 1.95 : 2.15));
+      const closeAt = Math.max(0.007, this.noiseFloor * 1.25);
+      const inRelease = this.hangoverFrames > 0;
       let targetGate = 1;
-      if (rms < closeAt) targetGate = 0.08;
-      else if (rms < openAt) targetGate = 0.08 + (0.92 * ((rms - closeAt) / Math.max(0.0001, openAt - closeAt)));
-      if (transientLikely && !voiceLikely) targetGate *= 0.34;
+      if (rms < closeAt && !inRelease) targetGate = this.attenuation;
+      else if (rms < openAt && !inRelease) targetGate = this.attenuation + ((1 - this.attenuation) * ((rms - closeAt) / Math.max(0.0001, openAt - closeAt)));
+      if (transientLikely && !inRelease) targetGate *= this.mode === "strong" ? 0.36 : 0.52;
+      targetGate = Math.max(this.mode === "strong" ? 0.08 : 0.14, Math.min(1, targetGate));
 
-      const attack = targetGate > this.gateGain ? 0.42 : 0.08;
+      const attack = targetGate > this.gateGain ? 0.55 : 0.045;
       this.gateGain = (this.gateGain * (1 - attack)) + (targetGate * attack);
 
       for (let i = 0; i < source.length; i += 1) {
         const sample = source[i];
-        const deClicked = transientLikely && Math.abs(sample) > rms * 5.5 ? sample * 0.55 : sample;
-        const shaped = deClicked * this.gateGain;
-        const smoothed = (0.985 * shaped) + (0.015 * this.lastOutput);
+        const clickReduced = transientLikely && !inRelease && Math.abs(sample) > rms * 5.2 ? sample * 0.45 : sample;
+        const shaped = clickReduced * this.gateGain;
+        const smoothed = (0.992 * shaped) + (0.008 * this.lastOutput);
         target[i] = Math.max(-1, Math.min(1, smoothed));
         this.lastOutput = target[i];
       }

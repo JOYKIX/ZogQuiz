@@ -44,11 +44,29 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
-async function createProcessedMicrophoneStream({ status, deviceId }) {
+const NOISE_REDUCTION_MODES = {
+  off: { label: "Off", rnnoise: false, strength: 0, attenuation: 1, sensitivity: 1 },
+  standard: { label: "Standard", rnnoise: true, strength: 0.62, attenuation: 0.18, sensitivity: 1 },
+  strong: { label: "Forte", rnnoise: true, strength: 0.82, attenuation: 0.12, sensitivity: 0.92 },
+};
+
+const DEFAULT_VOICE_SETTINGS = {
+  noiseReduction: "standard",
+  micSensitivity: 1,
+};
+
+function getNoiseMode(value) {
+  return NOISE_REDUCTION_MODES[value] ? value : "standard";
+}
+
+async function createProcessedMicrophoneStream({ status, deviceId, settings = DEFAULT_VOICE_SETTINGS }) {
+  const noiseReduction = getNoiseMode(settings.noiseReduction);
+  const mode = NOISE_REDUCTION_MODES[noiseReduction];
+  const micSensitivity = Math.min(1.4, Math.max(0.7, Number(settings.micSensitivity) || 1));
   const audioConstraints = {
     echoCancellation: { ideal: true },
     autoGainControl: { ideal: false },
-    noiseSuppression: { ideal: true },
+    noiseSuppression: mode.rnnoise ? false : { ideal: true },
     channelCount: { ideal: 1, max: 1 },
     sampleRate: { ideal: 48000 },
     sampleSize: { ideal: 16 },
@@ -69,21 +87,31 @@ async function createProcessedMicrophoneStream({ status, deviceId }) {
   let currentNode = source;
   let rnnoiseActive = false;
 
-  if (audioContext.audioWorklet) {
+  if (mode.rnnoise && audioContext.audioWorklet) {
     try {
       await audioContext.audioWorklet.addModule("js/rnnoise-worklet.js");
-      const rnnoiseNode = new AudioWorkletNode(audioContext, "rnnoise-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+      const rnnoiseNode = new AudioWorkletNode(audioContext, "rnnoise-processor", {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+        processorOptions: {
+          mode: noiseReduction,
+          strength: mode.strength,
+          attenuation: mode.attenuation,
+          micSensitivity,
+        },
+      });
       const rnnoiseReady = new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(false), 1200);
+        const timeout = setTimeout(() => resolve(false), 1500);
         rnnoiseNode.port.onmessage = (event) => {
           if (!["ready", "fallback"].includes(event.data?.type)) return;
           clearTimeout(timeout);
           resolve(Boolean(event.data?.active));
         };
       });
-      rnnoiseNode.port.postMessage({ type: "load" });
+      rnnoiseNode.port.postMessage({ type: "load", wasmUrl: "wasm/rnnoise.wasm", mode: noiseReduction });
       rnnoiseActive = await rnnoiseReady;
-      if (!rnnoiseActive) throw new Error("Traitement vocal non initialisé");
+      if (!rnnoiseActive) throw new Error("RNNoise indisponible");
       currentNode.connect(rnnoiseNode);
       currentNode = rnnoiseNode;
     } catch (error) {
@@ -93,51 +121,45 @@ async function createProcessedMicrophoneStream({ status, deviceId }) {
 
   const highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
-  highPass.frequency.value = 105;
-  highPass.Q.value = 0.9;
+  highPass.frequency.value = rnnoiseActive ? 82 : 95;
+  highPass.Q.value = 0.7;
 
   const keyboardCut = audioContext.createBiquadFilter();
   keyboardCut.type = "peaking";
-  keyboardCut.frequency.value = 2600;
-  keyboardCut.Q.value = 4.8;
-  keyboardCut.gain.value = -4.5;
+  keyboardCut.frequency.value = 2800;
+  keyboardCut.Q.value = 3.8;
+  keyboardCut.gain.value = rnnoiseActive ? -2.2 : -4.2;
 
   const mouseCut = audioContext.createBiquadFilter();
   mouseCut.type = "peaking";
-  mouseCut.frequency.value = 5200;
-  mouseCut.Q.value = 5.5;
-  mouseCut.gain.value = -5.5;
-
-  const presence = audioContext.createBiquadFilter();
-  presence.type = "peaking";
-  presence.frequency.value = 3200;
-  presence.Q.value = 0.8;
-  presence.gain.value = 1.4;
+  mouseCut.frequency.value = 5600;
+  mouseCut.Q.value = 4.2;
+  mouseCut.gain.value = rnnoiseActive ? -2.4 : -4.8;
 
   const lowPass = audioContext.createBiquadFilter();
   lowPass.type = "lowpass";
-  lowPass.frequency.value = 13200;
-  lowPass.Q.value = 0.7;
+  lowPass.frequency.value = 14200;
+  lowPass.Q.value = 0.65;
 
   const compressor = audioContext.createDynamicsCompressor();
-  compressor.threshold.value = -32;
-  compressor.knee.value = 18;
-  compressor.ratio.value = 2.7;
-  compressor.attack.value = 0.006;
-  compressor.release.value = 0.16;
+  compressor.threshold.value = -30;
+  compressor.knee.value = 24;
+  compressor.ratio.value = 2.2;
+  compressor.attack.value = 0.008;
+  compressor.release.value = 0.22;
 
   const gain = audioContext.createGain();
-  gain.gain.value = 1.04;
+  gain.gain.value = micSensitivity;
 
   const limiter = audioContext.createDynamicsCompressor();
-  limiter.threshold.value = -4;
+  limiter.threshold.value = -3.5;
   limiter.knee.value = 0;
-  limiter.ratio.value = 24;
-  limiter.attack.value = 0.001;
-  limiter.release.value = 0.06;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.0015;
+  limiter.release.value = 0.08;
 
   const destination = audioContext.createMediaStreamDestination();
-  currentNode.connect(highPass).connect(keyboardCut).connect(mouseCut).connect(presence).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
+  currentNode.connect(highPass).connect(keyboardCut).connect(mouseCut).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
   destination.stream.getAudioTracks().forEach((track) => { track.contentHint = "speech"; });
   return { rawStream, outputStream: destination.stream, audioContext, rnnoiseActive };
 }
@@ -158,11 +180,13 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     unsubSignals: null,
     unsubSignalRemoved: null,
     analyser: null,
+    analyserSource: null,
     speakingRaf: 0,
     levelRaf: 0,
     selectedDeviceId: "",
     monitorEnabled: false,
     monitorAudio: null,
+    voiceSettings: { ...DEFAULT_VOICE_SETTINGS },
   };
 
   function render() {
@@ -174,6 +198,8 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       elements.monitorButton.disabled = !state.joined;
       elements.monitorButton.textContent = state.monitorEnabled ? "Couper retour" : "Retour voix";
     }
+    if (elements.noiseReductionSelect) elements.noiseReductionSelect.value = state.voiceSettings.noiseReduction;
+    if (elements.micSensitivity) elements.micSensitivity.value = String(state.voiceSettings.micSensitivity);
     setHidden(elements.panel, false);
     const activePeople = Object.values(state.participants).filter((p) => Date.now() - Number(p.updatedAt || 0) < STALE_MS);
     elements.list.replaceChildren(...activePeople.map((participant) => {
@@ -227,28 +253,47 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   function startSpeakingMeter() {
     cancelAnimationFrame(state.speakingRaf);
     cancelAnimationFrame(state.levelRaf);
+    state.analyserSource?.disconnect?.();
     const track = state.localStream?.getAudioTracks?.()[0];
     if (!state.audioContext || !track) return;
-    const source = state.audioContext.createMediaStreamSource(new MediaStream([track]));
+    state.analyserSource = state.audioContext.createMediaStreamSource(new MediaStream([track]));
     state.analyser = state.audioContext.createAnalyser();
-    state.analyser.fftSize = 512;
-    source.connect(state.analyser);
+    state.analyser.fftSize = 1024;
+    state.analyser.smoothingTimeConstant = 0.72;
+    state.analyserSource.connect(state.analyser);
     const data = new Uint8Array(state.analyser.fftSize);
+    let noiseFloor = 0.012;
+    let holdUntil = 0;
     let lastSpeaking = false;
     let lastWrite = 0;
     const tick = () => {
       state.analyser.getByteTimeDomainData(data);
       let sum = 0;
-      for (const sample of data) {
-        const normalized = (sample - 128) / 128;
+      let peak = 0;
+      let zeroCrossings = 0;
+      let previous = 0;
+      for (let i = 0; i < data.length; i += 1) {
+        const normalized = (data[i] - 128) / 128;
         sum += normalized * normalized;
+        peak = Math.max(peak, Math.abs(normalized));
+        if ((normalized >= 0 && previous < 0) || (normalized < 0 && previous >= 0)) zeroCrossings += 1;
+        previous = normalized;
       }
       const level = Math.sqrt(sum / data.length);
-      const speaking = !state.muted && level > 0.03;
-      if (elements.level) elements.level.style.transform = `scaleX(${Math.min(1, level * 8).toFixed(3)})`;
-      if (speaking !== lastSpeaking || Date.now() - lastWrite > 2500) {
+      const zcr = zeroCrossings / data.length;
+      const transientOnly = peak > Math.max(0.045, level * 6.5) && zcr > 0.2;
+      const floorRate = level > noiseFloor * 2.4 && !transientOnly ? 0.002 : 0.04;
+      noiseFloor = Math.min(0.05, Math.max(0.004, (noiseFloor * (1 - floorRate)) + (Math.min(level, 0.08) * floorRate)));
+      const voiceLevel = level > Math.max(0.018, noiseFloor * 2.15);
+      const voiceShape = zcr > 0.018 && zcr < 0.24;
+      const voiceDetected = !state.muted && voiceLevel && voiceShape && !transientOnly;
+      const now = Date.now();
+      if (voiceDetected) holdUntil = now + 520;
+      const speaking = !state.muted && (voiceDetected || now < holdUntil);
+      if (elements.level) elements.level.style.transform = `scaleX(${Math.min(1, level * 7).toFixed(3)})`;
+      if (speaking !== lastSpeaking || now - lastWrite > 2500) {
         lastSpeaking = speaking;
-        lastWrite = Date.now();
+        lastWrite = now;
         writePresence({ speaking }).catch(console.warn);
       }
       state.speakingRaf = requestAnimationFrame(tick);
@@ -364,7 +409,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     elements.joinButton.disabled = true;
     setText(elements.status, "Connexion vocal…");
     state.roomId = safeKey(getRoomId() || DEFAULT_ROOM_ID);
-    const processed = await createProcessedMicrophoneStream({ status: elements.status, deviceId: state.selectedDeviceId });
+    const processed = await createProcessedMicrophoneStream({ status: elements.status, deviceId: state.selectedDeviceId, settings: state.voiceSettings });
     state.rawStream = processed.rawStream;
     state.localStream = processed.outputStream;
     state.audioContext = processed.audioContext;
@@ -373,7 +418,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     state.localStream.getAudioTracks().forEach((track) => { track.enabled = true; });
     const presenceRef = ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`);
     onDisconnect(presenceRef).remove().catch(() => {});
-    await writePresence({ voiceProcessing: processed.rnnoiseActive });
+    await writePresence({ voiceProcessing: processed.rnnoiseActive, noiseReduction: state.voiceSettings.noiseReduction });
     state.heartbeat = setInterval(() => writePresence().catch(console.warn), HEARTBEAT_MS);
     watchRoom();
     startSpeakingMeter();
@@ -401,6 +446,9 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     state.joined = false;
     clearInterval(state.heartbeat);
     cancelAnimationFrame(state.speakingRaf);
+    state.analyserSource?.disconnect?.();
+    state.analyserSource = null;
+    state.analyser = null;
     state.unsubPresence?.(); state.unsubSignals?.(); state.unsubSignalRemoved?.();
     for (const peerId of [...state.peers.keys()]) closePeer(peerId, true);
     await remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`)).catch(() => {});
@@ -429,6 +477,14 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     await join();
   }
 
+  async function changeVoiceSettings() {
+    state.voiceSettings.noiseReduction = getNoiseMode(elements.noiseReductionSelect?.value || state.voiceSettings.noiseReduction);
+    state.voiceSettings.micSensitivity = Math.min(1.4, Math.max(0.7, Number(elements.micSensitivity?.value) || 1));
+    if (!state.joined) return;
+    await leave();
+    await join();
+  }
+
   function toggleMonitor() {
     if (!state.joined) return;
     state.monitorEnabled = !state.monitorEnabled;
@@ -440,6 +496,8 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   elements.muteButton?.addEventListener("click", toggleMute);
   elements.deviceSelect?.addEventListener("change", () => changeMicrophone().catch(console.warn));
   elements.monitorButton?.addEventListener("click", toggleMonitor);
+  elements.noiseReductionSelect?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
+  elements.micSensitivity?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
   navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshMicrophones().catch(console.warn));
   refreshMicrophones().catch(console.warn);
   window.addEventListener("beforeunload", () => { if (state.joined) remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`)); });
