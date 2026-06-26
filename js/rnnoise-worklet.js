@@ -3,9 +3,11 @@ import { Rnnoise } from "./vendor/rnnoise/rnnoise.js";
 const FRAME_SIZE = 480;
 const INPUT_SCALE = 32768;
 const OUTPUT_SCALE = 1 / INPUT_SCALE;
-const VAD_FLOOR = 0.3;
-const VAD_MUTE = 0.14;
-const NOISE_FLOOR_ATTENUATION = 0.03;
+const VAD_FLOOR = 0.24;
+const VAD_MUTE = 0.08;
+const NOISE_FLOOR_ATTENUATION = 0.015;
+const GATE_ATTACK = 0.35;
+const GATE_RELEASE = 0.08;
 
 class RNNoiseProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -52,39 +54,36 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
       return !this.closed;
     }
 
-    let inputIndex = 0;
-    let outputIndex = 0;
-    while (outputIndex < output.length) {
-      if (this.outputQueue.length) {
-        const chunk = this.outputQueue[0];
-        const copyLength = Math.min(chunk.length, output.length - outputIndex);
-        output.set(chunk.subarray(0, copyLength), outputIndex);
-        outputIndex += copyLength;
-        if (copyLength === chunk.length) this.outputQueue.shift();
-        else this.outputQueue[0] = chunk.subarray(copyLength);
-        continue;
-      }
-
-      if (inputIndex >= input.length) break;
-
+    for (let inputIndex = 0; inputIndex < input.length;) {
       const copyLength = Math.min(FRAME_SIZE - this.frameOffset, input.length - inputIndex);
       this.inputFrame.set(input.subarray(inputIndex, inputIndex + copyLength), this.frameOffset);
       this.frameOffset += copyLength;
       inputIndex += copyLength;
 
-      if (this.frameOffset === FRAME_SIZE) {
-        for (let i = 0; i < FRAME_SIZE; i += 1) {
-          this.outputFrame[i] = Math.max(-1, Math.min(1, this.inputFrame[i])) * INPUT_SCALE;
-        }
-        const voiceProbability = this.denoiseState.processFrame(this.outputFrame);
-        const targetGain = voiceProbability <= VAD_MUTE ? 0 : (voiceProbability < VAD_FLOOR ? NOISE_FLOOR_ATTENUATION : 1);
-        this.noiseGateGain += (targetGain - this.noiseGateGain) * 0.75;
-        for (let i = 0; i < FRAME_SIZE; i += 1) {
-          this.outputFrame[i] = Math.max(-1, Math.min(1, this.outputFrame[i] * OUTPUT_SCALE * this.noiseGateGain));
-        }
-        this.outputQueue.push(this.outputFrame.slice());
-        this.frameOffset = 0;
+      if (this.frameOffset !== FRAME_SIZE) continue;
+
+      for (let i = 0; i < FRAME_SIZE; i += 1) {
+        this.outputFrame[i] = Math.max(-1, Math.min(1, this.inputFrame[i])) * INPUT_SCALE;
       }
+      const voiceProbability = this.denoiseState.processFrame(this.outputFrame);
+      const targetGain = voiceProbability <= VAD_MUTE ? 0 : (voiceProbability < VAD_FLOOR ? NOISE_FLOOR_ATTENUATION : 1);
+      const smoothing = targetGain > this.noiseGateGain ? GATE_ATTACK : GATE_RELEASE;
+      for (let i = 0; i < FRAME_SIZE; i += 1) {
+        this.noiseGateGain += (targetGain - this.noiseGateGain) * smoothing;
+        this.outputFrame[i] = Math.max(-1, Math.min(1, this.outputFrame[i] * OUTPUT_SCALE * this.noiseGateGain));
+      }
+      this.outputQueue.push(this.outputFrame.slice());
+      this.frameOffset = 0;
+    }
+
+    let outputIndex = 0;
+    while (outputIndex < output.length && this.outputQueue.length) {
+      const chunk = this.outputQueue[0];
+      const copyLength = Math.min(chunk.length, output.length - outputIndex);
+      output.set(chunk.subarray(0, copyLength), outputIndex);
+      outputIndex += copyLength;
+      if (copyLength === chunk.length) this.outputQueue.shift();
+      else this.outputQueue[0] = chunk.subarray(copyLength);
     }
 
     if (outputIndex < output.length) output.fill(0, outputIndex);
