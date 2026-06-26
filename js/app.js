@@ -57,6 +57,7 @@ const adminVoiceMonitor = $("admin-voice-monitor");
 const adminVoiceLevel = $("admin-voice-level");
 const adminVoiceNoiseReduction = $("admin-voice-noise-reduction");
 const adminVoiceSensitivity = $("admin-voice-sensitivity");
+const adminVoiceMuteKey = $("admin-voice-mute-key");
 
 const guestAccountForm = $("guest-account-form");
 const guestLoginIdInput = $("guest-login-id");
@@ -2581,6 +2582,7 @@ const adminVoiceController = createVoiceChatController({
     level: adminVoiceLevel,
     noiseReductionSelect: adminVoiceNoiseReduction,
     micSensitivity: adminVoiceSensitivity,
+    muteKeyButton: adminVoiceMuteKey,
   },
 });
 
