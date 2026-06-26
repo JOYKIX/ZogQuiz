@@ -1,7 +1,7 @@
 const LEVEL_NORMALIZER = 0.18;
 const DEFAULT_MIC_GAIN = 1;
 const MIN_MIC_GAIN = 1;
-const MAX_MIC_GAIN = 2;
+const MAX_MIC_GAIN = 3;
 export class AudioProcessor {
   constructor(options = {}) {
     this.context = null;
@@ -60,11 +60,11 @@ export class AudioProcessor {
     this.source = this.context.createMediaStreamSource(this.inputStream);
     this.highPassFilter = this.context.createBiquadFilter();
     this.highPassFilter.type = "highpass";
-    this.highPassFilter.frequency.value = 70;
+    this.highPassFilter.frequency.value = 90;
     this.highPassFilter.Q.value = 0.7;
     this.lowPassFilter = this.context.createBiquadFilter();
     this.lowPassFilter.type = "lowpass";
-    this.lowPassFilter.frequency.value = 12000;
+    this.lowPassFilter.frequency.value = 9000;
     this.lowPassFilter.Q.value = 0.7;
     this.compressor = this.context.createDynamicsCompressor();
     this.compressor.threshold.value = -18;
@@ -80,7 +80,7 @@ export class AudioProcessor {
     this.levelData = new Float32Array(this.analyser.fftSize);
     this.destination = this.context.createMediaStreamDestination();
 
-    const processedNode = this.createBypassNode();
+    const processedNode = await this.createProcessedNode();
     this.source.connect(this.highPassFilter);
     this.highPassFilter.connect(processedNode);
     processedNode.connect(this.lowPassFilter);
@@ -98,10 +98,31 @@ export class AudioProcessor {
     return this.outputTrack;
   }
 
+  async createProcessedNode() {
+    try {
+      await this.context.audioWorklet.addModule(new URL("./rnnoise-worklet.js", import.meta.url));
+      const node = new AudioWorkletNode(this.context, "rnnoise-processor", {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+      });
+      node.port.onmessage = (event) => {
+        if (event.data?.type === "ready") this.rnnoiseReady = true;
+        if (event.data?.type === "error") this.rnnoiseReady = false;
+      };
+      node.onprocessorerror = () => { this.rnnoiseReady = false; };
+      this.rnnoiseNode = node;
+      return node;
+    } catch {
+      return this.createBypassNode();
+    }
+  }
+
   createBypassNode() {
     const node = this.context.createGain();
     node.gain.value = 1;
     this.rnnoiseNode = node;
+    this.rnnoiseReady = false;
     return node;
   }
 
