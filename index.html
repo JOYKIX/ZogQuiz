@@ -121,10 +121,15 @@
                 </div>
                 <button id="admin-voice-join" class="btn btn-secondary" type="button">Rejoindre le vocal</button>
               </div>
+              <label id="admin-voice-device-field" class="voice-device-field hidden">Micro
+                <select id="admin-voice-device"></select>
+              </label>
               <div class="row compact">
                 <button id="admin-voice-mute" class="btn btn-secondary" type="button" disabled>Mute</button>
+                <button id="admin-voice-monitor" class="btn btn-secondary" type="button" disabled>Retour voix</button>
                 <span id="admin-voice-speaking" class="voice-speaking-indicator" aria-label="Parle"></span>
               </div>
+              <div class="voice-meter" aria-hidden="true"><span id="admin-voice-level"></span></div>
               <p id="admin-voice-status" class="message voice-status">Vocal déconnecté.</p>
               <ul id="admin-voice-list" class="list compact-list"></ul>
             </article>

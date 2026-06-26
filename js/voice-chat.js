@@ -44,16 +44,19 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
-async function createProcessedMicrophoneStream({ status }) {
+async function createProcessedMicrophoneStream({ status, deviceId }) {
+  const audioConstraints = {
+    echoCancellation: true,
+    autoGainControl: false,
+    noiseSuppression: true,
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 },
+    sampleSize: { ideal: 16 },
+    latency: { ideal: 0.01 },
+  };
+  if (deviceId) audioConstraints.deviceId = { exact: deviceId };
   const rawStream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      autoGainControl: true,
-      noiseSuppression: false,
-      channelCount: 1,
-      sampleRate: { ideal: 48000 },
-      latency: { ideal: 0.02 },
-    },
+    audio: audioConstraints,
     video: false,
   });
 
@@ -91,28 +94,39 @@ async function createProcessedMicrophoneStream({ status }) {
 
   const highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
-  highPass.frequency.value = 85;
-  highPass.Q.value = 0.7;
+  highPass.frequency.value = 90;
+  highPass.Q.value = 0.75;
+
+  const presence = audioContext.createBiquadFilter();
+  presence.type = "peaking";
+  presence.frequency.value = 3200;
+  presence.Q.value = 0.8;
+  presence.gain.value = 2.2;
+
+  const lowPass = audioContext.createBiquadFilter();
+  lowPass.type = "lowpass";
+  lowPass.frequency.value = 15500;
+  lowPass.Q.value = 0.7;
 
   const compressor = audioContext.createDynamicsCompressor();
-  compressor.threshold.value = -24;
-  compressor.knee.value = 18;
-  compressor.ratio.value = 2.4;
-  compressor.attack.value = 0.006;
-  compressor.release.value = 0.16;
+  compressor.threshold.value = -30;
+  compressor.knee.value = 22;
+  compressor.ratio.value = 3.2;
+  compressor.attack.value = 0.004;
+  compressor.release.value = 0.14;
 
   const gain = audioContext.createGain();
-  gain.gain.value = 1.05;
+  gain.gain.value = 1.08;
 
   const limiter = audioContext.createDynamicsCompressor();
-  limiter.threshold.value = -3;
+  limiter.threshold.value = -4;
   limiter.knee.value = 0;
-  limiter.ratio.value = 20;
-  limiter.attack.value = 0.002;
-  limiter.release.value = 0.08;
+  limiter.ratio.value = 24;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.06;
 
   const destination = audioContext.createMediaStreamDestination();
-  currentNode.connect(highPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
+  currentNode.connect(highPass).connect(presence).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
   return { rawStream, outputStream: destination.stream, audioContext, rnnoiseActive };
 }
 
@@ -133,6 +147,10 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     unsubSignalRemoved: null,
     analyser: null,
     speakingRaf: 0,
+    levelRaf: 0,
+    selectedDeviceId: "",
+    monitorEnabled: false,
+    monitorAudio: null,
   };
 
   function render() {
@@ -140,6 +158,10 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     elements.joinButton.disabled = false;
     elements.muteButton.disabled = !state.joined;
     elements.muteButton.textContent = state.muted ? "Unmute" : "Mute";
+    if (elements.monitorButton) {
+      elements.monitorButton.disabled = !state.joined;
+      elements.monitorButton.textContent = state.monitorEnabled ? "Couper retour" : "Retour voix";
+    }
     setHidden(elements.panel, false);
     const activePeople = Object.values(state.participants).filter((p) => Date.now() - Number(p.updatedAt || 0) < STALE_MS);
     elements.list.replaceChildren(...activePeople.map((participant) => {
@@ -155,6 +177,24 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       elements.list.append(empty);
     }
     elements.speaking?.classList.toggle("active", Boolean(state.participants[state.clientId]?.speaking));
+  }
+
+  async function refreshMicrophones() {
+    if (!navigator.mediaDevices?.enumerateDevices || !elements.deviceSelect) return;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const microphones = devices.filter((device) => device.kind === "audioinput");
+    elements.deviceSelect.replaceChildren(...microphones.map((device, index) => {
+      const option = document.createElement("option");
+      option.value = device.deviceId;
+      option.textContent = device.label || `Micro ${index + 1}`;
+      return option;
+    }));
+    if (state.selectedDeviceId && microphones.some((device) => device.deviceId === state.selectedDeviceId)) {
+      elements.deviceSelect.value = state.selectedDeviceId;
+    } else {
+      state.selectedDeviceId = elements.deviceSelect.value || "";
+    }
+    setHidden(elements.deviceField, microphones.length === 0);
   }
 
   async function writePresence(extra = {}) {
@@ -173,6 +213,8 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   }
 
   function startSpeakingMeter() {
+    cancelAnimationFrame(state.speakingRaf);
+    cancelAnimationFrame(state.levelRaf);
     const track = state.localStream?.getAudioTracks?.()[0];
     if (!state.audioContext || !track) return;
     const source = state.audioContext.createMediaStreamSource(new MediaStream([track]));
@@ -189,7 +231,9 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
         const normalized = (sample - 128) / 128;
         sum += normalized * normalized;
       }
-      const speaking = !state.muted && Math.sqrt(sum / data.length) > 0.035;
+      const level = Math.sqrt(sum / data.length);
+      const speaking = !state.muted && level > 0.03;
+      if (elements.level) elements.level.style.transform = `scaleX(${Math.min(1, level * 8).toFixed(3)})`;
       if (speaking !== lastSpeaking || Date.now() - lastWrite > 2500) {
         lastSpeaking = speaking;
         lastWrite = Date.now();
@@ -275,7 +319,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     elements.joinButton.disabled = true;
     setText(elements.status, "Connexion vocal…");
     state.roomId = safeKey(getRoomId() || DEFAULT_ROOM_ID);
-    const processed = await createProcessedMicrophoneStream({ status: elements.status });
+    const processed = await createProcessedMicrophoneStream({ status: elements.status, deviceId: state.selectedDeviceId });
     state.rawStream = processed.rawStream;
     state.localStream = processed.outputStream;
     state.audioContext = processed.audioContext;
@@ -289,7 +333,23 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     watchRoom();
     startSpeakingMeter();
     setText(elements.status, processed.rnnoiseActive ? "Vocal actif. RNNoise actif." : "Vocal actif. RNNoise indisponible.");
+    await refreshMicrophones().catch(console.warn);
     render();
+  }
+
+  function syncMonitor() {
+    if (state.monitorAudio) {
+      state.monitorAudio.pause();
+      state.monitorAudio.srcObject = null;
+      state.monitorAudio.remove();
+      state.monitorAudio = null;
+    }
+    if (!state.joined || !state.monitorEnabled || !state.localStream) return;
+    state.monitorAudio = new Audio();
+    state.monitorAudio.autoplay = true;
+    state.monitorAudio.muted = false;
+    state.monitorAudio.srcObject = state.localStream;
+    state.monitorAudio.play?.().catch(console.warn);
   }
 
   async function leave() {
@@ -299,9 +359,12 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     state.unsubPresence?.(); state.unsubSignals?.(); state.unsubSignalRemoved?.();
     for (const peerId of [...state.peers.keys()]) closePeer(peerId, true);
     await remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`)).catch(() => {});
+    state.monitorEnabled = false;
+    syncMonitor();
     stopStream(state.rawStream); stopStream(state.localStream);
     await state.audioContext?.close?.().catch(() => {});
     state.rawStream = null; state.localStream = null; state.audioContext = null; state.participants = {};
+    if (elements.level) elements.level.style.transform = "scaleX(0)";
     setText(elements.status, "Vocal déconnecté.");
     render();
   }
@@ -314,8 +377,26 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     render();
   }
 
+  async function changeMicrophone() {
+    state.selectedDeviceId = elements.deviceSelect?.value || "";
+    if (!state.joined) return;
+    await leave();
+    await join();
+  }
+
+  function toggleMonitor() {
+    if (!state.joined) return;
+    state.monitorEnabled = !state.monitorEnabled;
+    syncMonitor();
+    render();
+  }
+
   elements.joinButton?.addEventListener("click", join);
   elements.muteButton?.addEventListener("click", toggleMute);
+  elements.deviceSelect?.addEventListener("change", () => changeMicrophone().catch(console.warn));
+  elements.monitorButton?.addEventListener("click", toggleMonitor);
+  navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshMicrophones().catch(console.warn));
+  refreshMicrophones().catch(console.warn);
   window.addEventListener("beforeunload", () => { if (state.joined) remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`)); });
   render();
   return { join, leave, toggleMute };
