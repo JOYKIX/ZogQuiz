@@ -10,6 +10,7 @@ import {
   ensureRoundsSeed,
 } from "./firebase.js";
 import { createBuzzSoundTrigger } from "./audio.js";
+import { createVoiceChatController } from "./voice-chat.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche4Admin } from "./manche4.js";
 import { initMortSubiteAdmin } from "./mort-subite.js";
@@ -44,6 +45,12 @@ const logoutBtn = $("logout");
 const loginForm = $("login-form");
 const breadcrumb = $("breadcrumb");
 const toast = $("toast");
+const adminVoicePanel = $("admin-voice-panel");
+const adminVoiceJoin = $("admin-voice-join");
+const adminVoiceMute = $("admin-voice-mute");
+const adminVoiceStatus = $("admin-voice-status");
+const adminVoiceList = $("admin-voice-list");
+const adminVoiceSpeaking = $("admin-voice-speaking");
 
 const guestAccountForm = $("guest-account-form");
 const guestLoginIdInput = $("guest-login-id");
@@ -2551,3 +2558,17 @@ restoreSession().catch((error) => {
   showAuth();
   setMessage(authMessage, `Erreur session : ${error.message}`, "error");
 });
+const adminVoiceController = createVoiceChatController({
+  getUserId: () => "admin",
+  getDisplayName: () => adminEmail?.textContent || "Admin",
+  getRoomId: () => "main",
+  elements: {
+    panel: adminVoicePanel,
+    joinButton: adminVoiceJoin,
+    muteButton: adminVoiceMute,
+    status: adminVoiceStatus,
+    list: adminVoiceList,
+    speaking: adminVoiceSpeaking,
+  },
+});
+
