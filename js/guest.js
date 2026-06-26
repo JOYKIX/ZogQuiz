@@ -58,6 +58,10 @@ const guestVoiceMute = document.getElementById("guest-voice-mute");
 const guestVoiceStatus = document.getElementById("guest-voice-status");
 const guestVoiceList = document.getElementById("guest-voice-list");
 const guestVoiceSpeaking = document.getElementById("guest-voice-speaking");
+const guestVoiceDevice = document.getElementById("guest-voice-device");
+const guestVoiceDeviceField = document.getElementById("guest-voice-device-field");
+const guestVoiceMonitor = document.getElementById("guest-voice-monitor");
+const guestVoiceLevel = document.getElementById("guest-voice-level");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -1238,6 +1242,10 @@ guestVoiceController = createVoiceChatController({
     status: guestVoiceStatus,
     list: guestVoiceList,
     speaking: guestVoiceSpeaking,
+    deviceSelect: guestVoiceDevice,
+    deviceField: guestVoiceDeviceField,
+    monitorButton: guestVoiceMonitor,
+    level: guestVoiceLevel,
   },
 });
 

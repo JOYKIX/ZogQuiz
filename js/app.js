@@ -51,6 +51,10 @@ const adminVoiceMute = $("admin-voice-mute");
 const adminVoiceStatus = $("admin-voice-status");
 const adminVoiceList = $("admin-voice-list");
 const adminVoiceSpeaking = $("admin-voice-speaking");
+const adminVoiceDevice = $("admin-voice-device");
+const adminVoiceDeviceField = $("admin-voice-device-field");
+const adminVoiceMonitor = $("admin-voice-monitor");
+const adminVoiceLevel = $("admin-voice-level");
 
 const guestAccountForm = $("guest-account-form");
 const guestLoginIdInput = $("guest-login-id");
@@ -2569,6 +2573,10 @@ const adminVoiceController = createVoiceChatController({
     status: adminVoiceStatus,
     list: adminVoiceList,
     speaking: adminVoiceSpeaking,
+    deviceSelect: adminVoiceDevice,
+    deviceField: adminVoiceDeviceField,
+    monitorButton: adminVoiceMonitor,
+    level: adminVoiceLevel,
   },
 });
 
