@@ -1,18 +1,28 @@
 const DEFAULTS = {
-  gateThreshold: 0.02,
+  gateThreshold: 0.01,
 };
 
-const GATE_FLOOR_GAIN = 0.12;
-const GATE_HYSTERESIS_RATIO = 0.72;
-const GATE_HOLD_MS = 420;
-const GATE_ATTACK_SECONDS = 0.008;
-const GATE_RELEASE_SECONDS = 0.22;
+const GATE_FLOOR_GAIN = 0.08;
+const GATE_HYSTERESIS_RATIO = 0.62;
+const GATE_HOLD_MS = 520;
+const GATE_ATTACK_SECONDS = 0.004;
+const GATE_RELEASE_SECONDS = 0.18;
+const TARGET_RMS = 0.095;
+const MIN_AUTO_GAIN = 1;
+const MAX_AUTO_GAIN = 5.5;
+const AUTO_GAIN_ATTACK = 0.025;
+const AUTO_GAIN_RELEASE = 0.45;
+const LEVEL_NORMALIZER = 0.18;
 
 export class AudioProcessor {
   constructor(options = {}) {
     this.options = { ...DEFAULTS, ...options };
     this.context = null;
     this.source = null;
+    this.highpass = null;
+    this.compressor = null;
+    this.autoGain = null;
+    this.limiter = null;
     this.gate = null;
     this.analyser = null;
     this.destination = null;
@@ -29,9 +39,12 @@ export class AudioProcessor {
 
   static getMicrophoneConstraints(deviceId = "") {
     const audio = {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: { ideal: 1 },
+      sampleRate: { ideal: 48000 },
+      sampleSize: { ideal: 16 },
     };
     if (deviceId) audio.deviceId = { exact: deviceId };
     return { audio };
@@ -42,24 +55,50 @@ export class AudioProcessor {
     await this.stop();
     this.onLevel = onLevel || null;
     this.inputStream = await navigator.mediaDevices.getUserMedia(AudioProcessor.getMicrophoneConstraints(deviceId));
-    this.context = new (window.AudioContext || window.webkitAudioContext)();
+    this.context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
     await this.context.resume();
 
     this.source = this.context.createMediaStreamSource(this.inputStream);
 
-    // Le noise gate est piloté par le niveau RMS analysé dans le navigateur.
+    this.highpass = this.context.createBiquadFilter();
+    this.highpass.type = "highpass";
+    this.highpass.frequency.value = 85;
+    this.highpass.Q.value = 0.7;
+
+    this.compressor = this.context.createDynamicsCompressor();
+    this.compressor.threshold.value = -28;
+    this.compressor.knee.value = 18;
+    this.compressor.ratio.value = 4;
+    this.compressor.attack.value = 0.006;
+    this.compressor.release.value = 0.16;
+
+    this.autoGain = this.context.createGain();
+    this.autoGain.gain.value = 1.8;
+
+    this.limiter = this.context.createDynamicsCompressor();
+    this.limiter.threshold.value = -4;
+    this.limiter.knee.value = 0;
+    this.limiter.ratio.value = 20;
+    this.limiter.attack.value = 0.002;
+    this.limiter.release.value = 0.08;
+
     this.gate = this.context.createGain();
     this.gate.gain.value = 1;
     this.analyser = this.context.createAnalyser();
-    this.analyser.fftSize = 1024;
+    this.analyser.fftSize = 2048;
+    this.analyser.smoothingTimeConstant = 0.35;
     this.levelData = new Float32Array(this.analyser.fftSize);
     this.destination = this.context.createMediaStreamDestination();
 
-    this.source.connect(this.analyser);
-    this.source.connect(this.gate);
+    this.source.connect(this.highpass);
+    this.highpass.connect(this.compressor);
+    this.compressor.connect(this.autoGain);
+    this.autoGain.connect(this.limiter);
+    this.limiter.connect(this.analyser);
+    this.limiter.connect(this.gate);
     this.gate.connect(this.destination);
     this.monitorGain = this.context.createGain();
-    this.monitorGain.gain.value = 1;
+    this.monitorGain.gain.value = 0.85;
     this.setMonitorEnabled(this.monitorEnabled);
 
     this.setGateThreshold(this.options.gateThreshold);
@@ -69,7 +108,7 @@ export class AudioProcessor {
   }
 
   setGateThreshold(value) {
-    this.options.gateThreshold = Math.max(0.005, Math.min(0.12, Number(value) || DEFAULTS.gateThreshold));
+    this.options.gateThreshold = Math.max(0.003, Math.min(0.12, Number(value) || DEFAULTS.gateThreshold));
   }
 
   setMonitorEnabled(enabled) {
@@ -94,6 +133,14 @@ export class AudioProcessor {
     this.inputStream?.getTracks?.().forEach((track) => track.stop());
     await this.context?.close?.().catch(() => {});
     this.context = null;
+    this.source = null;
+    this.highpass = null;
+    this.compressor = null;
+    this.autoGain = null;
+    this.limiter = null;
+    this.gate = null;
+    this.analyser = null;
+    this.destination = null;
     this.monitorGain = null;
     this.inputStream = null;
     this.outputTrack = null;
@@ -113,6 +160,13 @@ export class AudioProcessor {
       const openThreshold = this.options.gateThreshold;
       const closeThreshold = openThreshold * GATE_HYSTERESIS_RATIO;
 
+      if (this.autoGain) {
+        const desiredGain = rms > 0.002 ? TARGET_RMS / rms : MAX_AUTO_GAIN;
+        const nextGain = Math.max(MIN_AUTO_GAIN, Math.min(MAX_AUTO_GAIN, desiredGain));
+        const isBoosting = nextGain > this.autoGain.gain.value;
+        this.autoGain.gain.setTargetAtTime(nextGain, this.context.currentTime, isBoosting ? AUTO_GAIN_ATTACK : AUTO_GAIN_RELEASE);
+      }
+
       if (rms >= openThreshold || (this.gateOpen && rms >= closeThreshold)) {
         this.gateOpen = true;
         this.lastVoiceAt = now;
@@ -126,7 +180,7 @@ export class AudioProcessor {
         this.context.currentTime,
         gateGain === 1 ? GATE_ATTACK_SECONDS : GATE_RELEASE_SECONDS,
       );
-      this.onLevel?.(Math.min(1, rms / 0.22));
+      this.onLevel?.(Math.min(1, rms / LEVEL_NORMALIZER));
       this.animationFrame = requestAnimationFrame(tick);
     };
     tick();

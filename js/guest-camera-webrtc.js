@@ -62,6 +62,14 @@ function closePeer(entry) {
   try { entry?.pc?.close(); } catch {}
 }
 
+async function tuneAudioSender(sender) {
+  if (!sender?.track || sender.track.kind !== "audio" || !sender.getParameters || !sender.setParameters) return;
+  const params = sender.getParameters();
+  params.encodings = params.encodings?.length ? params.encodings : [{}];
+  params.encodings[0].maxBitrate = 128000;
+  await sender.setParameters(params).catch(console.warn);
+}
+
 export function createCameraPublisherController({ getSessionId, getNickname, elements, sourceType = "guest", activeLabel = "Caméra active : flux prêt pour les overlays OBS." }) {
   const state = {
     stream: null,
@@ -120,9 +128,10 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     state.peers.forEach((entry) => {
       const sender = entry.pc?.getSenders?.().find((item) => item.track?.kind === "audio");
       if (sender) {
-        sender.replaceTrack(track || null).catch(console.warn);
+        sender.replaceTrack(track || null).then(() => tuneAudioSender(sender)).catch(console.warn);
       } else if (track && state.stream) {
-        entry.pc.addTrack(track, state.stream);
+        const sender = entry.pc.addTrack(track, state.stream);
+        tuneAudioSender(sender);
         renegotiatePeer(entry).catch(console.warn);
       }
     });
@@ -256,7 +265,10 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     const entry = { pc, signalPath };
     state.peers.set(requestId, entry);
 
-    state.stream.getTracks().forEach((track) => pc.addTrack(track, state.stream));
+    state.stream.getTracks().forEach((track) => {
+      const sender = pc.addTrack(track, state.stream);
+      tuneAudioSender(sender);
+    });
     if (!pc.getSenders().some((sender) => sender.track?.kind === "audio")) {
       pc.addTransceiver("audio", { direction: "sendonly" });
     }
