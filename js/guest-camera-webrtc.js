@@ -640,6 +640,12 @@ export function initCameraOverlay(roundKey) {
     pc.ontrack = (event) => {
       const [stream] = event.streams;
       entry.video.srcObject = stream;
+      const playPromise = entry.video.play?.();
+      playPromise?.catch?.((error) => {
+        if (error?.name !== "NotAllowedError") return;
+        entry.video.muted = true;
+        entry.video.play?.().catch(console.warn);
+      });
       entry.card.classList.remove("connecting");
     };
     pc.onicecandidate = async (event) => {
