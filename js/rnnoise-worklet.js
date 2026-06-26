@@ -3,9 +3,9 @@ import { Rnnoise } from "./vendor/rnnoise/rnnoise.js";
 const FRAME_SIZE = 480;
 const INPUT_SCALE = 32768;
 const OUTPUT_SCALE = 1 / INPUT_SCALE;
-const VAD_FLOOR = 0.18;
-const VAD_MUTE = 0.08;
-const NOISE_FLOOR_ATTENUATION = 0.08;
+const VAD_FLOOR = 0.3;
+const VAD_MUTE = 0.14;
+const NOISE_FLOOR_ATTENUATION = 0.03;
 
 class RNNoiseProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -78,7 +78,7 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
         }
         const voiceProbability = this.denoiseState.processFrame(this.outputFrame);
         const targetGain = voiceProbability <= VAD_MUTE ? 0 : (voiceProbability < VAD_FLOOR ? NOISE_FLOOR_ATTENUATION : 1);
-        this.noiseGateGain += (targetGain - this.noiseGateGain) * 0.65;
+        this.noiseGateGain += (targetGain - this.noiseGateGain) * 0.75;
         for (let i = 0; i < FRAME_SIZE; i += 1) {
           this.outputFrame[i] = Math.max(-1, Math.min(1, this.outputFrame[i] * OUTPUT_SCALE * this.noiseGateGain));
         }
