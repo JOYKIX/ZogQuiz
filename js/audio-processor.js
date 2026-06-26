@@ -28,6 +28,18 @@ const NOISE_GATE_MULTIPLIER = 2.6;
 const NOISE_GATE_OFFSET = 0.004;
 const LOW_SHELF_CUT_DB = -9;
 const HIGH_SHELF_CUT_DB = -4;
+const WEBRTC_AUDIO_PROCESSING_CONSTRAINTS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+};
+
+function supportedAudioProcessingConstraints() {
+  const supported = navigator.mediaDevices?.getSupportedConstraints?.() || {};
+  return Object.fromEntries(
+    Object.entries(WEBRTC_AUDIO_PROCESSING_CONSTRAINTS).filter(([constraint]) => supported[constraint]),
+  );
+}
 
 function setFilter(filter, type, frequency, q = 0.7, gain = 0) {
   filter.type = type;
@@ -68,16 +80,33 @@ export class AudioProcessor {
 
   static getMicrophoneConstraints(deviceId = "") {
     const audio = {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
+      ...WEBRTC_AUDIO_PROCESSING_CONSTRAINTS,
       channelCount: { ideal: 1 },
       sampleRate: { ideal: 48000 },
       sampleSize: { ideal: 16 },
       latency: { ideal: 0.02 },
+      advanced: [
+        { echoCancellation: true },
+        { noiseSuppression: true },
+        { autoGainControl: true },
+        { googEchoCancellation: true },
+        { googAutoGainControl: true },
+        { googNoiseSuppression: true },
+        { googHighpassFilter: true },
+        { googTypingNoiseDetection: true },
+        { googAudioMirroring: false },
+      ],
     };
     if (deviceId) audio.deviceId = { exact: deviceId };
     return { audio };
+  }
+
+  static async applyNativeAudioProcessing(stream) {
+    const track = stream?.getAudioTracks?.()[0];
+    if (!track?.applyConstraints) return;
+    const constraints = supportedAudioProcessingConstraints();
+    if (!Object.keys(constraints).length) return;
+    await track.applyConstraints(constraints).catch(() => {});
   }
 
   async start({ onLevel, deviceId = "" } = {}) {
@@ -85,6 +114,7 @@ export class AudioProcessor {
     await this.stop();
     this.onLevel = onLevel || null;
     this.inputStream = await navigator.mediaDevices.getUserMedia(AudioProcessor.getMicrophoneConstraints(deviceId));
+    await AudioProcessor.applyNativeAudioProcessing(this.inputStream);
     this.context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
     await this.context.resume();
 
