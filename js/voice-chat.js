@@ -1,11 +1,21 @@
 import { db, ref, set, onValue, onChildAdded, onChildRemoved, onDisconnect, update, remove } from "./firebase.js";
 
-const RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ],
+  bundlePolicy: "max-bundle",
+  rtcpMuxPolicy: "require",
+  iceCandidatePoolSize: 4,
+};
 const VOICE_ROOT = "voiceChat";
 const HEARTBEAT_MS = 10000;
 const STALE_MS = 35000;
 const SIGNAL_TTL_MS = 120000;
+const RECONNECT_DELAY_MS = 1200;
 const DEFAULT_ROOM_ID = "main";
+const SETTINGS_KEY = "zogquiz.voice.settings";
 
 function safeKey(value) {
   return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120);
@@ -46,8 +56,8 @@ function stopStream(stream) {
 
 const NOISE_REDUCTION_MODES = {
   off: { label: "Off", rnnoise: false, strength: 0, attenuation: 1, sensitivity: 1 },
-  standard: { label: "Standard", rnnoise: true, strength: 0.62, attenuation: 0.18, sensitivity: 1 },
-  strong: { label: "Forte", rnnoise: true, strength: 0.82, attenuation: 0.12, sensitivity: 0.92 },
+  standard: { label: "Standard", rnnoise: true, strength: 0.58, attenuation: 0.22, sensitivity: 1 },
+  strong: { label: "Forte", rnnoise: true, strength: 0.76, attenuation: 0.14, sensitivity: 0.92 },
 };
 
 const DEFAULT_VOICE_SETTINGS = {
@@ -59,10 +69,36 @@ function getNoiseMode(value) {
   return NOISE_REDUCTION_MODES[value] ? value : "standard";
 }
 
+function clampMicSensitivity(value) {
+  return Math.min(1.4, Math.max(0.7, Number(value) || 1));
+}
+
+function loadVoiceSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    return {
+      noiseReduction: getNoiseMode(saved.noiseReduction),
+      micSensitivity: clampMicSensitivity(saved.micSensitivity),
+      selectedDeviceId: String(saved.selectedDeviceId || ""),
+    };
+  } catch {
+    return { ...DEFAULT_VOICE_SETTINGS, selectedDeviceId: "" };
+  }
+}
+
+function saveVoiceSettings(settings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+}
+
+function voiceStatus(processed, settings) {
+  if (settings.noiseReduction === "off") return "Vocal actif.";
+  return processed.rnnoiseActive ? "Vocal actif. Traitement actif." : "Vocal actif. Traitement indisponible.";
+}
+
 async function createProcessedMicrophoneStream({ status, deviceId, settings = DEFAULT_VOICE_SETTINGS }) {
   const noiseReduction = getNoiseMode(settings.noiseReduction);
   const mode = NOISE_REDUCTION_MODES[noiseReduction];
-  const micSensitivity = Math.min(1.4, Math.max(0.7, Number(settings.micSensitivity) || 1));
+  const micSensitivity = clampMicSensitivity(settings.micSensitivity);
   const audioConstraints = {
     echoCancellation: { ideal: true },
     autoGainControl: { ideal: false },
@@ -142,17 +178,17 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
   lowPass.Q.value = 0.65;
 
   const compressor = audioContext.createDynamicsCompressor();
-  compressor.threshold.value = -30;
-  compressor.knee.value = 24;
-  compressor.ratio.value = 2.2;
-  compressor.attack.value = 0.008;
-  compressor.release.value = 0.22;
+  compressor.threshold.value = -28;
+  compressor.knee.value = 28;
+  compressor.ratio.value = 1.8;
+  compressor.attack.value = 0.014;
+  compressor.release.value = 0.28;
 
   const gain = audioContext.createGain();
   gain.gain.value = micSensitivity;
 
   const limiter = audioContext.createDynamicsCompressor();
-  limiter.threshold.value = -3.5;
+  limiter.threshold.value = -2.5;
   limiter.knee.value = 0;
   limiter.ratio.value = 20;
   limiter.attack.value = 0.0015;
@@ -165,6 +201,7 @@ async function createProcessedMicrophoneStream({ status, deviceId, settings = DE
 }
 
 export function createVoiceChatController({ elements, getUserId, getDisplayName, getRoomId = () => DEFAULT_ROOM_ID }) {
+  const initialSettings = loadVoiceSettings();
   const state = {
     joined: false,
     muted: false,
@@ -183,10 +220,10 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     analyserSource: null,
     speakingRaf: 0,
     levelRaf: 0,
-    selectedDeviceId: "",
+    selectedDeviceId: initialSettings.selectedDeviceId,
     monitorEnabled: false,
     monitorAudio: null,
-    voiceSettings: { ...DEFAULT_VOICE_SETTINGS },
+    voiceSettings: { noiseReduction: initialSettings.noiseReduction, micSensitivity: initialSettings.micSensitivity },
   };
 
   function render() {
@@ -231,8 +268,51 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       elements.deviceSelect.value = state.selectedDeviceId;
     } else {
       state.selectedDeviceId = elements.deviceSelect.value || "";
+      persistSettings();
     }
     setHidden(elements.deviceField, microphones.length === 0);
+  }
+
+
+  function persistSettings() {
+    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId });
+  }
+
+  function currentLocalTrack() {
+    return state.localStream?.getAudioTracks?.()[0] || null;
+  }
+
+  async function rebuildLocalAudio() {
+    const previousRaw = state.rawStream;
+    const previousLocal = state.localStream;
+    const previousContext = state.audioContext;
+    const processed = await createProcessedMicrophoneStream({
+      status: elements.status,
+      deviceId: state.selectedDeviceId,
+      settings: state.voiceSettings,
+    });
+    state.rawStream = processed.rawStream;
+    state.localStream = processed.outputStream;
+    state.audioContext = processed.audioContext;
+    state.localStream?.getAudioTracks().forEach((track) => {
+      track.enabled = !state.muted;
+      track.contentHint = "speech";
+    });
+    stopStream(previousRaw);
+    stopStream(previousLocal);
+    await previousContext?.close?.().catch(() => {});
+    startSpeakingMeter();
+    syncMonitor();
+    return processed;
+  }
+
+  async function replacePeerTracks() {
+    const track = currentLocalTrack();
+    if (!track) return;
+    for (const entry of state.peers.values()) {
+      const sender = entry.pc.getSenders?.().find((rtcSender) => rtcSender.track?.kind === "audio");
+      await sender?.replaceTrack?.(track).catch(console.warn);
+    }
   }
 
   async function writePresence(extra = {}) {
@@ -243,7 +323,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       userId: safeKey(getUserId() || state.clientId),
       nickname: String(getDisplayName() || "Invité").slice(0, 40),
       muted: state.muted,
-      speaking: Boolean(extra.speaking),
+      speaking: typeof extra.speaking === "boolean" ? extra.speaking : Boolean(state.participants[state.clientId]?.speaking),
       updatedAt: Date.now(),
       ...extra,
     };
@@ -320,7 +400,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     audio.playsInline = true;
     const entry = { pc, audio, pendingCandidates: [] };
     state.peers.set(remoteId, entry);
-    state.localStream.getAudioTracks().forEach((track) => {
+    state.localStream?.getAudioTracks().forEach((track) => {
       track.contentHint = "speech";
       const sender = pc.addTrack(track, state.localStream);
       const parameters = sender.getParameters?.() || {};
@@ -338,7 +418,16 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       await set(ref(db, `${signalPath}/${initiator ? "offerCandidates" : "answerCandidates"}/${safeKey(`${Date.now()}_${Math.random()}`)}`), candidate);
     };
     pc.onconnectionstatechange = () => {
-      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) setTimeout(() => closePeer(remoteId, true), 2000);
+      if (["connected", "completed"].includes(pc.connectionState)) setText(elements.status, "Vocal actif.");
+      if (["failed", "disconnected"].includes(pc.connectionState)) {
+        setText(elements.status, "Reconnexion vocal…");
+        setTimeout(() => {
+          if (!state.joined) return;
+          closePeer(remoteId, true);
+          ensurePeer(remoteId, state.clientId < remoteId).catch(console.warn);
+        }, RECONNECT_DELAY_MS);
+      }
+      if (pc.connectionState === "closed") closePeer(remoteId, true);
     };
 
     async function flushPendingCandidates() {
@@ -394,7 +483,10 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
           ensurePeer(remoteId, state.clientId < remoteId).catch(console.warn);
         }
       }
-      for (const peerId of state.peers.keys()) if (!state.participants[peerId]) closePeer(peerId, true);
+      for (const peerId of state.peers.keys()) {
+        const participant = state.participants[peerId];
+        if (!participant || Date.now() - Number(participant.updatedAt || 0) >= STALE_MS) closePeer(peerId, true);
+      }
       render();
     });
     state.unsubSignalRemoved = onChildRemoved(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/signals`), (snap) => {
@@ -409,20 +501,27 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     elements.joinButton.disabled = true;
     setText(elements.status, "Connexion vocal…");
     state.roomId = safeKey(getRoomId() || DEFAULT_ROOM_ID);
-    const processed = await createProcessedMicrophoneStream({ status: elements.status, deviceId: state.selectedDeviceId, settings: state.voiceSettings });
-    state.rawStream = processed.rawStream;
-    state.localStream = processed.outputStream;
-    state.audioContext = processed.audioContext;
+    let processed;
+    try {
+      processed = await rebuildLocalAudio();
+    } catch (error) {
+      elements.joinButton.disabled = false;
+      const denied = ["NotAllowedError", "SecurityError"].includes(error?.name);
+      const missing = ["NotFoundError", "OverconstrainedError"].includes(error?.name);
+      setText(elements.status, denied ? "Micro refusé." : missing ? "Micro introuvable." : "Erreur micro.");
+      render();
+      return;
+    }
     state.joined = true;
     state.muted = false;
-    state.localStream.getAudioTracks().forEach((track) => { track.enabled = true; });
+    state.localStream?.getAudioTracks().forEach((track) => { track.enabled = true; });
     const presenceRef = ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`);
     onDisconnect(presenceRef).remove().catch(() => {});
     await writePresence({ voiceProcessing: processed.rnnoiseActive, noiseReduction: state.voiceSettings.noiseReduction });
     state.heartbeat = setInterval(() => writePresence().catch(console.warn), HEARTBEAT_MS);
     watchRoom();
     startSpeakingMeter();
-    setText(elements.status, processed.rnnoiseActive ? "Vocal actif. Traitement actif." : "Vocal actif. Traitement indisponible.");
+    setText(elements.status, voiceStatus(processed, state.voiceSettings));
     await refreshMicrophones().catch(console.warn);
     render();
   }
@@ -465,24 +564,30 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   function toggleMute() {
     if (!state.joined) return;
     state.muted = !state.muted;
-    state.localStream.getAudioTracks().forEach((track) => { track.enabled = !state.muted; });
+    state.localStream?.getAudioTracks().forEach((track) => { track.enabled = !state.muted; });
     writePresence({ speaking: false }).catch(console.warn);
     render();
   }
 
   async function changeMicrophone() {
     state.selectedDeviceId = elements.deviceSelect?.value || "";
+    persistSettings();
     if (!state.joined) return;
-    await leave();
-    await join();
+    const processed = await rebuildLocalAudio();
+    await replacePeerTracks();
+    await writePresence({ voiceProcessing: processed.rnnoiseActive, noiseReduction: state.voiceSettings.noiseReduction });
+    setText(elements.status, voiceStatus(processed, state.voiceSettings));
   }
 
   async function changeVoiceSettings() {
     state.voiceSettings.noiseReduction = getNoiseMode(elements.noiseReductionSelect?.value || state.voiceSettings.noiseReduction);
-    state.voiceSettings.micSensitivity = Math.min(1.4, Math.max(0.7, Number(elements.micSensitivity?.value) || 1));
+    state.voiceSettings.micSensitivity = clampMicSensitivity(elements.micSensitivity?.value || state.voiceSettings.micSensitivity);
+    persistSettings();
     if (!state.joined) return;
-    await leave();
-    await join();
+    const processed = await rebuildLocalAudio();
+    await replacePeerTracks();
+    await writePresence({ voiceProcessing: processed.rnnoiseActive, noiseReduction: state.voiceSettings.noiseReduction });
+    setText(elements.status, voiceStatus(processed, state.voiceSettings));
   }
 
   function toggleMonitor() {

@@ -1,3 +1,5 @@
 Place `rnnoise.wasm` here.
 
-The client tries to load `wasm/rnnoise.wasm` from the static server. If the file is missing or cannot be instantiated, the voice chat keeps WebRTC audio active with the native echo cancellation and gain control settings, but without RNNoise.
+The voice chat first captures the microphone with browser noise suppression disabled when RNNoise is selected, then routes the signal through `AudioContext`, `js/rnnoise-worklet.js`, light voice shaping, and `MediaStreamDestination` before sending the processed track through WebRTC.
+
+If `wasm/rnnoise.wasm` is missing or cannot be instantiated, the client keeps WebRTC voice active and falls back to the non-RNNoise path with native echo cancellation.
