@@ -97,6 +97,10 @@ function clampMicSensitivity(value) {
   return Math.min(1.4, Math.max(0.7, Number(value) || 1));
 }
 
+function clampRemoteVolume(value) {
+  return Math.min(2.5, Math.max(0, Number(value) || 0));
+}
+
 function loadVoiceSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
@@ -105,9 +109,10 @@ function loadVoiceSettings() {
       micSensitivity: clampMicSensitivity(saved.micSensitivity),
       selectedDeviceId: String(saved.selectedDeviceId || ""),
       muteKeyCode: normalizeKeyCode(saved.muteKeyCode || DEFAULT_MUTE_KEY),
+      remoteVolumes: Object.fromEntries(Object.entries(saved.remoteVolumes || {}).map(([key, value]) => [safeKey(key), clampRemoteVolume(value)])),
     };
   } catch {
-    return { ...DEFAULT_VOICE_SETTINGS, selectedDeviceId: "" };
+    return { ...DEFAULT_VOICE_SETTINGS, selectedDeviceId: "", remoteVolumes: {} };
   }
 }
 
@@ -261,6 +266,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     monitorEnabled: false,
     monitorAudio: null,
     voiceSettings: { noiseReduction: initialSettings.noiseReduction, micSensitivity: initialSettings.micSensitivity },
+    remoteVolumes: { ...(initialSettings.remoteVolumes || {}) },
     muteKeyCode: normalizeKeyCode(initialSettings.muteKeyCode),
     capturingMuteKey: false,
   };
@@ -282,7 +288,21 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     elements.list.replaceChildren(...activePeople.map((participant) => {
       const item = document.createElement("li");
       item.className = participant.speaking ? "speaking" : "";
-      item.textContent = `${participant.nickname || "Invité"}${participant.muted ? " · mute" : ""}`;
+      const name = document.createElement("span");
+      name.textContent = `${participant.nickname || "Invité"}${participant.muted ? " · mute" : ""}`;
+      item.append(name);
+      if (participant.id !== state.clientId) {
+        const volume = document.createElement("input");
+        volume.type = "range";
+        volume.min = "0";
+        volume.max = "2.5";
+        volume.step = "0.05";
+        volume.value = String(getRemoteVolume(participant.id));
+        volume.className = "voice-volume-control";
+        volume.setAttribute("aria-label", `Volume ${participant.nickname || "Invité"}`);
+        volume.addEventListener("input", () => setRemoteVolume(participant.id, volume.value));
+        item.append(volume);
+      }
       return item;
     }));
     if (!activePeople.length) {
@@ -315,7 +335,23 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
 
 
   function persistSettings() {
-    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId, muteKeyCode: state.muteKeyCode });
+    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId, muteKeyCode: state.muteKeyCode, remoteVolumes: state.remoteVolumes });
+  }
+
+  function getRemoteVolume(peerId) {
+    return clampRemoteVolume(state.remoteVolumes[safeKey(peerId)] ?? 1);
+  }
+
+  function applyRemoteVolume(peerId) {
+    const entry = state.peers.get(peerId);
+    if (entry?.gainNode) entry.gainNode.gain.value = getRemoteVolume(peerId);
+    else if (entry?.audio) entry.audio.volume = Math.min(1, getRemoteVolume(peerId));
+  }
+
+  function setRemoteVolume(peerId, value) {
+    state.remoteVolumes[safeKey(peerId)] = clampRemoteVolume(value);
+    applyRemoteVolume(peerId);
+    persistSettings();
   }
 
   function currentLocalTrack() {
@@ -426,6 +462,9 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     entry?.unsubAnswer?.(); entry?.unsubCandidates?.(); entry?.unsubOffer?.();
     try { entry?.pc?.close(); } catch {}
     if (entry?.audio) entry.audio.remove();
+    entry?.remoteSource?.disconnect?.();
+    entry?.gainNode?.disconnect?.();
+    try { entry?.remoteContext?.close?.(); } catch {}
     state.peers.delete(peerId);
     if (removeSignal) remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/signals/${state.clientId}_${peerId}`)).catch(() => {});
   }
@@ -449,7 +488,27 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       sender.setParameters?.(parameters).catch(() => {});
     });
     pc.ontrack = (event) => {
-      audio.srcObject = event.streams[0];
+      const stream = event.streams[0];
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextCtor) {
+        try {
+          entry.remoteContext = entry.remoteContext || new AudioContextCtor({ latencyHint: "interactive" });
+          entry.remoteSource?.disconnect?.();
+          entry.gainNode?.disconnect?.();
+          entry.remoteSource = entry.remoteContext.createMediaStreamSource(stream);
+          entry.gainNode = entry.remoteContext.createGain();
+          const destination = entry.remoteContext.createMediaStreamDestination();
+          entry.remoteSource.connect(entry.gainNode).connect(destination);
+          audio.srcObject = destination.stream;
+          applyRemoteVolume(remoteId);
+        } catch {
+          audio.srcObject = stream;
+          applyRemoteVolume(remoteId);
+        }
+      } else {
+        audio.srcObject = stream;
+        applyRemoteVolume(remoteId);
+      }
       audio.play?.().catch(() => setText(elements.status, "Vocal actif. Cliquez sur la page si l'écoute est bloquée."));
     };
     pc.onicecandidate = async (event) => {
