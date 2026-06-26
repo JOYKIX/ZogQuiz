@@ -46,10 +46,10 @@ function stopStream(stream) {
 
 async function createProcessedMicrophoneStream({ status, deviceId }) {
   const audioConstraints = {
-    echoCancellation: true,
-    autoGainControl: false,
-    noiseSuppression: true,
-    channelCount: { ideal: 1 },
+    echoCancellation: { ideal: true },
+    autoGainControl: { ideal: false },
+    noiseSuppression: { ideal: true },
+    channelCount: { ideal: 1, max: 1 },
     sampleRate: { ideal: 48000 },
     sampleSize: { ideal: 16 },
     latency: { ideal: 0.01 },
@@ -64,6 +64,7 @@ async function createProcessedMicrophoneStream({ status, deviceId }) {
   if (!AudioContextCtor) return { rawStream, outputStream: rawStream, audioContext: null, rnnoiseActive: false };
 
   const audioContext = new AudioContextCtor({ latencyHint: "interactive", sampleRate: 48000 });
+  rawStream.getAudioTracks().forEach((track) => { track.contentHint = "speech"; });
   const source = audioContext.createMediaStreamSource(rawStream);
   let currentNode = source;
   let rnnoiseActive = false;
@@ -72,8 +73,6 @@ async function createProcessedMicrophoneStream({ status, deviceId }) {
     try {
       await audioContext.audioWorklet.addModule("js/rnnoise-worklet.js");
       const rnnoiseNode = new AudioWorkletNode(audioContext, "rnnoise-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
-      const wasmResponse = await fetch("wasm/rnnoise.wasm", { cache: "force-cache" });
-      if (!wasmResponse.ok) throw new Error("RNNoise WASM introuvable");
       const rnnoiseReady = new Promise((resolve) => {
         const timeout = setTimeout(() => resolve(false), 1200);
         rnnoiseNode.port.onmessage = (event) => {
@@ -82,41 +81,53 @@ async function createProcessedMicrophoneStream({ status, deviceId }) {
           resolve(Boolean(event.data?.active));
         };
       });
-      rnnoiseNode.port.postMessage({ type: "load", wasm: await wasmResponse.arrayBuffer() });
+      rnnoiseNode.port.postMessage({ type: "load" });
       rnnoiseActive = await rnnoiseReady;
-      if (!rnnoiseActive) throw new Error("RNNoise WASM non initialisé");
+      if (!rnnoiseActive) throw new Error("Traitement vocal non initialisé");
       currentNode.connect(rnnoiseNode);
       currentNode = rnnoiseNode;
     } catch (error) {
-      setText(status, "Vocal actif. RNNoise indisponible.");
+      setText(status, "Vocal actif. Traitement indisponible.");
     }
   }
 
   const highPass = audioContext.createBiquadFilter();
   highPass.type = "highpass";
-  highPass.frequency.value = 90;
-  highPass.Q.value = 0.75;
+  highPass.frequency.value = 105;
+  highPass.Q.value = 0.9;
+
+  const keyboardCut = audioContext.createBiquadFilter();
+  keyboardCut.type = "peaking";
+  keyboardCut.frequency.value = 2600;
+  keyboardCut.Q.value = 4.8;
+  keyboardCut.gain.value = -4.5;
+
+  const mouseCut = audioContext.createBiquadFilter();
+  mouseCut.type = "peaking";
+  mouseCut.frequency.value = 5200;
+  mouseCut.Q.value = 5.5;
+  mouseCut.gain.value = -5.5;
 
   const presence = audioContext.createBiquadFilter();
   presence.type = "peaking";
   presence.frequency.value = 3200;
   presence.Q.value = 0.8;
-  presence.gain.value = 2.2;
+  presence.gain.value = 1.4;
 
   const lowPass = audioContext.createBiquadFilter();
   lowPass.type = "lowpass";
-  lowPass.frequency.value = 15500;
+  lowPass.frequency.value = 13200;
   lowPass.Q.value = 0.7;
 
   const compressor = audioContext.createDynamicsCompressor();
-  compressor.threshold.value = -30;
-  compressor.knee.value = 22;
-  compressor.ratio.value = 3.2;
-  compressor.attack.value = 0.004;
-  compressor.release.value = 0.14;
+  compressor.threshold.value = -32;
+  compressor.knee.value = 18;
+  compressor.ratio.value = 2.7;
+  compressor.attack.value = 0.006;
+  compressor.release.value = 0.16;
 
   const gain = audioContext.createGain();
-  gain.gain.value = 1.08;
+  gain.gain.value = 1.04;
 
   const limiter = audioContext.createDynamicsCompressor();
   limiter.threshold.value = -4;
@@ -126,7 +137,8 @@ async function createProcessedMicrophoneStream({ status, deviceId }) {
   limiter.release.value = 0.06;
 
   const destination = audioContext.createMediaStreamDestination();
-  currentNode.connect(highPass).connect(presence).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
+  currentNode.connect(highPass).connect(keyboardCut).connect(mouseCut).connect(presence).connect(lowPass).connect(compressor).connect(gain).connect(limiter).connect(destination);
+  destination.stream.getAudioTracks().forEach((track) => { track.contentHint = "speech"; });
   return { rawStream, outputStream: destination.stream, audioContext, rnnoiseActive };
 }
 
@@ -260,10 +272,21 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     const pc = new RTCPeerConnection(RTC_CONFIG);
     const audio = new Audio();
     audio.autoplay = true;
-    const entry = { pc, audio };
+    audio.playsInline = true;
+    const entry = { pc, audio, pendingCandidates: [] };
     state.peers.set(remoteId, entry);
-    state.localStream.getAudioTracks().forEach((track) => pc.addTrack(track, state.localStream));
-    pc.ontrack = (event) => { audio.srcObject = event.streams[0]; };
+    state.localStream.getAudioTracks().forEach((track) => {
+      track.contentHint = "speech";
+      const sender = pc.addTrack(track, state.localStream);
+      const parameters = sender.getParameters?.() || {};
+      parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+      parameters.encodings[0] = { ...parameters.encodings[0], maxBitrate: 64000, priority: "high", networkPriority: "high" };
+      sender.setParameters?.(parameters).catch(() => {});
+    });
+    pc.ontrack = (event) => {
+      audio.srcObject = event.streams[0];
+      audio.play?.().catch(() => setText(elements.status, "Vocal actif. Cliquez sur la page si l'écoute est bloquée."));
+    };
     pc.onicecandidate = async (event) => {
       const candidate = toPlainCandidate(event.candidate);
       if (!candidate) return;
@@ -273,13 +296,34 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       if (["failed", "closed", "disconnected"].includes(pc.connectionState)) setTimeout(() => closePeer(remoteId, true), 2000);
     };
 
+    async function flushPendingCandidates() {
+      if (!pc.remoteDescription) return;
+      const candidates = entry.pendingCandidates.splice(0);
+      for (const candidate of candidates) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.warn);
+      }
+    }
+
+    function addRemoteCandidate(candidate) {
+      if (!candidate) return;
+      if (!pc.remoteDescription) {
+        entry.pendingCandidates.push(candidate);
+        return;
+      }
+      pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.warn);
+    }
+
     if (initiator) {
       entry.unsubAnswer = onValue(ref(db, `${signalPath}/answer`), async (snap) => {
         const answer = snap.val();
         if (!answer || pc.remoteDescription || pc.signalingState === "closed") return;
         await pc.setRemoteDescription(new RTCSessionDescription(answer)).catch(console.warn);
+        await flushPendingCandidates();
       });
-      entry.unsubCandidates = onChildAdded(ref(db, `${signalPath}/answerCandidates`), (snap) => pc.addIceCandidate(new RTCIceCandidate(snap.val())).catch(console.warn));
+      entry.unsubCandidates = onChildAdded(ref(db, `${signalPath}/answerCandidates`), (snap) => addRemoteCandidate(snap.val()));
+      pc.getTransceivers?.().forEach((transceiver) => {
+        if (transceiver.sender?.track?.kind === "audio") transceiver.direction = "sendrecv";
+      });
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
       await pc.setLocalDescription(offer);
       await update(ref(db, signalPath), { from: state.clientId, to: remoteId, offer: toPlainDescription(pc.localDescription), createdAt: Date.now() });
@@ -288,11 +332,12 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
         const signal = snap.val();
         if (!signal?.offer || Date.now() - Number(signal.createdAt || 0) > SIGNAL_TTL_MS || pc.remoteDescription) return;
         await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+        await flushPendingCandidates();
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await update(ref(db, signalPath), { answer: toPlainDescription(pc.localDescription), answeredAt: Date.now() });
       });
-      entry.unsubCandidates = onChildAdded(ref(db, `${signalPath}/offerCandidates`), (snap) => pc.addIceCandidate(new RTCIceCandidate(snap.val())).catch(console.warn));
+      entry.unsubCandidates = onChildAdded(ref(db, `${signalPath}/offerCandidates`), (snap) => addRemoteCandidate(snap.val()));
     }
   }
 
@@ -328,11 +373,11 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     state.localStream.getAudioTracks().forEach((track) => { track.enabled = true; });
     const presenceRef = ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`);
     onDisconnect(presenceRef).remove().catch(() => {});
-    await writePresence({ rnnoise: processed.rnnoiseActive });
+    await writePresence({ voiceProcessing: processed.rnnoiseActive });
     state.heartbeat = setInterval(() => writePresence().catch(console.warn), HEARTBEAT_MS);
     watchRoom();
     startSpeakingMeter();
-    setText(elements.status, processed.rnnoiseActive ? "Vocal actif. RNNoise actif." : "Vocal actif. RNNoise indisponible.");
+    setText(elements.status, processed.rnnoiseActive ? "Vocal actif. Traitement actif." : "Vocal actif. Traitement indisponible.");
     await refreshMicrophones().catch(console.warn);
     render();
   }
