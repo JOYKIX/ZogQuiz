@@ -27,7 +27,7 @@ export class AudioProcessor {
   static getMicrophoneConstraints(deviceId = "") {
     const audio = {
       echoCancellation: { ideal: true },
-      noiseSuppression: { ideal: false },
+      noiseSuppression: { ideal: true },
       autoGainControl: { ideal: false },
       channelCount: { ideal: 1 },
       sampleRate: { ideal: 48000 },
@@ -54,24 +54,25 @@ export class AudioProcessor {
     await this.stop();
     this.onLevel = onLevel || null;
     this.inputStream = await navigator.mediaDevices.getUserMedia(AudioProcessor.getMicrophoneConstraints(deviceId));
+    this.inputStream.getAudioTracks().forEach((track) => { track.contentHint = "speech"; });
     this.context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
     await this.context.resume();
 
     this.source = this.context.createMediaStreamSource(this.inputStream);
     this.highPassFilter = this.context.createBiquadFilter();
     this.highPassFilter.type = "highpass";
-    this.highPassFilter.frequency.value = 90;
-    this.highPassFilter.Q.value = 0.7;
+    this.highPassFilter.frequency.value = 110;
+    this.highPassFilter.Q.value = 0.85;
     this.lowPassFilter = this.context.createBiquadFilter();
     this.lowPassFilter.type = "lowpass";
-    this.lowPassFilter.frequency.value = 9000;
-    this.lowPassFilter.Q.value = 0.7;
+    this.lowPassFilter.frequency.value = 7600;
+    this.lowPassFilter.Q.value = 0.65;
     this.compressor = this.context.createDynamicsCompressor();
-    this.compressor.threshold.value = -18;
-    this.compressor.knee.value = 24;
-    this.compressor.ratio.value = 2.5;
-    this.compressor.attack.value = 0.008;
-    this.compressor.release.value = 0.28;
+    this.compressor.threshold.value = -20;
+    this.compressor.knee.value = 20;
+    this.compressor.ratio.value = 2;
+    this.compressor.attack.value = 0.012;
+    this.compressor.release.value = 0.22;
     this.microphoneGain = this.context.createGain();
     this.setGain(gain);
     this.analyser = this.context.createAnalyser();
