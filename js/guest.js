@@ -4,6 +4,7 @@ import { initManche4Guest } from "./manche4.js";
 import { initMortSubiteGuest } from "./mort-subite.js";
 import { initManche6Display } from "./manche6.js";
 import { createGuestCameraController, initGuestCameraWall } from "./guest-camera-webrtc.js";
+import { createVoiceChatController } from "./voice-chat.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -51,6 +52,12 @@ const guestCameraWallPanel = document.getElementById("guest-camera-wall-panel");
 const guestCameraWall = document.getElementById("guest-camera-wall");
 const guestCameraWallStatus = document.getElementById("guest-camera-wall-status");
 const guestParticipantsCameraRender = document.getElementById("guest-participants-camera-render");
+const guestVoicePanel = document.getElementById("guest-voice-panel");
+const guestVoiceJoin = document.getElementById("guest-voice-join");
+const guestVoiceMute = document.getElementById("guest-voice-mute");
+const guestVoiceStatus = document.getElementById("guest-voice-status");
+const guestVoiceList = document.getElementById("guest-voice-list");
+const guestVoiceSpeaking = document.getElementById("guest-voice-speaking");
 
 const m2Image = document.getElementById("m2-live-image");
 const m2Empty = document.getElementById("m2-empty");
@@ -123,6 +130,7 @@ let sessionsById = {};
 let manche4Controller = null;
 let guestCameraController = null;
 let guestCameraWallController = null;
+let guestVoiceController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 let clientSessionHeartbeat = null;
@@ -354,6 +362,7 @@ function renderGuestView() {
     guestCameraPanel?.classList.remove("hidden");
     guestAdminCameraPanel?.classList.remove("hidden");
     guestCameraWallPanel?.classList.remove("hidden");
+    guestVoicePanel?.classList.remove("hidden");
     guestCameraController?.refreshIdentity?.();
     guestCameraWallController?.refresh?.();
   } else {
@@ -363,6 +372,8 @@ function renderGuestView() {
     guestCameraPanel?.classList.add("hidden");
     guestAdminCameraPanel?.classList.add("hidden");
     guestCameraWallPanel?.classList.add("hidden");
+    guestVoicePanel?.classList.add("hidden");
+    guestVoiceController?.leave?.();
     guestCameraWallController?.refresh?.();
   }
 }
@@ -1215,6 +1226,20 @@ function syncSelfCameraRender() {
 
 guestSelfCameraRender?.addEventListener("change", syncSelfCameraRender);
 syncSelfCameraRender();
+
+guestVoiceController = createVoiceChatController({
+  getUserId: getCurrentSessionId,
+  getDisplayName: getCurrentNickname,
+  getRoomId: () => "main",
+  elements: {
+    panel: guestVoicePanel,
+    joinButton: guestVoiceJoin,
+    muteButton: guestVoiceMute,
+    status: guestVoiceStatus,
+    list: guestVoiceList,
+    speaking: guestVoiceSpeaking,
+  },
+});
 
 guestCameraWallController = initGuestCameraWall({
   adminRoot: guestAdminCameraWall,

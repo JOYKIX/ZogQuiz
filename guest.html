@@ -134,6 +134,21 @@
                   class="guest-camera-wall guest-camera-wall-stack"
                 ></div>
               </section>
+
+              <section id="guest-voice-panel" class="panel voice-panel hidden">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">Vocal</p>
+                  </div>
+                  <button id="guest-voice-join" class="btn btn-secondary" type="button">Rejoindre le vocal</button>
+                </div>
+                <div class="row compact">
+                  <button id="guest-voice-mute" class="btn btn-secondary" type="button" disabled>Mute</button>
+                  <span id="guest-voice-speaking" class="voice-speaking-indicator" aria-label="Parle"></span>
+                </div>
+                <p id="guest-voice-status" class="message voice-status">Vocal déconnecté.</p>
+                <ul id="guest-voice-list" class="list compact-list"></ul>
+              </section>
             </aside>
 
             <section

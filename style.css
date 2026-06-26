@@ -1364,3 +1364,29 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .card > *,
 .scoreboard-card > *,
 .compact-panel > * { z-index: 1; }
+
+.voice-panel .panel-head,
+.voice-panel .row {
+  align-items: center;
+}
+
+.voice-speaking-indicator {
+  width: .9rem;
+  height: .9rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: #5f6572;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.voice-speaking-indicator.active,
+.voice-panel li.speaking {
+  background: var(--success, #35d07f);
+}
+
+.voice-panel li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}

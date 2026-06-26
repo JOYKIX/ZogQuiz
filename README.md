@@ -62,3 +62,14 @@ Variables demandées:
 TWITCH_TOKEN=oauth:
 TWITCH_CHANNEL=
 ```
+
+## Voice chat
+
+Le vocal est intégré à `index.html` et `guest.html`.
+
+- Servir le dossier avec un serveur statique en HTTPS ou sur `localhost`.
+- Ouvrir `index.html` et/ou plusieurs fenêtres `guest.html`.
+- Cliquer sur `Rejoindre le vocal`.
+- Ajouter le binaire RNNoise WebAssembly attendu dans `wasm/rnnoise.wasm` pour activer RNNoise côté client.
+
+Pipeline micro : `getUserMedia` avec `echoCancellation: true`, `autoGainControl: true`, `noiseSuppression: false`, puis `AudioContext`, `AudioWorklet` RNNoise si disponible, high-pass, compression, gain contrôlé, limiteur, `MediaStreamDestination`, WebRTC.
