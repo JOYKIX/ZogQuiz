@@ -157,9 +157,11 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
       ensureStream();
       state.audioProcessor = state.audioProcessor || new AudioProcessor();
       state.audioProcessor.setMonitorEnabled(elements.microphoneMonitor?.checked);
+      state.audioProcessor.setGain(elements.microphoneGain?.value);
       const track = await state.audioProcessor.start({
         onLevel: setMicrophoneLevel,
         deviceId: state.selectedMicrophoneDeviceId || elements.microphoneDeviceSelect?.value || "",
+        gain: elements.microphoneGain?.value,
       });
       state.stream.getAudioTracks().forEach((oldTrack) => {
         state.stream.removeTrack(oldTrack);
@@ -415,6 +417,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
   elements.button.addEventListener("click", () => (hasVideoTrack() ? stop({ keepMessage: true }) : start()));
   elements.microphoneButton?.addEventListener("click", () => (state.audioEnabled ? disableMicrophone() : enableMicrophone()));
   elements.microphoneMonitor?.addEventListener("change", () => state.audioProcessor?.setMonitorEnabled(elements.microphoneMonitor.checked));
+  elements.microphoneGain?.addEventListener("input", () => state.audioProcessor?.setGain(elements.microphoneGain.value));
   elements.microphoneDeviceSelect?.addEventListener("change", async () => {
     state.selectedMicrophoneDeviceId = elements.microphoneDeviceSelect.value;
     if (!state.audioEnabled) return;

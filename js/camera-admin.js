@@ -36,6 +36,7 @@ const adminMicrophoneDeviceField = document.getElementById("admin-microphone-dev
 const adminAudioControls = document.getElementById("admin-audio-controls");
 const adminMicrophoneLevel = document.getElementById("admin-microphone-level");
 const adminMicrophoneMonitor = document.getElementById("admin-microphone-monitor");
+const adminMicrophoneGain = document.getElementById("admin-microphone-gain");
 
 if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
   createCameraPublisherController({
@@ -55,6 +56,7 @@ if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
       audioControls: adminAudioControls,
       microphoneLevel: adminMicrophoneLevel,
       microphoneMonitor: adminMicrophoneMonitor,
+      microphoneGain: adminMicrophoneGain,
     },
   });
 }

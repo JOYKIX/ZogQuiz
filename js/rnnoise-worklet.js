@@ -1,6 +1,11 @@
 import { Rnnoise } from "./vendor/rnnoise/rnnoise.js";
 
 const FRAME_SIZE = 480;
+const INPUT_SCALE = 32768;
+const OUTPUT_SCALE = 1 / INPUT_SCALE;
+const VAD_FLOOR = 0.18;
+const VAD_MUTE = 0.08;
+const NOISE_FLOOR_ATTENUATION = 0.08;
 
 class RNNoiseProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -11,6 +16,7 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
     this.outputFrame = new Float32Array(FRAME_SIZE);
     this.frameOffset = 0;
     this.outputQueue = [];
+    this.noiseGateGain = 0;
     this.closed = false;
     this.port.onmessage = (event) => {
       if (event.data?.type === "destroy") this.destroy();
@@ -67,8 +73,15 @@ class RNNoiseProcessor extends AudioWorkletProcessor {
       inputIndex += copyLength;
 
       if (this.frameOffset === FRAME_SIZE) {
-        this.outputFrame.set(this.inputFrame);
-        this.denoiseState.processFrame(this.outputFrame);
+        for (let i = 0; i < FRAME_SIZE; i += 1) {
+          this.outputFrame[i] = Math.max(-1, Math.min(1, this.inputFrame[i])) * INPUT_SCALE;
+        }
+        const voiceProbability = this.denoiseState.processFrame(this.outputFrame);
+        const targetGain = voiceProbability <= VAD_MUTE ? 0 : (voiceProbability < VAD_FLOOR ? NOISE_FLOOR_ATTENUATION : 1);
+        this.noiseGateGain += (targetGain - this.noiseGateGain) * 0.65;
+        for (let i = 0; i < FRAME_SIZE; i += 1) {
+          this.outputFrame[i] = Math.max(-1, Math.min(1, this.outputFrame[i] * OUTPUT_SCALE * this.noiseGateGain));
+        }
         this.outputQueue.push(this.outputFrame.slice());
         this.frameOffset = 0;
       }
