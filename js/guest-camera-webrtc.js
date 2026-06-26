@@ -155,9 +155,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     if (!navigator.mediaDevices?.getUserMedia) { render("error", "Micro indisponible sur ce navigateur ou sans HTTPS."); return; }
     try {
       ensureStream();
-      state.audioProcessor = state.audioProcessor || new AudioProcessor({
-        gateThreshold: elements.gateThreshold?.value,
-      });
+      state.audioProcessor = state.audioProcessor || new AudioProcessor();
       state.audioProcessor.setMonitorEnabled(elements.microphoneMonitor?.checked);
       const track = await state.audioProcessor.start({
         onLevel: setMicrophoneLevel,
@@ -416,7 +414,6 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
 
   elements.button.addEventListener("click", () => (hasVideoTrack() ? stop({ keepMessage: true }) : start()));
   elements.microphoneButton?.addEventListener("click", () => (state.audioEnabled ? disableMicrophone() : enableMicrophone()));
-  elements.gateThreshold?.addEventListener("input", () => state.audioProcessor?.setGateThreshold(elements.gateThreshold.value));
   elements.microphoneMonitor?.addEventListener("change", () => state.audioProcessor?.setMonitorEnabled(elements.microphoneMonitor.checked));
   elements.microphoneDeviceSelect?.addEventListener("change", async () => {
     state.selectedMicrophoneDeviceId = elements.microphoneDeviceSelect.value;
