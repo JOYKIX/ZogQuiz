@@ -8,6 +8,7 @@ const SIGNAL_TTL_MS = 120000;
 const DEFAULT_MUTE_KEYBIND = { type: "keyboard", code: "KeyM" };
 const STORAGE_KEY = "zogquiz.voiceMuteKeybind.v1";
 const COMPRESSOR_SETTINGS = { threshold: -24, knee: 24, ratio: 4, attack: 0.002, release: 0.12, outputGain: 1.15 };
+const LOW_CUT_FREQUENCY = 180;
 
 function safeKey(value) { return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120); }
 function plainDescription(description) { return description ? { type: description.type, sdp: description.sdp } : null; }
@@ -64,7 +65,7 @@ function createProcessedAudioGraph(rawStream) {
   const outputGain = audioContext.createGain();
   const destination = audioContext.createMediaStreamDestination();
   highpass.type = "highpass";
-  highpass.frequency.value = 85;
+  highpass.frequency.value = LOW_CUT_FREQUENCY;
   lowpass.type = "lowpass";
   lowpass.frequency.value = 14000;
   outputGain.gain.value = COMPRESSOR_SETTINGS.outputGain;
@@ -121,7 +122,7 @@ async function createProcessedMicrophoneStream({ deviceId = "", onStatus }) {
 }
 
 export function createVoiceChatController({ getSessionId, getNickname, elements }) {
-  const state = { sessionId: "", joined: false, muted: false, stream: null, cleanupAudio: null, peers: new Map(), presence: {}, unsubPresence: null, unsubSignals: null, unsubSignalRemovals: null, heartbeat: null, roomId: "main", keybind: readKeybind(), capturing: false, selectedDeviceId: "" };
+  const state = { sessionId: "", joined: false, muted: false, monitoring: false, monitorAudio: null, stream: null, cleanupAudio: null, peers: new Map(), presence: {}, unsubPresence: null, unsubSignals: null, unsubSignalRemovals: null, heartbeat: null, roomId: "main", keybind: readKeybind(), capturing: false, selectedDeviceId: "" };
   function render(text = "") {
     elements.panel?.classList.toggle("hidden", !getSessionId());
     elements.join.textContent = state.joined ? "Quitter" : "Rejoindre";
@@ -129,6 +130,12 @@ export function createVoiceChatController({ getSessionId, getNickname, elements 
     elements.mute.disabled = !state.joined;
     elements.mute.textContent = state.muted ? "Unmute" : "Mute";
     elements.mute.classList.toggle("is-muted", state.muted);
+    if (elements.monitor) {
+      elements.monitor.disabled = !state.joined;
+      elements.monitor.textContent = state.monitoring ? "Retour voix ON" : "Retour voix";
+      elements.monitor.setAttribute("aria-pressed", String(state.monitoring));
+      elements.monitor.classList.toggle("is-active", state.monitoring);
+    }
     if (elements.deviceSelect) elements.deviceSelect.disabled = state.joined && !state.stream;
     elements.keyLabel.textContent = keyLabel(state.keybind);
     elements.status.textContent = text || (state.joined ? "Salon vocal actif." : "Salon vocal quitté.");
@@ -201,11 +208,14 @@ export function createVoiceChatController({ getSessionId, getNickname, elements 
     elements.join.disabled = true; render("Micro…");
     try { state.sessionId = safeKey(getSessionId()); const audio = await createProcessedMicrophoneStream({ deviceId: state.selectedDeviceId, onStatus: () => {} }); state.stream = audio.stream; state.cleanupAudio = audio.cleanup; state.joined = true; state.muted = false; await refreshDeviceList(); await writePresence(); await onDisconnect(ref(db, `${VOICE_PATH}/rooms/${state.roomId}/presence/${safeKey(state.sessionId || getSessionId())}`)).remove(); watch(); state.heartbeat = setInterval(() => writePresence().catch(console.warn), HEARTBEAT_MS); render(audio.rnnoiseActive ? "RNNoise actif." : "RNNoise indisponible : fallback micro."); } catch (error) { render(error?.name === "NotAllowedError" ? "Permission micro refusée." : "Erreur micro."); }
   }
-  async function leave() { clearInterval(state.heartbeat); state.heartbeat = null; state.unsubPresence?.(); state.unsubSignals?.(); state.unsubSignalRemovals?.(); for (const id of [...state.peers.keys()]) closePeer(id, true); state.cleanupAudio?.(); state.stream = null; state.cleanupAudio = null; state.joined = false; await removePresence().catch(() => {}); state.sessionId = ""; render(); }
+  function stopMonitor() { state.monitorAudio?.pause(); if (state.monitorAudio) state.monitorAudio.srcObject = null; state.monitorAudio = null; state.monitoring = false; }
+  function startMonitor() { if (!state.stream) return; const audio = state.monitorAudio || new Audio(); state.monitorAudio = audio; audio.autoplay = true; audio.playsInline = true; audio.srcObject = state.stream; audio.play?.().catch(() => {}); }
+  function toggleMonitor() { if (!state.joined) return; state.monitoring = !state.monitoring; if (state.monitoring) startMonitor(); else stopMonitor(); render(); }
+  async function leave() { clearInterval(state.heartbeat); state.heartbeat = null; state.unsubPresence?.(); state.unsubSignals?.(); state.unsubSignalRemovals?.(); for (const id of [...state.peers.keys()]) closePeer(id, true); stopMonitor(); state.cleanupAudio?.(); state.stream = null; state.cleanupAudio = null; state.joined = false; await removePresence().catch(() => {}); state.sessionId = ""; render(); }
   async function toggleMute() { if (!state.joined) return; state.muted = !state.muted; state.stream?.getAudioTracks().forEach((track) => { track.enabled = !state.muted; }); await writePresence().catch(() => {}); render(); }
   function beginCapture() { state.capturing = true; elements.keyHint.classList.remove("hidden"); }
   function setBinding(binding) { const conflict = binding.type === "keyboard" && ["Space", "Enter"].includes(binding.code); elements.keyConflict.classList.toggle("hidden", !conflict); state.keybind = binding; writeKeybind(binding); state.capturing = false; elements.keyHint.classList.add("hidden"); render(); }
   function handleShortcut(event) { if (isEditableTarget(event.target)) return; if (state.capturing) { const binding = eventToBinding(event); if (binding) { event.preventDefault(); setBinding(binding); } return; } if (bindingEquals(state.keybind, event)) { event.preventDefault(); toggleMute(); } }
-  elements.join.addEventListener("click", () => state.joined ? leave() : join()); elements.mute.addEventListener("click", toggleMute); elements.keyChange.addEventListener("click", beginCapture); elements.keyReset.addEventListener("click", () => setBinding(DEFAULT_MUTE_KEYBIND)); elements.deviceSelect?.addEventListener("change", async () => { state.selectedDeviceId = elements.deviceSelect.value; if (state.joined) { await leave(); await join(); } }); navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn)); window.addEventListener("keydown", handleShortcut); window.addEventListener("mouseup", handleShortcut); window.addEventListener("beforeunload", () => { state.cleanupAudio?.(); removePresence(); }); render(); refreshDeviceList().catch(console.warn);
+  elements.join.addEventListener("click", () => state.joined ? leave() : join()); elements.mute.addEventListener("click", toggleMute); elements.monitor?.addEventListener("click", toggleMonitor); elements.keyChange.addEventListener("click", beginCapture); elements.keyReset.addEventListener("click", () => setBinding(DEFAULT_MUTE_KEYBIND)); elements.deviceSelect?.addEventListener("change", async () => { state.selectedDeviceId = elements.deviceSelect.value; if (state.joined) { await leave(); await join(); } }); navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn)); window.addEventListener("keydown", handleShortcut); window.addEventListener("mouseup", handleShortcut); window.addEventListener("beforeunload", () => { state.cleanupAudio?.(); removePresence(); }); render(); refreshDeviceList().catch(console.warn);
   return { join, leave, refreshIdentity: writePresence, isJoined: () => state.joined };
 }
