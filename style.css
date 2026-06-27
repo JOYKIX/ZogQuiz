@@ -1372,3 +1372,20 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .voice-user-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
 .voice-user-list li { border: 2px solid var(--ink); background: #15151f; padding: .35rem .45rem; font-weight: 800; }
 .voice-user-list li.self { color: var(--accent); }
+
+.participant-buzzer-volume {
+  min-width: 150px;
+  grid-template-columns: minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: .35rem .55rem;
+}
+
+.participant-buzzer-volume input {
+  grid-column: 1 / 2;
+}
+
+.participant-buzzer-volume span {
+  grid-column: 2 / 3;
+  color: var(--text);
+  font-weight: 950;
+}

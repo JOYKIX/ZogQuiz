@@ -23,6 +23,7 @@ import {
   GUEST_LOGIN_INDEX_PATH,
   createGuestAccount,
   normalizeBuzzerSoundFile,
+  normalizeBuzzerVolume,
   removeGuestAccount,
   setGuestAccountPassword,
   updateParticipantColor as saveParticipantColor,
@@ -287,6 +288,7 @@ let m3Ticker = null;
 
 const triggerBuzzSound = createBuzzSoundTrigger({
   resolveBuzzerFile: (state) => sessionsById[state?.lockedBySessionId]?.buzzerSound || "buzzer.mp3",
+  resolveBuzzerVolume: (state) => sessionsById[state?.lockedBySessionId]?.buzzerVolume ?? 100,
 });
 
 function normalizeAdminId(rawId) {
@@ -1042,11 +1044,13 @@ function renderGuestAccounts() {
     const status = account.active ? "Actif" : "Désactivé";
     const displayName = String(account.displayName || "").trim() || "Non défini";
     const buzzerSound = String(account.buzzerSound || "").trim() || "buzzer.mp3 (défaut)";
+    const buzzerVolume = normalizeBuzzerVolume(account.buzzerVolume);
     const createdAtLabel = account.createdAt ? new Date(account.createdAt).toLocaleString() : "—";
     li.innerHTML = `
       <div class="question-head"><strong>${account.loginId || account.id}</strong><span class="question-active-chip">${status}</span></div>
       <p><strong>Pseudo :</strong> ${displayName}</p>
       <p><strong>Buzzer :</strong> ${buzzerSound}</p>
+      <p><strong>Volume :</strong> ${buzzerVolume}%</p>
       <p class="muted">Créé le : ${createdAtLabel}</p>
     `;
 
@@ -1350,6 +1354,23 @@ async function updateParticipantBuzzer(sessionId, rawValue) {
   showToast(normalized ? "Buzzer personnalisé enregistré." : "Buzzer par défaut réactivé.");
 }
 
+async function updateParticipantBuzzerVolume(sessionId, rawValue) {
+  if (!sessionId) return;
+  const buzzerVolume = normalizeBuzzerVolume(rawValue);
+  const updatedAt = Date.now();
+  await Promise.all([
+    update(ref(db, `rooms/manche1/guestSessions/${sessionId}`), {
+      buzzerVolume,
+      updatedAt,
+    }),
+    update(ref(db, `${GUEST_ACCOUNTS_PATH}/${sessionId}`), {
+      buzzerVolume,
+      updatedAt,
+      updatedBy: currentAdminId || "admin",
+    }),
+  ]);
+}
+
 async function updateParticipantColor(sessionId, rawColor) {
   if (!sessionId) return;
   try {
@@ -1439,6 +1460,25 @@ function renderParticipantsAdminList(target, entries, emptyText) {
 
       buzzerWrap.append(buzzerInput, saveBtn);
 
+      const volumeWrap = document.createElement("label");
+      volumeWrap.className = "participant-buzzer-volume";
+      volumeWrap.textContent = "Volume";
+
+      const volumeValue = document.createElement("span");
+      const volumeInput = document.createElement("input");
+      volumeInput.type = "range";
+      volumeInput.min = "0";
+      volumeInput.max = "200";
+      volumeInput.step = "1";
+      volumeInput.value = String(normalizeBuzzerVolume(p.buzzerVolume));
+      volumeValue.textContent = `${volumeInput.value}%`;
+
+      volumeInput.addEventListener("input", () => {
+        volumeValue.textContent = `${volumeInput.value}%`;
+      });
+      volumeInput.addEventListener("change", () => updateParticipantBuzzerVolume(p.id, volumeInput.value));
+      volumeWrap.append(volumeInput, volumeValue);
+
       const colorWrap = document.createElement("div");
       colorWrap.className = "participant-color";
 
@@ -1495,7 +1535,7 @@ function renderParticipantsAdminList(target, entries, emptyText) {
       }
 
       colorWrap.append(swatch, colorInput, hexInput, duplicateWarning);
-      li.append(actionWrap, buzzerWrap, colorWrap);
+      li.append(actionWrap, buzzerWrap, volumeWrap, colorWrap);
     }
 
     target.appendChild(li);
@@ -1511,6 +1551,7 @@ function sortedSessions() {
       id,
       ...session,
       color: normalizeParticipantColor(session?.color, getDefaultParticipantColor(id, takenColors)),
+      buzzerVolume: normalizeBuzzerVolume(session?.buzzerVolume),
       score: Number(session.score || 0),
     }))
     .sort((a, b) => b.score - a.score || (a.joinedAt || 0) - (b.joinedAt || 0));
