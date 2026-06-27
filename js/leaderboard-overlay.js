@@ -35,9 +35,35 @@ const config = SOURCE_CONFIGS[source];
 const requestedLimit = Number(params.get("limit") || 10);
 const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(20, requestedLimit)) : 10;
 
+const overlayNode = document.querySelector(".leaderboard-overlay");
+const panelNode = document.querySelector(".leaderboard-panel");
 const titleNode = document.getElementById("leaderboard-title");
 const kickerNode = document.getElementById("leaderboard-kicker");
 const listNode = document.getElementById("leaderboard-list");
+
+let scaleFrame = 0;
+
+function fitLeaderboardToViewport() {
+  if (!overlayNode || !panelNode) return;
+
+  panelNode.style.setProperty("--leaderboard-scale", "1");
+
+  const overlayBox = overlayNode.getBoundingClientRect();
+  const styles = window.getComputedStyle(overlayNode);
+  const availableWidth = overlayBox.width - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+  const availableHeight = overlayBox.height - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom);
+
+  if (availableWidth <= 0 || availableHeight <= 0 || panelNode.scrollWidth <= 0 || panelNode.scrollHeight <= 0) return;
+
+  const scale = Math.min(1, availableWidth / panelNode.scrollWidth, availableHeight / panelNode.scrollHeight);
+
+  panelNode.style.setProperty("--leaderboard-scale", String(Math.max(0.1, scale)));
+}
+
+function scheduleLeaderboardFit() {
+  window.cancelAnimationFrame(scaleFrame);
+  scaleFrame = window.requestAnimationFrame(fitLeaderboardToViewport);
+}
 
 function createTextElement(tagName, className, textContent) {
   const node = document.createElement(tagName);
@@ -50,6 +76,7 @@ function renderEmpty() {
   listNode.innerHTML = "";
   const item = createTextElement("li", "leaderboard-row leaderboard-empty", config.emptyMessage);
   listNode.appendChild(item);
+  scheduleLeaderboardFit();
 }
 
 function render(entries) {
@@ -72,11 +99,16 @@ function render(entries) {
 
     listNode.appendChild(item);
   }
+
+  scheduleLeaderboardFit();
 }
 
 titleNode.textContent = params.get("title") || config.defaultTitle;
 kickerNode.textContent = config.kicker;
 document.title = `ZogQuiz Overlay - ${titleNode.textContent}`;
+scheduleLeaderboardFit();
+window.addEventListener("resize", scheduleLeaderboardFit);
+new ResizeObserver(scheduleLeaderboardFit).observe(panelNode);
 
 onValue(ref(db, config.path), (snap) => {
   const entries = Object.entries(snap.val() || {})
