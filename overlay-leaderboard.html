@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="overlay-leaderboard.css" />
+    <title>ZogQuiz Overlay - Leaderboard</title>
+  </head>
+  <body class="overlay-page" data-leaderboard-source="combined">
+    <main class="leaderboard-overlay leaderboard-overlay-combined" aria-live="polite">
+      <section class="leaderboard-panel" data-leaderboard-source-panel="participants" aria-labelledby="participants-leaderboard-title">
+        <p class="leaderboard-kicker">Classement live</p>
+        <h1 id="participants-leaderboard-title" class="leaderboard-title">Participants</h1>
+        <ol class="leaderboard-list" data-leaderboard-list="participants"></ol>
+      </section>
+      <section class="leaderboard-panel" data-leaderboard-source-panel="viewers" aria-labelledby="viewers-leaderboard-title">
+        <p class="leaderboard-kicker">Classement Twitch</p>
+        <h1 id="viewers-leaderboard-title" class="leaderboard-title">Viewers</h1>
+        <ol class="leaderboard-list" data-leaderboard-list="viewers"></ol>
+      </section>
+    </main>
+    <script type="module" src="js/leaderboard-overlay.js"></script>
+  </body>
+</html>

@@ -217,3 +217,74 @@ body[data-leaderboard-source="viewers"] .leaderboard-kicker { background: var(--
 body[data-leaderboard-source="viewers"] .leaderboard-row { border-left-color: var(--zq-orange); }
 body[data-leaderboard-source="viewers"] .leaderboard-row:first-child { border-left-color: var(--cyan); }
 body[data-leaderboard-source="viewers"] .leaderboard-rank { color: var(--zq-orange); }
+
+body[data-leaderboard-source="combined"] .leaderboard-overlay {
+  width: 1920px;
+  height: 1080px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  justify-content: center;
+  gap: 48px;
+  padding: 72px;
+  transform: scale(min(calc(100vw / 1920), calc(100vh / 1080)));
+  transform-origin: top left;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-panel {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  padding: 34px;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-title {
+  margin-bottom: 28px;
+  font-size: 4.9rem;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-list {
+  gap: 14px;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-row {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  min-height: 104px;
+  padding: 16px 22px;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-rank {
+  font-size: 2.8rem;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-name {
+  font-size: 3rem;
+}
+
+body[data-leaderboard-source="combined"] .leaderboard-score {
+  font-size: 2.45rem;
+}
+
+body[data-leaderboard-source="combined"] [data-leaderboard-source-panel="viewers"] {
+  border-left-color: var(--zq-orange);
+}
+
+body[data-leaderboard-source="combined"] [data-leaderboard-source-panel="viewers"]::before {
+  background: linear-gradient(90deg, var(--cyan) 0 38%, var(--zq-orange) 38% 56%, var(--zq-yellow) 56% 100%);
+}
+
+body[data-leaderboard-source="combined"] [data-leaderboard-source-panel="viewers"] .leaderboard-kicker {
+  background: var(--zq-orange);
+  color: #fff;
+}
+
+body[data-leaderboard-source="combined"] [data-leaderboard-source-panel="viewers"] .leaderboard-row {
+  border-left-color: var(--zq-orange);
+}
+
+body[data-leaderboard-source="combined"] [data-leaderboard-source-panel="viewers"] .leaderboard-row:first-child {
+  border-left-color: var(--cyan);
+}
+
+body[data-leaderboard-source="combined"] [data-leaderboard-source-panel="viewers"] .leaderboard-rank {
+  color: var(--zq-orange);
+}

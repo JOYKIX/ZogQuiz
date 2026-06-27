@@ -30,12 +30,15 @@ const SOURCE_CONFIGS = {
 };
 
 const params = new URLSearchParams(window.location.search);
-const source = document.body.dataset.leaderboardSource === "viewers" ? "viewers" : "participants";
+const pageSource = document.body.dataset.leaderboardSource;
+const source = pageSource === "viewers" ? "viewers" : "participants";
+const isCombinedOverlay = pageSource === "combined";
 const config = SOURCE_CONFIGS[source];
-const requestedLimit = Number(params.get("limit") || 10);
-const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(20, requestedLimit)) : 10;
+const requestedLimit = Number(params.get("limit") || 5);
+const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(20, requestedLimit)) : 5;
 
 const overlayNode = document.querySelector(".leaderboard-overlay");
+const panelNodes = Array.from(document.querySelectorAll(".leaderboard-panel"));
 const panelNode = document.querySelector(".leaderboard-panel");
 const titleNode = document.getElementById("leaderboard-title");
 const kickerNode = document.getElementById("leaderboard-kicker");
@@ -46,18 +49,21 @@ let scaleFrame = 0;
 function fitLeaderboardToViewport() {
   if (!overlayNode || !panelNode) return;
 
-  panelNode.style.setProperty("--leaderboard-scale", "1");
+  for (const panel of panelNodes) panel.style.setProperty("--leaderboard-scale", "1");
 
   const overlayBox = overlayNode.getBoundingClientRect();
   const styles = window.getComputedStyle(overlayNode);
   const availableWidth = overlayBox.width - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
   const availableHeight = overlayBox.height - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom);
 
-  if (availableWidth <= 0 || availableHeight <= 0 || panelNode.scrollWidth <= 0 || panelNode.scrollHeight <= 0) return;
+  if (availableWidth <= 0 || availableHeight <= 0) return;
 
-  const scale = Math.min(1, availableWidth / panelNode.scrollWidth, availableHeight / panelNode.scrollHeight);
+  for (const panel of panelNodes) {
+    if (panel.scrollWidth <= 0 || panel.scrollHeight <= 0) continue;
 
-  panelNode.style.setProperty("--leaderboard-scale", String(Math.max(0.1, scale)));
+    const scale = Math.min(1, availableWidth / panel.scrollWidth, availableHeight / panel.scrollHeight);
+    panel.style.setProperty("--leaderboard-scale", String(Math.max(0.1, scale)));
+  }
 }
 
 function scheduleLeaderboardFit() {
@@ -72,18 +78,23 @@ function createTextElement(tagName, className, textContent) {
   return node;
 }
 
-function renderEmpty() {
-  listNode.innerHTML = "";
-  const item = createTextElement("li", "leaderboard-row leaderboard-empty", config.emptyMessage);
-  listNode.appendChild(item);
+function renderEmpty(targetListNode, targetConfig) {
+  targetListNode.innerHTML = "";
+  const item = createTextElement("li", "leaderboard-row leaderboard-empty", targetConfig.emptyMessage);
+  targetListNode.appendChild(item);
   scheduleLeaderboardFit();
 }
 
-function render(entries) {
-  listNode.innerHTML = "";
+function render(entries, targetListNode = listNode, targetConfig = config) {
+  targetListNode.innerHTML = "";
 
   if (!entries.length) {
-    renderEmpty();
+    if (isCombinedOverlay) {
+      scheduleLeaderboardFit();
+      return;
+    }
+
+    renderEmpty(targetListNode, targetConfig);
     return;
   }
 
@@ -97,23 +108,40 @@ function render(entries) {
       createTextElement("span", "leaderboard-score", `${entry.score} pts`),
     );
 
-    listNode.appendChild(item);
+    targetListNode.appendChild(item);
   }
 
   scheduleLeaderboardFit();
 }
 
-titleNode.textContent = params.get("title") || config.defaultTitle;
-kickerNode.textContent = config.kicker;
-document.title = `ZogQuiz Overlay - ${titleNode.textContent}`;
+if (!isCombinedOverlay) {
+  titleNode.textContent = params.get("title") || config.defaultTitle;
+  kickerNode.textContent = config.kicker;
+  document.title = `ZogQuiz Overlay - ${titleNode.textContent}`;
+}
+
 scheduleLeaderboardFit();
 window.addEventListener("resize", scheduleLeaderboardFit);
-new ResizeObserver(scheduleLeaderboardFit).observe(panelNode);
+const resizeObserver = new ResizeObserver(scheduleLeaderboardFit);
+for (const panel of panelNodes) resizeObserver.observe(panel);
 
-onValue(ref(db, config.path), (snap) => {
-  const entries = Object.entries(snap.val() || {})
-    .map(config.normalize)
-    .sort(config.sort);
+function subscribeLeaderboard(sourceName, targetListNode) {
+  const targetConfig = SOURCE_CONFIGS[sourceName];
 
-  render(entries);
-});
+  onValue(ref(db, targetConfig.path), (snap) => {
+    const entries = Object.entries(snap.val() || {})
+      .map(targetConfig.normalize)
+      .sort(targetConfig.sort);
+
+    render(entries, targetListNode, targetConfig);
+  });
+}
+
+if (isCombinedOverlay) {
+  for (const sourceName of Object.keys(SOURCE_CONFIGS)) {
+    const targetListNode = document.querySelector(`[data-leaderboard-list="${sourceName}"]`);
+    if (targetListNode) subscribeLeaderboard(sourceName, targetListNode);
+  }
+} else {
+  subscribeLeaderboard(source, listNode);
+}
