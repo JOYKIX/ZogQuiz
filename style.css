@@ -1393,3 +1393,93 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .participant-buzzer-volume button {
   grid-column: 3 / 4;
 }
+
+/* Participant admin rows: keep score, buzzer, volume and color controls in fixed grid areas. */
+.leaderboard li.leader-item.has-buzzer {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(3rem, auto) auto minmax(10.5rem, 13rem) minmax(12rem, 15rem) minmax(11rem, 14rem);
+  align-items: center;
+  gap: .55rem;
+  width: 100%;
+}
+
+.leader-item.has-buzzer .leader-name {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  overflow-wrap: anywhere;
+}
+
+.leader-item.has-buzzer .leader-color-dot {
+  flex: 0 0 .7rem;
+  width: .7rem;
+  height: .7rem;
+  border: 1px solid var(--ink);
+}
+
+.leader-item.has-buzzer .leader-score {
+  justify-self: end;
+  white-space: nowrap;
+  font-weight: 950;
+}
+
+.score-actions,
+.participant-buzzer,
+.participant-color {
+  display: grid;
+  align-items: center;
+  gap: .35rem;
+  min-width: 0;
+}
+
+.score-actions {
+  grid-template-columns: repeat(2, auto);
+}
+
+.participant-buzzer {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.participant-buzzer input,
+.participant-color input[type="text"] {
+  min-width: 0;
+  width: 100%;
+}
+
+.participant-color {
+  grid-template-columns: minmax(4.6rem, auto) 2.4rem minmax(0, 1fr);
+}
+
+.participant-color input[type="color"] {
+  width: 2.4rem;
+  min-width: 2.4rem;
+  padding: .2rem;
+}
+
+.participant-color-swatch {
+  min-width: 4.6rem;
+  padding: .28rem .35rem;
+  border: 1px solid var(--ink);
+  font-size: .75rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.participant-color-warning {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: .72rem;
+}
+
+@media (max-width: 1100px) {
+  .leaderboard li.leader-item.has-buzzer {
+    grid-template-columns: minmax(7rem, 1fr) minmax(3rem, auto) auto;
+  }
+
+  .leader-item.has-buzzer .participant-buzzer,
+  .leader-item.has-buzzer .participant-buzzer-volume,
+  .leader-item.has-buzzer .participant-color {
+    grid-column: 1 / -1;
+  }
+}
