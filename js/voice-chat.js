@@ -16,9 +16,9 @@ const SIGNAL_TTL_MS = 120000;
 const RECONNECT_DELAY_MS = 1200;
 const DEFAULT_ROOM_ID = "main";
 const SETTINGS_KEY = "zogquiz.voice.settings";
-const REMOTE_VOLUME_MIN = 0;
-const REMOTE_VOLUME_MAX = 2;
-const REMOTE_VOLUME_DEFAULT = 1;
+const PERSONAL_VOLUME_MIN = 0;
+const PERSONAL_VOLUME_MAX = 2;
+const PERSONAL_VOLUME_DEFAULT = 1;
 
 function safeKey(value) {
   return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120);
@@ -100,9 +100,9 @@ function clampMicSensitivity(value) {
   return Math.min(1.4, Math.max(0.7, Number(value) || 1));
 }
 
-function clampRemoteVolume(value, fallback = REMOTE_VOLUME_DEFAULT) {
+function clampPersonalVolume(value, fallback = PERSONAL_VOLUME_DEFAULT) {
   const numeric = Number(value);
-  return Math.min(REMOTE_VOLUME_MAX, Math.max(REMOTE_VOLUME_MIN, Number.isFinite(numeric) ? numeric : fallback));
+  return Math.min(PERSONAL_VOLUME_MAX, Math.max(PERSONAL_VOLUME_MIN, Number.isFinite(numeric) ? numeric : fallback));
 }
 
 function loadVoiceSettings() {
@@ -113,10 +113,10 @@ function loadVoiceSettings() {
       micSensitivity: clampMicSensitivity(saved.micSensitivity),
       selectedDeviceId: String(saved.selectedDeviceId || ""),
       muteKeyCode: normalizeKeyCode(saved.muteKeyCode || DEFAULT_MUTE_KEY),
-      remoteVolumes: Object.fromEntries(Object.entries(saved.remoteVolumes || {}).map(([key, value]) => [safeKey(key), clampRemoteVolume(value)])),
+      personalVolume: clampPersonalVolume(saved.personalVolume),
     };
   } catch {
-    return { ...DEFAULT_VOICE_SETTINGS, selectedDeviceId: "", remoteVolumes: {} };
+    return { ...DEFAULT_VOICE_SETTINGS, selectedDeviceId: "", personalVolume: PERSONAL_VOLUME_DEFAULT };
   }
 }
 
@@ -269,8 +269,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     selectedDeviceId: initialSettings.selectedDeviceId,
     monitorEnabled: false,
     monitorAudio: null,
-    voiceSettings: { noiseReduction: initialSettings.noiseReduction, micSensitivity: initialSettings.micSensitivity },
-    remoteVolumes: { ...(initialSettings.remoteVolumes || {}) },
+    voiceSettings: { noiseReduction: initialSettings.noiseReduction, micSensitivity: initialSettings.micSensitivity, personalVolume: initialSettings.personalVolume },
     muteKeyCode: normalizeKeyCode(initialSettings.muteKeyCode),
     capturingMuteKey: false,
   };
@@ -286,6 +285,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     }
     if (elements.noiseReductionSelect) elements.noiseReductionSelect.value = state.voiceSettings.noiseReduction;
     if (elements.micSensitivity) elements.micSensitivity.value = String(state.voiceSettings.micSensitivity);
+    if (elements.personalVolume) elements.personalVolume.value = String(state.voiceSettings.personalVolume);
     if (elements.muteKeyButton) elements.muteKeyButton.textContent = state.capturingMuteKey ? "Appuyez sur une touche…" : formatKeyLabel(state.muteKeyCode);
     setHidden(elements.panel, false);
     const activePeople = Object.values(state.participants).filter((p) => Date.now() - Number(p.updatedAt || 0) < STALE_MS);
@@ -295,18 +295,6 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       const name = document.createElement("span");
       name.textContent = `${participant.nickname || "Invité"}${participant.muted ? " · mute" : ""}`;
       item.append(name);
-      if (participant.id !== state.clientId) {
-        const volume = document.createElement("input");
-        volume.type = "range";
-        volume.min = "0";
-        volume.max = String(REMOTE_VOLUME_MAX);
-        volume.step = "0.05";
-        volume.value = String(getRemoteVolume(participant.id));
-        volume.className = "voice-volume-control";
-        volume.setAttribute("aria-label", `Volume ${participant.nickname || "Invité"}`);
-        volume.addEventListener("input", () => setRemoteVolume(participant.id, volume.value));
-        item.append(volume);
-      }
       return item;
     }));
     if (!activePeople.length) {
@@ -339,16 +327,16 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
 
 
   function persistSettings() {
-    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId, muteKeyCode: state.muteKeyCode, remoteVolumes: state.remoteVolumes });
+    saveVoiceSettings({ ...state.voiceSettings, selectedDeviceId: state.selectedDeviceId, muteKeyCode: state.muteKeyCode });
   }
 
-  function getRemoteVolume(peerId) {
-    return clampRemoteVolume(state.remoteVolumes[safeKey(peerId)] ?? REMOTE_VOLUME_DEFAULT);
+  function getPersonalVolume() {
+    return clampPersonalVolume(state.voiceSettings.personalVolume);
   }
 
-  function applyRemoteVolume(peerId) {
+  function applyPersonalVolume(peerId) {
     const entry = state.peers.get(peerId);
-    const volume = getRemoteVolume(peerId);
+    const volume = getPersonalVolume();
     if (entry?.gainNode) {
       entry.gainNode.gain.setTargetAtTime(volume, entry.remoteContext?.currentTime || 0, 0.01);
       if (entry.audio) entry.audio.volume = 1;
@@ -364,9 +352,10 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     }
   }
 
-  function setRemoteVolume(peerId, value) {
-    state.remoteVolumes[safeKey(peerId)] = clampRemoteVolume(value, getRemoteVolume(peerId));
-    applyRemoteVolume(peerId);
+  function setPersonalVolume(value) {
+    state.voiceSettings.personalVolume = clampPersonalVolume(value, getPersonalVolume());
+    for (const peerId of state.peers.keys()) applyPersonalVolume(peerId);
+    if (state.monitorAudio) state.monitorAudio.volume = Math.min(1, getPersonalVolume());
     resumeRemoteAudio();
     persistSettings();
   }
@@ -524,15 +513,15 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
           entry.remoteDestination = entry.remoteContext.createMediaStreamDestination();
           entry.remoteSource.connect(entry.gainNode).connect(entry.remoteDestination);
           audio.srcObject = entry.remoteDestination.stream;
-          applyRemoteVolume(remoteId);
+          applyPersonalVolume(remoteId);
           entry.remoteContext.resume?.().catch(() => {});
         } catch {
           audio.srcObject = stream;
-          applyRemoteVolume(remoteId);
+          applyPersonalVolume(remoteId);
         }
       } else {
         audio.srcObject = stream;
-        applyRemoteVolume(remoteId);
+        applyPersonalVolume(remoteId);
       }
       entry.remoteContext?.resume?.().catch(() => {});
       audio.play?.().catch(() => setText(elements.status, "Vocal actif. Cliquez sur la page si l'écoute est bloquée."));
@@ -667,6 +656,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     state.monitorAudio = new Audio();
     state.monitorAudio.autoplay = true;
     state.monitorAudio.muted = false;
+    state.monitorAudio.volume = Math.min(1, getPersonalVolume());
     state.monitorAudio.srcObject = state.localStream;
     state.monitorAudio.play?.().catch(console.warn);
   }
@@ -712,6 +702,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   async function changeVoiceSettings() {
     state.voiceSettings.noiseReduction = getNoiseMode(elements.noiseReductionSelect?.value || state.voiceSettings.noiseReduction);
     state.voiceSettings.micSensitivity = clampMicSensitivity(elements.micSensitivity?.value || state.voiceSettings.micSensitivity);
+    state.voiceSettings.personalVolume = clampPersonalVolume(elements.personalVolume?.value || state.voiceSettings.personalVolume);
     persistSettings();
     if (!state.joined) return;
     const processed = await rebuildLocalAudio();
@@ -756,6 +747,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   elements.monitorButton?.addEventListener("click", toggleMonitor);
   elements.noiseReductionSelect?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
   elements.micSensitivity?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
+  elements.personalVolume?.addEventListener("input", () => setPersonalVolume(elements.personalVolume.value));
   document.addEventListener("keydown", handleMuteKeyDown);
   document.addEventListener("pointerdown", resumeRemoteAudio);
   document.addEventListener("click", resumeRemoteAudio);

@@ -1395,10 +1395,6 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
   min-width: 0;
 }
 
-.voice-volume-control {
-  width: min(7rem, 45%);
-  flex: 0 0 auto;
-}
 
 .voice-device-field {
   display: grid;
