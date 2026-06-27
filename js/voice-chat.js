@@ -117,7 +117,7 @@ async function createProcessedMicrophoneStream({ deviceId = "", onStatus }) {
         if (event.data?.type === "error") { clearTimeout(timer); reject(new Error(event.data.message)); }
       };
     });
-    worklet.port.postMessage({ type: "init", wasmUrl: "./vendor/rnnoise/rnnoise.wasm" });
+    worklet.port.postMessage({ type: "init", moduleUrl: new URL("../vendor/rnnoise/rnnoise.js", import.meta.url).href, wasmUrl: "./vendor/rnnoise/rnnoise.wasm" });
     await ready;
     audio.input.connect(worklet).connect(gate);
     audio.connectToOutput(gate);

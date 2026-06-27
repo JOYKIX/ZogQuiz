@@ -67,5 +67,5 @@ TWITCH_CHANNEL=
 
 - Ouvrir `guest.html`, se connecter, puis utiliser le bloc `Vocal`.
 - Le micro est capturé avec `echoCancellation: true`, `noiseSuppression: true`, `autoGainControl: true`, mono et 48 kHz.
-- RNNoise est chargé côté client depuis `vendor/rnnoise/rnnoise.wasm`. Si ce fichier est absent ou incompatible, le vocal passe en fallback micro avec gate adaptatif, filtres et compresseur.
+- RNNoise est chargé côté client depuis `vendor/rnnoise/rnnoise.js`. Si ce module est absent ou incompatible, le vocal passe en fallback micro avec gate adaptatif, filtres et compresseur.
 - Le raccourci mute/unmute est configurable depuis l’interface invité et sauvegardé dans `localStorage`.
