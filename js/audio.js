@@ -1,6 +1,8 @@
 const DEFAULT_BUZZER_FILE = "buzzer.mp3";
 const BUZZER_DIR_URL = new URL("../sound/", import.meta.url);
 const audioByFile = new Map();
+const decodedAudioByFile = new Map();
+let audioContext = null;
 
 function normalizeBuzzerFile(fileName) {
   if (!fileName) return DEFAULT_BUZZER_FILE;
@@ -19,26 +21,75 @@ function getAudioForFile(fileName) {
   return audio;
 }
 
-function tryPlayAudio(audio) {
+function normalizeBuzzerVolume(volumePercent) {
+  const volume = Number(volumePercent);
+  if (!Number.isFinite(volume)) return 100;
+  return Math.min(200, Math.max(0, volume));
+}
+
+function getAudioContext() {
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) return null;
+  if (!audioContext) audioContext = new AudioContextConstructor();
+  return audioContext;
+}
+
+async function getDecodedAudioForFile(fileName) {
+  const normalized = normalizeBuzzerFile(fileName);
+  if (decodedAudioByFile.has(normalized)) return decodedAudioByFile.get(normalized);
+  const context = getAudioContext();
+  if (!context) return null;
+  const promise = fetch(new URL(normalized, BUZZER_DIR_URL).href)
+    .then((response) => {
+      if (!response.ok) throw new Error("Buzzer introuvable.");
+      return response.arrayBuffer();
+    })
+    .then((buffer) => context.decodeAudioData(buffer));
+  decodedAudioByFile.set(normalized, promise);
+  return promise;
+}
+
+async function tryPlayWithGain(fileName, volumePercent) {
+  const context = getAudioContext();
+  if (!context) return false;
+  const audioBuffer = await getDecodedAudioForFile(fileName);
+  if (!audioBuffer) return false;
+  if (context.state === "suspended") await context.resume();
+  const source = context.createBufferSource();
+  const gain = context.createGain();
+  gain.gain.value = normalizeBuzzerVolume(volumePercent) / 100;
+  source.buffer = audioBuffer;
+  source.connect(gain).connect(context.destination);
+  source.start(0);
+  return true;
+}
+
+function tryPlayAudio(audio, volumePercent) {
   audio.currentTime = 0;
+  audio.volume = Math.min(1, normalizeBuzzerVolume(volumePercent) / 100);
   const playback = audio.play();
   if (!playback || typeof playback.then !== "function") return Promise.resolve(true);
   return playback.then(() => true).catch(() => false);
 }
 
-export function playBuzzerSound(fileName = DEFAULT_BUZZER_FILE) {
+export function playBuzzerSound(fileName = DEFAULT_BUZZER_FILE, volumePercent = 100) {
   const normalized = normalizeBuzzerFile(fileName);
-  const selectedAudio = getAudioForFile(normalized);
 
-  tryPlayAudio(selectedAudio).then((ok) => {
-    if (!ok && normalized !== DEFAULT_BUZZER_FILE) {
-      const fallbackAudio = getAudioForFile(DEFAULT_BUZZER_FILE);
-      tryPlayAudio(fallbackAudio);
-    }
+  tryPlayWithGain(normalized, volumePercent).then((ok) => {
+    if (ok) return;
+    const selectedAudio = getAudioForFile(normalized);
+    tryPlayAudio(selectedAudio, volumePercent).then((fallbackOk) => {
+      if (!fallbackOk && normalized !== DEFAULT_BUZZER_FILE) {
+        const fallbackAudio = getAudioForFile(DEFAULT_BUZZER_FILE);
+        tryPlayAudio(fallbackAudio, volumePercent);
+      }
+    });
+  }).catch(() => {
+    if (normalized !== DEFAULT_BUZZER_FILE) playBuzzerSound(DEFAULT_BUZZER_FILE, volumePercent);
   });
 }
 
-export function createBuzzSoundTrigger({ resolveBuzzerFile } = {}) {
+export function createBuzzSoundTrigger({ resolveBuzzerFile, resolveBuzzerVolume } = {}) {
   let lastBuzzToken = null;
 
   return (state) => {
@@ -53,6 +104,7 @@ export function createBuzzSoundTrigger({ resolveBuzzerFile } = {}) {
 
     lastBuzzToken = token;
     const buzzerFile = typeof resolveBuzzerFile === "function" ? resolveBuzzerFile(state) : DEFAULT_BUZZER_FILE;
-    playBuzzerSound(buzzerFile);
+    const buzzerVolume = typeof resolveBuzzerVolume === "function" ? resolveBuzzerVolume(state) : 100;
+    playBuzzerSound(buzzerFile, buzzerVolume);
   };
 }

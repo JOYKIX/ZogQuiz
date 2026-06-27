@@ -45,6 +45,12 @@ export function normalizeBuzzerSoundFile(rawValue) {
   return value;
 }
 
+export function normalizeBuzzerVolume(rawValue) {
+  const value = Number(rawValue);
+  if (!Number.isFinite(value)) return 100;
+  return Math.min(200, Math.max(0, Math.round(value)));
+}
+
 export async function hashSecret(secret) {
   const payload = new TextEncoder().encode(String(secret || ""));
   const digest = await crypto.subtle.digest("SHA-256", payload);
@@ -77,6 +83,7 @@ export async function createGuestAccount({ loginId, password, createdBy, buzzerS
     passwordHash: await hashSecret(password),
     active: true,
     buzzerSound: normalizedBuzzerSound,
+    buzzerVolume: 100,
     color,
     allowDisplayNameChange: false,
     displayName: "",

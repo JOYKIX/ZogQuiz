@@ -12,6 +12,7 @@ import {
   normalizeLoginId,
   getGuestLoginIndexKey,
   normalizeBuzzerSoundFile,
+  normalizeBuzzerVolume,
   validateDisplayName,
 } from "./guest-accounts.js";
 import { getDefaultParticipantColor, normalizeParticipantColor } from "./participants.js";
@@ -217,6 +218,7 @@ function isTypingContext(target) {
 
 const triggerBuzzSound = createBuzzSoundTrigger({
   resolveBuzzerFile: (state) => sessionsById[state?.lockedBySessionId]?.buzzerSound || "buzzer.mp3",
+  resolveBuzzerVolume: (state) => sessionsById[state?.lockedBySessionId]?.buzzerVolume ?? 100,
 });
 
 function createGuestClientId() {
@@ -477,6 +479,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
   const existing = sessionSnap.val() || {};
   const nickname = String(account.displayName || "").trim();
   const buzzerSound = normalizeBuzzerSoundFile(account.buzzerSound || existing.buzzerSound || "");
+  const buzzerVolume = normalizeBuzzerVolume(account.buzzerVolume ?? existing.buzzerVolume);
   const color = normalizeParticipantColor(account.color || existing.color, getDefaultParticipantColor(account.accountId));
 
   await set(sessionRef, {
@@ -489,6 +492,7 @@ async function ensureGuestSession(account, { reconnectMessage = "Reconnecté." }
     score: Number(existing.score || 0),
     active: isAccountActive(account),
     buzzerSound,
+    buzzerVolume,
     color,
   });
 
