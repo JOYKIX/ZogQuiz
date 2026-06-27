@@ -9,7 +9,7 @@ import {
   remove,
   ensureRoundsSeed,
 } from "./firebase.js";
-import { createBuzzSoundTrigger } from "./audio.js";
+import { createBuzzSoundTrigger, playBuzzerSound } from "./audio.js";
 import { OVERLAY_CONFIGS_PATH, OVERLAY_DEFAULTS, normalizeOverlayConfig } from "./overlay-config.js";
 import { initManche4Admin } from "./manche4.js";
 import { initMortSubiteAdmin } from "./mort-subite.js";
@@ -1477,7 +1477,16 @@ function renderParticipantsAdminList(target, entries, emptyText) {
         volumeValue.textContent = `${volumeInput.value}%`;
       });
       volumeInput.addEventListener("change", () => updateParticipantBuzzerVolume(p.id, volumeInput.value));
-      volumeWrap.append(volumeInput, volumeValue);
+
+      const testBuzzerBtn = document.createElement("button");
+      testBuzzerBtn.type = "button";
+      testBuzzerBtn.className = "btn btn-secondary mini-btn";
+      testBuzzerBtn.textContent = "Tester";
+      testBuzzerBtn.addEventListener("click", () => {
+        playBuzzerSound(buzzerInput.value || p.buzzerSound || "buzzer.mp3", volumeInput.value);
+      });
+
+      volumeWrap.append(volumeInput, volumeValue, testBuzzerBtn);
 
       const colorWrap = document.createElement("div");
       colorWrap.className = "participant-color";

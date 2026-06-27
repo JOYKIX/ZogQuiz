@@ -1375,7 +1375,7 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 
 .participant-buzzer-volume {
   min-width: 150px;
-  grid-template-columns: minmax(90px, 1fr) auto;
+  grid-template-columns: minmax(90px, 1fr) auto auto;
   align-items: center;
   gap: .35rem .55rem;
 }
@@ -1388,4 +1388,8 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
   grid-column: 2 / 3;
   color: var(--text);
   font-weight: 950;
+}
+
+.participant-buzzer-volume button {
+  grid-column: 3 / 4;
 }
