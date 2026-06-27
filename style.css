@@ -1394,16 +1394,20 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
   grid-column: 3 / 4;
 }
 
-/* Participant admin rows: keep score, buzzer, volume and color controls in fixed grid areas. */
+/* Participant admin rows: split controls over two lines to avoid crowded columns. */
 .leaderboard li.leader-item.has-buzzer {
   display: grid;
-  grid-template-columns: minmax(7rem, 1fr) minmax(3rem, auto) auto minmax(10.5rem, 13rem) minmax(12rem, 15rem) minmax(11rem, 14rem);
+  grid-template-columns: minmax(8rem, 1fr) minmax(3rem, auto) auto minmax(12rem, 20rem);
+  grid-template-areas:
+    "name score actions buzzer"
+    "volume volume color color";
   align-items: center;
-  gap: .55rem;
+  gap: .6rem .75rem;
   width: 100%;
 }
 
 .leader-item.has-buzzer .leader-name {
+  grid-area: name;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -1419,6 +1423,7 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 }
 
 .leader-item.has-buzzer .leader-score {
+  grid-area: score;
   justify-self: end;
   white-space: nowrap;
   font-weight: 950;
@@ -1434,11 +1439,21 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 }
 
 .score-actions {
+  grid-area: actions;
   grid-template-columns: repeat(2, auto);
 }
 
 .participant-buzzer {
+  grid-area: buzzer;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.leader-item.has-buzzer .participant-buzzer-volume {
+  grid-area: volume;
+}
+
+.leader-item.has-buzzer .participant-color {
+  grid-area: color;
 }
 
 .participant-buzzer input,
@@ -1472,14 +1487,13 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
   font-size: .72rem;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 820px) {
   .leaderboard li.leader-item.has-buzzer {
     grid-template-columns: minmax(7rem, 1fr) minmax(3rem, auto) auto;
-  }
-
-  .leader-item.has-buzzer .participant-buzzer,
-  .leader-item.has-buzzer .participant-buzzer-volume,
-  .leader-item.has-buzzer .participant-color {
-    grid-column: 1 / -1;
+    grid-template-areas:
+      "name score actions"
+      "buzzer buzzer buzzer"
+      "volume volume volume"
+      "color color color";
   }
 }
