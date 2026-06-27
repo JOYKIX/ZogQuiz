@@ -4,6 +4,7 @@ import { initManche4Guest } from "./manche4.js";
 import { initMortSubiteGuest } from "./mort-subite.js";
 import { initManche6Display } from "./manche6.js";
 import { createGuestCameraController, initGuestCameraWall } from "./guest-camera-webrtc.js";
+import { createVoiceChatController } from "./voice-chat.js";
 import {
   GUEST_ACCOUNTS_PATH,
   GUEST_LOGIN_INDEX_PATH,
@@ -43,6 +44,16 @@ const guestCameraPreview = document.getElementById("guest-camera-preview");
 const guestCameraDevice = document.getElementById("guest-camera-device");
 const guestCameraDeviceField = document.getElementById("guest-camera-device-field");
 const guestSelfCameraRender = document.getElementById("guest-self-camera-render");
+const guestVoicePanel = document.getElementById("guest-voice-panel");
+const guestVoiceJoin = document.getElementById("guest-voice-join");
+const guestVoiceMute = document.getElementById("guest-voice-mute");
+const guestVoiceKeyChange = document.getElementById("guest-voice-key-change");
+const guestVoiceKeyReset = document.getElementById("guest-voice-key-reset");
+const guestVoiceKeyLabel = document.getElementById("guest-voice-key-label");
+const guestVoiceKeyHint = document.getElementById("guest-voice-key-hint");
+const guestVoiceKeyConflict = document.getElementById("guest-voice-key-conflict");
+const guestVoiceStatus = document.getElementById("guest-voice-status");
+const guestVoiceUsers = document.getElementById("guest-voice-users");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
 const guestAdminCameraStatus = document.getElementById("guest-admin-camera-status");
@@ -123,6 +134,7 @@ let sessionsById = {};
 let manche4Controller = null;
 let guestCameraController = null;
 let guestCameraWallController = null;
+let guestVoiceController = null;
 let buzzKeybindCode = DEFAULT_BUZZ_KEY;
 let isKeybindCaptureActive = false;
 let clientSessionHeartbeat = null;
@@ -352,15 +364,18 @@ function renderGuestView() {
     guestTitle.textContent = `Connecté : ${getCurrentNickname()}`;
     buzzerPanel.classList.remove("hidden");
     guestCameraPanel?.classList.remove("hidden");
+    guestVoicePanel?.classList.remove("hidden");
     guestAdminCameraPanel?.classList.remove("hidden");
     guestCameraWallPanel?.classList.remove("hidden");
     guestCameraController?.refreshIdentity?.();
+    guestVoiceController?.refreshIdentity?.();
     guestCameraWallController?.refresh?.();
   } else {
     guestSessionMeta.classList.add("hidden");
     guestTitle.textContent = "";
     buzzerPanel.classList.add("hidden");
     guestCameraPanel?.classList.add("hidden");
+    guestVoicePanel?.classList.add("hidden");
     guestAdminCameraPanel?.classList.add("hidden");
     guestCameraWallPanel?.classList.add("hidden");
     guestCameraWallController?.refresh?.();
@@ -389,6 +404,7 @@ function clearCurrentGuest({ reason = "Déconnecté.", type = "default" } = {}) 
   currentQuestionBlocked = false;
   stopClientSessionHeartbeat();
   guestCameraController?.stop?.({ keepMessage: true });
+  guestVoiceController?.leave?.();
   deactivateRealtimeClientSession();
   clearStoredClientId();
   showLoginForm();
@@ -1195,6 +1211,23 @@ onValue(ref(db, GUEST_ACCOUNTS_PATH), (snap) => {
   renderGuestView();
   dispatchGuestAuthChanged();
   refreshButtonState();
+});
+
+guestVoiceController = createVoiceChatController({
+  getSessionId: getCurrentSessionId,
+  getNickname: getCurrentNickname,
+  elements: {
+    panel: guestVoicePanel,
+    join: guestVoiceJoin,
+    mute: guestVoiceMute,
+    keyChange: guestVoiceKeyChange,
+    keyReset: guestVoiceKeyReset,
+    keyLabel: guestVoiceKeyLabel,
+    keyHint: guestVoiceKeyHint,
+    keyConflict: guestVoiceKeyConflict,
+    status: guestVoiceStatus,
+    users: guestVoiceUsers,
+  },
 });
 
 guestCameraController = createGuestCameraController({
