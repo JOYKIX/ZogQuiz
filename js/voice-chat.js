@@ -7,6 +7,7 @@ const HEARTBEAT_MS = 12000;
 const SIGNAL_TTL_MS = 120000;
 const DEFAULT_MUTE_KEYBIND = { type: "keyboard", code: "KeyM" };
 const STORAGE_KEY = "zogquiz.voiceMuteKeybind.v1";
+const COMPRESSOR_SETTINGS = { threshold: -18, knee: 30, ratio: 4, attack: 0.001, release: 0.06, outputGain: 1 };
 
 function safeKey(value) { return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120); }
 function plainDescription(description) { return description ? { type: description.type, sdp: description.sdp } : null; }
@@ -44,15 +45,46 @@ function bindingEquals(binding, event) {
   return false;
 }
 
+function createVoiceCompressor(audioContext) {
+  const compressor = audioContext.createDynamicsCompressor();
+  compressor.threshold.value = COMPRESSOR_SETTINGS.threshold;
+  compressor.knee.value = COMPRESSOR_SETTINGS.knee;
+  compressor.ratio.value = COMPRESSOR_SETTINGS.ratio;
+  compressor.attack.value = COMPRESSOR_SETTINGS.attack;
+  compressor.release.value = COMPRESSOR_SETTINGS.release;
+  return compressor;
+}
+
+function createCompressedMicrophoneStream(rawStream) {
+  const audioContext = new AudioContext({ latencyHint: "interactive", sampleRate: 48000 });
+  const source = audioContext.createMediaStreamSource(rawStream);
+  const compressor = createVoiceCompressor(audioContext);
+  const outputGain = audioContext.createGain();
+  const destination = audioContext.createMediaStreamDestination();
+  outputGain.gain.value = COMPRESSOR_SETTINGS.outputGain;
+  return {
+    audioContext,
+    source,
+    compressor,
+    destination,
+    input: source,
+    output: outputGain,
+    connectToOutput(node) { node.connect(compressor).connect(outputGain).connect(destination); },
+    cleanup: () => { stopStream(destination.stream); stopStream(rawStream); audioContext.close(); },
+  };
+}
+
 async function createProcessedMicrophoneStream({ onStatus }) {
   const rawStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
-  if (!window.AudioContext || !window.AudioWorkletNode) return { stream: rawStream, rawStream, rnnoiseActive: false, cleanup: () => stopStream(rawStream) };
-  const audioContext = new AudioContext({ latencyHint: "interactive", sampleRate: 48000 });
+  if (!window.AudioContext) return { stream: rawStream, rawStream, rnnoiseActive: false, cleanup: () => stopStream(rawStream) };
+  const audio = createCompressedMicrophoneStream(rawStream);
+  if (!window.AudioWorkletNode) {
+    audio.connectToOutput(audio.input);
+    return { stream: audio.destination.stream, rawStream, rnnoiseActive: false, cleanup: audio.cleanup };
+  }
   try {
-    await audioContext.audioWorklet.addModule("./js/voice-rnnoise-worklet.js");
-    const source = audioContext.createMediaStreamSource(rawStream);
-    const worklet = new AudioWorkletNode(audioContext, "rnnoise-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
-    const destination = audioContext.createMediaStreamDestination();
+    await audio.audioContext.audioWorklet.addModule("./js/voice-rnnoise-worklet.js");
+    const worklet = new AudioWorkletNode(audio.audioContext, "rnnoise-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
     const ready = new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("RNNoise timeout")), 3000);
       worklet.port.onmessage = (event) => {
@@ -62,13 +94,15 @@ async function createProcessedMicrophoneStream({ onStatus }) {
     });
     worklet.port.postMessage({ type: "init", wasmUrl: "./vendor/rnnoise/rnnoise.wasm" });
     await ready;
-    source.connect(worklet).connect(destination);
+    audio.input.connect(worklet);
+    audio.connectToOutput(worklet);
     onStatus?.("rnnoise");
-    return { stream: destination.stream, rawStream, rnnoiseActive: true, cleanup: () => { stopStream(destination.stream); stopStream(rawStream); audioContext.close(); } };
+    return { stream: audio.destination.stream, rawStream, rnnoiseActive: true, cleanup: audio.cleanup };
   } catch (error) {
-    await audioContext.close().catch(() => {});
+    audio.input.disconnect();
+    audio.connectToOutput(audio.input);
     onStatus?.("fallback");
-    return { stream: rawStream, rawStream, rnnoiseActive: false, cleanup: () => stopStream(rawStream) };
+    return { stream: audio.destination.stream, rawStream, rnnoiseActive: false, cleanup: audio.cleanup };
   }
 }
 
