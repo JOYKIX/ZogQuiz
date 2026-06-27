@@ -53,14 +53,8 @@ const guestVoiceKeyReset = document.getElementById("guest-voice-key-reset");
 const guestVoiceKeyLabel = document.getElementById("guest-voice-key-label");
 const guestVoiceKeyHint = document.getElementById("guest-voice-key-hint");
 const guestVoiceKeyConflict = document.getElementById("guest-voice-key-conflict");
-const guestVoiceDevice = document.getElementById("guest-voice-device");
-const guestVoiceDeviceField = document.getElementById("guest-voice-device-field");
 const guestVoiceStatus = document.getElementById("guest-voice-status");
 const guestVoiceUsers = document.getElementById("guest-voice-users");
-const guestVoiceVolume = document.getElementById("guest-voice-volume");
-const guestVoiceVolumeValue = document.getElementById("guest-voice-volume-value");
-const guestVoiceThreshold = document.getElementById("guest-voice-threshold");
-const guestVoiceThresholdValue = document.getElementById("guest-voice-threshold-value");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
 const guestAdminCameraStatus = document.getElementById("guest-admin-camera-status");
@@ -1232,12 +1226,6 @@ guestVoiceController = createVoiceChatController({
     keyLabel: guestVoiceKeyLabel,
     keyHint: guestVoiceKeyHint,
     keyConflict: guestVoiceKeyConflict,
-    deviceSelect: guestVoiceDevice,
-    deviceField: guestVoiceDeviceField,
-    volumeInput: guestVoiceVolume,
-    volumeValue: guestVoiceVolumeValue,
-    thresholdInput: guestVoiceThreshold,
-    thresholdValue: guestVoiceThresholdValue,
     status: guestVoiceStatus,
     users: guestVoiceUsers,
   },
