@@ -70,6 +70,31 @@
               aria-label="Mes caméras"
             >
               <section
+                id="guest-admin-camera-panel"
+                class="panel guest-camera-wall-panel hidden"
+              >
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow">Admin</p>
+                  </div>
+                </div>
+                <label class="toggle-line camera-render-toggle">
+                  <input
+                    id="guest-admin-camera-render"
+                    type="checkbox"
+                    checked
+                  />
+                  Cam admin
+                </label>
+                <p id="guest-admin-camera-status" class="message camera-status off">
+                  Cam admin en attente.
+                </p>
+                <div
+                  id="guest-admin-camera-wall"
+                  class="guest-camera-wall guest-camera-wall-stack"
+                ></div>
+              </section>
+              <section
                 id="guest-camera-panel"
                 class="panel guest-camera-panel hidden"
               >
@@ -147,31 +172,6 @@
                 <ul id="guest-voice-users" class="voice-user-list"></ul>
               </section>
 
-              <section
-                id="guest-admin-camera-panel"
-                class="panel guest-camera-wall-panel hidden"
-              >
-                <div class="panel-head compact-head">
-                  <div>
-                    <p class="eyebrow">Admin</p>
-                  </div>
-                </div>
-                <label class="toggle-line camera-render-toggle">
-                  <input
-                    id="guest-admin-camera-render"
-                    type="checkbox"
-                    checked
-                  />
-                  Cam admin
-                </label>
-                <p id="guest-admin-camera-status" class="message camera-status off">
-                  Cam admin en attente.
-                </p>
-                <div
-                  id="guest-admin-camera-wall"
-                  class="guest-camera-wall guest-camera-wall-stack"
-                ></div>
-              </section>
             </aside>
 
             <section
