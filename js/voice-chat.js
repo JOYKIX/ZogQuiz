@@ -16,6 +16,9 @@ const SIGNAL_TTL_MS = 120000;
 const RECONNECT_DELAY_MS = 1200;
 const DEFAULT_ROOM_ID = "main";
 const SETTINGS_KEY = "zogquiz.voice.settings";
+const REMOTE_VOLUME_MIN = 0;
+const REMOTE_VOLUME_MAX = 2;
+const REMOTE_VOLUME_DEFAULT = 1;
 
 function safeKey(value) {
   return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120);
@@ -97,8 +100,9 @@ function clampMicSensitivity(value) {
   return Math.min(1.4, Math.max(0.7, Number(value) || 1));
 }
 
-function clampRemoteVolume(value) {
-  return Math.min(2.5, Math.max(0, Number(value) || 0));
+function clampRemoteVolume(value, fallback = REMOTE_VOLUME_DEFAULT) {
+  const numeric = Number(value);
+  return Math.min(REMOTE_VOLUME_MAX, Math.max(REMOTE_VOLUME_MIN, Number.isFinite(numeric) ? numeric : fallback));
 }
 
 function loadVoiceSettings() {
@@ -295,7 +299,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
         const volume = document.createElement("input");
         volume.type = "range";
         volume.min = "0";
-        volume.max = "2.5";
+        volume.max = String(REMOTE_VOLUME_MAX);
         volume.step = "0.05";
         volume.value = String(getRemoteVolume(participant.id));
         volume.className = "voice-volume-control";
@@ -339,18 +343,31 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   }
 
   function getRemoteVolume(peerId) {
-    return clampRemoteVolume(state.remoteVolumes[safeKey(peerId)] ?? 1);
+    return clampRemoteVolume(state.remoteVolumes[safeKey(peerId)] ?? REMOTE_VOLUME_DEFAULT);
   }
 
   function applyRemoteVolume(peerId) {
     const entry = state.peers.get(peerId);
-    if (entry?.gainNode) entry.gainNode.gain.value = getRemoteVolume(peerId);
-    else if (entry?.audio) entry.audio.volume = Math.min(1, getRemoteVolume(peerId));
+    const volume = getRemoteVolume(peerId);
+    if (entry?.gainNode) {
+      entry.gainNode.gain.setTargetAtTime(volume, entry.remoteContext?.currentTime || 0, 0.01);
+      if (entry.audio) entry.audio.volume = 1;
+    } else if (entry?.audio) {
+      entry.audio.volume = Math.min(1, volume);
+    }
+  }
+
+  function resumeRemoteAudio() {
+    for (const entry of state.peers.values()) {
+      entry.remoteContext?.resume?.().catch(() => {});
+      entry.audio?.play?.().catch(() => {});
+    }
   }
 
   function setRemoteVolume(peerId, value) {
-    state.remoteVolumes[safeKey(peerId)] = clampRemoteVolume(value);
+    state.remoteVolumes[safeKey(peerId)] = clampRemoteVolume(value, getRemoteVolume(peerId));
     applyRemoteVolume(peerId);
+    resumeRemoteAudio();
     persistSettings();
   }
 
@@ -461,9 +478,14 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     const entry = state.peers.get(peerId);
     entry?.unsubAnswer?.(); entry?.unsubCandidates?.(); entry?.unsubOffer?.();
     try { entry?.pc?.close(); } catch {}
-    if (entry?.audio) entry.audio.remove();
+    if (entry?.audio) {
+      entry.audio.pause();
+      entry.audio.srcObject = null;
+      entry.audio.remove();
+    }
     entry?.remoteSource?.disconnect?.();
     entry?.gainNode?.disconnect?.();
+    entry?.remoteDestination?.disconnect?.();
     try { entry?.remoteContext?.close?.(); } catch {}
     state.peers.delete(peerId);
     if (removeSignal) remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/signals/${state.clientId}_${peerId}`)).catch(() => {});
@@ -477,6 +499,8 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     const audio = new Audio();
     audio.autoplay = true;
     audio.playsInline = true;
+    audio.muted = false;
+    audio.volume = 1;
     const entry = { pc, audio, pendingCandidates: [] };
     state.peers.set(remoteId, entry);
     state.localStream?.getAudioTracks().forEach((track) => {
@@ -497,10 +521,11 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
           entry.gainNode?.disconnect?.();
           entry.remoteSource = entry.remoteContext.createMediaStreamSource(stream);
           entry.gainNode = entry.remoteContext.createGain();
-          const destination = entry.remoteContext.createMediaStreamDestination();
-          entry.remoteSource.connect(entry.gainNode).connect(destination);
-          audio.srcObject = destination.stream;
+          entry.remoteDestination = entry.remoteContext.createMediaStreamDestination();
+          entry.remoteSource.connect(entry.gainNode).connect(entry.remoteDestination);
+          audio.srcObject = entry.remoteDestination.stream;
           applyRemoteVolume(remoteId);
+          entry.remoteContext.resume?.().catch(() => {});
         } catch {
           audio.srcObject = stream;
           applyRemoteVolume(remoteId);
@@ -509,6 +534,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
         audio.srcObject = stream;
         applyRemoteVolume(remoteId);
       }
+      entry.remoteContext?.resume?.().catch(() => {});
       audio.play?.().catch(() => setText(elements.status, "Vocal actif. Cliquez sur la page si l'écoute est bloquée."));
     };
     pc.onicecandidate = async (event) => {
@@ -517,11 +543,14 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
       await set(ref(db, `${signalPath}/${initiator ? "offerCandidates" : "answerCandidates"}/${safeKey(`${Date.now()}_${Math.random()}`)}`), candidate);
     };
     pc.onconnectionstatechange = () => {
-      if (["connected", "completed"].includes(pc.connectionState)) setText(elements.status, "Vocal actif.");
+      if (["connected", "completed"].includes(pc.connectionState)) {
+        resumeRemoteAudio();
+        setText(elements.status, "Vocal actif.");
+      }
       if (["failed", "disconnected"].includes(pc.connectionState)) {
         setText(elements.status, "Reconnexion vocal…");
         setTimeout(() => {
-          if (!state.joined) return;
+          if (!state.joined || !["failed", "disconnected"].includes(pc.connectionState)) return;
           closePeer(remoteId, true);
           ensurePeer(remoteId, state.clientId < remoteId).catch(console.warn);
         }, RECONNECT_DELAY_MS);
@@ -728,6 +757,8 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
   elements.noiseReductionSelect?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
   elements.micSensitivity?.addEventListener("change", () => changeVoiceSettings().catch(console.warn));
   document.addEventListener("keydown", handleMuteKeyDown);
+  document.addEventListener("pointerdown", resumeRemoteAudio);
+  document.addEventListener("click", resumeRemoteAudio);
   navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshMicrophones().catch(console.warn));
   refreshMicrophones().catch(console.warn);
   window.addEventListener("beforeunload", () => { if (state.joined) remove(ref(db, `${VOICE_ROOT}/rooms/${state.roomId}/presence/${state.clientId}`)); });
