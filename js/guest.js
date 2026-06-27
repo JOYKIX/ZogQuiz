@@ -10,6 +10,7 @@ import {
   GUEST_LOGIN_INDEX_PATH,
   hashSecret,
   normalizeLoginId,
+  getGuestLoginIndexKey,
   normalizeBuzzerSoundFile,
   validateDisplayName,
 } from "./guest-accounts.js";
@@ -452,7 +453,7 @@ async function getAccountByCredentials(loginId, password) {
   const normalizedLogin = normalizeLoginId(loginId);
   if (!normalizedLogin || !password) return { ok: false, reason: "ID et mot de passe obligatoires." };
 
-  const indexSnap = await get(ref(db, `${GUEST_LOGIN_INDEX_PATH}/${normalizedLogin}`));
+  const indexSnap = await get(ref(db, `${GUEST_LOGIN_INDEX_PATH}/${getGuestLoginIndexKey(normalizedLogin)}`));
   if (!indexSnap.exists()) return { ok: false, reason: "Identifiants invalides." };
 
   const accountId = String(indexSnap.val() || "");

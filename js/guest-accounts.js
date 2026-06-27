@@ -11,6 +11,13 @@ export function normalizeLoginId(rawValue) {
   return String(rawValue || "").trim().toLowerCase();
 }
 
+export function getGuestLoginIndexKey(rawValue) {
+  const normalizedLoginId = normalizeLoginId(rawValue);
+  return /^[a-z0-9_-]+$/.test(normalizedLoginId)
+    ? normalizedLoginId
+    : encodeURIComponent(normalizedLoginId);
+}
+
 export function normalizeDisplayName(rawValue) {
   return String(rawValue || "").trim().replace(/\s+/g, " ");
 }
@@ -56,7 +63,7 @@ export async function createGuestAccount({ loginId, password, createdBy, buzzerS
   if (String(password || "").length < 6) throw new Error("Le mot de passe doit contenir au moins 6 caractères.");
   const normalizedBuzzerSound = normalizeBuzzerSoundFile(buzzerSound);
 
-  const loginRef = ref(db, `${GUEST_LOGIN_INDEX_PATH}/${normalizedLoginId}`);
+  const loginRef = ref(db, `${GUEST_LOGIN_INDEX_PATH}/${getGuestLoginIndexKey(normalizedLoginId)}`);
   if ((await get(loginRef)).exists()) {
     throw new Error("Cet ID de connexion est déjà utilisé.");
   }
@@ -101,7 +108,7 @@ export async function removeGuestAccount(account) {
   if (!account?.accountId) return;
   await Promise.all([
     remove(ref(db, `${GUEST_ACCOUNTS_PATH}/${account.accountId}`)),
-    remove(ref(db, `${GUEST_LOGIN_INDEX_PATH}/${normalizeLoginId(account.loginId)}`)),
+    remove(ref(db, `${GUEST_LOGIN_INDEX_PATH}/${getGuestLoginIndexKey(account.loginId)}`)),
   ]);
 }
 
