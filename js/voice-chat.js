@@ -124,6 +124,18 @@ function saveVoiceSettings(settings) {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
 }
 
+
+function attachAudioElement(audio) {
+  if (!audio || audio.isConnected || !document.body) return;
+  audio.style.display = "none";
+  audio.setAttribute("aria-hidden", "true");
+  document.body.append(audio);
+}
+
+function unlockAudioContext(context) {
+  return context?.resume?.().catch(() => {});
+}
+
 function voiceStatus(processed, settings) {
   if (settings.noiseReduction === "off") return "Vocal actif.";
   return processed.rnnoiseActive ? "Vocal actif. Traitement actif." : "Vocal actif. Traitement indisponible.";
@@ -345,11 +357,21 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     }
   }
 
-  function resumeRemoteAudio() {
-    for (const entry of state.peers.values()) {
-      entry.remoteContext?.resume?.().catch(() => {});
-      entry.audio?.play?.().catch(() => {});
+  function playRemoteAudio(entry, showBlockedStatus = false) {
+    if (!entry?.audio) return;
+    attachAudioElement(entry.audio);
+    unlockAudioContext(entry.remoteContext);
+    const playback = entry.audio.play?.();
+    if (playback?.catch) {
+      playback.catch(() => {
+        if (showBlockedStatus) setText(elements.status, "Vocal actif. Cliquez sur la page si l'écoute est bloquée.");
+      });
     }
+  }
+
+  function resumeRemoteAudio() {
+    unlockAudioContext(state.audioContext);
+    for (const entry of state.peers.values()) playRemoteAudio(entry);
   }
 
   function setPersonalVolume(value) {
@@ -490,6 +512,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     audio.playsInline = true;
     audio.muted = false;
     audio.volume = 1;
+    attachAudioElement(audio);
     const entry = { pc, audio, pendingCandidates: [] };
     state.peers.set(remoteId, entry);
     state.localStream?.getAudioTracks().forEach((track) => {
@@ -502,29 +525,32 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     });
     pc.ontrack = (event) => {
       const stream = event.streams[0];
+      audio.srcObject = stream;
+      entry.remoteStream = stream;
+      applyPersonalVolume(remoteId);
+
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextCtor) {
+      if (AudioContextCtor && getPersonalVolume() > 1) {
         try {
           entry.remoteContext = entry.remoteContext || new AudioContextCtor({ latencyHint: "interactive" });
-          entry.remoteSource?.disconnect?.();
-          entry.gainNode?.disconnect?.();
-          entry.remoteSource = entry.remoteContext.createMediaStreamSource(stream);
-          entry.gainNode = entry.remoteContext.createGain();
-          entry.remoteDestination = entry.remoteContext.createMediaStreamDestination();
-          entry.remoteSource.connect(entry.gainNode).connect(entry.remoteDestination);
-          audio.srcObject = entry.remoteDestination.stream;
-          applyPersonalVolume(remoteId);
-          entry.remoteContext.resume?.().catch(() => {});
+          unlockAudioContext(entry.remoteContext);
+          if (entry.remoteContext.state === "running") {
+            entry.remoteSource?.disconnect?.();
+            entry.gainNode?.disconnect?.();
+            entry.remoteDestination?.disconnect?.();
+            entry.remoteSource = entry.remoteContext.createMediaStreamSource(stream);
+            entry.gainNode = entry.remoteContext.createGain();
+            entry.remoteDestination = entry.remoteContext.createMediaStreamDestination();
+            entry.remoteSource.connect(entry.gainNode).connect(entry.remoteDestination);
+            audio.srcObject = entry.remoteDestination.stream;
+            applyPersonalVolume(remoteId);
+          }
         } catch {
           audio.srcObject = stream;
           applyPersonalVolume(remoteId);
         }
-      } else {
-        audio.srcObject = stream;
-        applyPersonalVolume(remoteId);
       }
-      entry.remoteContext?.resume?.().catch(() => {});
-      audio.play?.().catch(() => setText(elements.status, "Vocal actif. Cliquez sur la page si l'écoute est bloquée."));
+      playRemoteAudio(entry, true);
     };
     pc.onicecandidate = async (event) => {
       const candidate = toPlainCandidate(event.candidate);
@@ -641,6 +667,7 @@ export function createVoiceChatController({ elements, getUserId, getDisplayName,
     watchRoom();
     startSpeakingMeter();
     setText(elements.status, voiceStatus(processed, state.voiceSettings));
+    resumeRemoteAudio();
     await refreshMicrophones().catch(console.warn);
     render();
   }
