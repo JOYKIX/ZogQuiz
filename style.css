@@ -1368,6 +1368,9 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .guest-voice-panel { display: grid; gap: .65rem; }
 .voice-controls { display: flex; flex-wrap: wrap; gap: .45rem; }
 .voice-controls .btn { flex: 1 1 auto; }
+.voice-threshold-field { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .45rem; font-weight: 800; }
+.voice-threshold-field input { min-width: 0; }
+.voice-threshold-field span { font-variant-numeric: tabular-nums; }
 #guest-voice-mute.is-muted { --btn-bg: var(--danger); --btn-color: #fff; }
 #guest-voice-monitor.is-active { --btn-bg: var(--accent); --btn-color: #111; }
 .voice-user-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }

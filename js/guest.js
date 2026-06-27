@@ -58,6 +58,8 @@ const guestVoiceUsers = document.getElementById("guest-voice-users");
 const guestVoiceDevice = document.getElementById("guest-voice-device");
 const guestVoiceDeviceField = document.getElementById("guest-voice-device-field");
 const guestVoiceMonitor = document.getElementById("guest-voice-monitor");
+const guestVoiceThreshold = document.getElementById("guest-voice-threshold");
+const guestVoiceThresholdLabel = document.getElementById("guest-voice-threshold-label");
 const guestAdminCameraPanel = document.getElementById("guest-admin-camera-panel");
 const guestAdminCameraWall = document.getElementById("guest-admin-camera-wall");
 const guestAdminCameraStatus = document.getElementById("guest-admin-camera-status");
@@ -1234,6 +1236,8 @@ guestVoiceController = createVoiceChatController({
     deviceSelect: guestVoiceDevice,
     deviceField: guestVoiceDeviceField,
     monitor: guestVoiceMonitor,
+    threshold: guestVoiceThreshold,
+    thresholdLabel: guestVoiceThresholdLabel,
   },
 });
 

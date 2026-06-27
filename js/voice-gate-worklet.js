@@ -13,6 +13,12 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
     this.previousSample = 0;
     this.previousRms = 0.000001;
     this.transientEnergy = 0;
+    this.manualThresholdDb = -58;
+    this.port.onmessage = (event) => {
+      if (event.data?.type !== "threshold") return;
+      const threshold = Number(event.data.value);
+      if (Number.isFinite(threshold)) this.manualThresholdDb = Math.max(-70, Math.min(-25, threshold));
+    };
   }
 
   process(inputs, outputs) {
@@ -46,7 +52,8 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
     const diffRatio = diffSum / Math.max(rms * input.length, 0.000001);
     const riseRatio = rms / Math.max(this.previousRms, 0.000001);
 
-    const openThresholdDb = Math.max(-60, Math.min(-30, this.noiseFloorDb + this.openOffsetDb));
+    const adaptiveThresholdDb = Math.max(-60, Math.min(-30, this.noiseFloorDb + this.openOffsetDb));
+    const openThresholdDb = Math.max(adaptiveThresholdDb, this.manualThresholdDb);
     const closeThresholdDb = Math.max(-68, openThresholdDb - this.closeOffsetDb);
     const aboveOpen = levelDb >= openThresholdDb;
     const keyboardLikeTransient = aboveOpen && crest > 9 && riseRatio > 2.8 && (zcr > 0.18 || diffRatio > 2.6);

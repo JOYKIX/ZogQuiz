@@ -7,6 +7,8 @@ const HEARTBEAT_MS = 12000;
 const SIGNAL_TTL_MS = 120000;
 const DEFAULT_MUTE_KEYBIND = { type: "keyboard", code: "KeyM" };
 const STORAGE_KEY = "zogquiz.voiceMuteKeybind.v1";
+const THRESHOLD_STORAGE_KEY = "zogquiz.voiceThresholdDb.v1";
+const DEFAULT_VOICE_THRESHOLD_DB = -58;
 const COMPRESSOR_SETTINGS = { threshold: -30, knee: 18, ratio: 5.5, attack: 0.0015, release: 0.09, outputGain: 1.18 };
 const LOW_CUT_FREQUENCY = 95;
 const HIGH_CUT_FREQUENCY = 7600;
@@ -26,6 +28,14 @@ function readKeybind() {
   try { return { ...DEFAULT_MUTE_KEYBIND, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || {}) }; } catch { return DEFAULT_MUTE_KEYBIND; }
 }
 function writeKeybind(binding) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(binding)); } catch {} }
+function clampVoiceThreshold(value) { return Math.max(-70, Math.min(-25, Number(value))); }
+function readVoiceThreshold() {
+  try {
+    const threshold = clampVoiceThreshold(localStorage.getItem(THRESHOLD_STORAGE_KEY));
+    return Number.isFinite(threshold) ? threshold : DEFAULT_VOICE_THRESHOLD_DB;
+  } catch { return DEFAULT_VOICE_THRESHOLD_DB; }
+}
+function writeVoiceThreshold(value) { try { localStorage.setItem(THRESHOLD_STORAGE_KEY, String(value)); } catch {} }
 function keyLabel(binding) {
   if (!binding) return "—";
   if (binding.type === "mouse") return ({ 1: "Clic molette", 3: "Souris 4", 4: "Souris 5" }[binding.button] || `Souris ${binding.button}`);
@@ -119,7 +129,7 @@ function microphoneConstraints(deviceId = "") {
   return deviceId ? { ...constraints, deviceId: { exact: deviceId } } : constraints;
 }
 
-async function createProcessedMicrophoneStream({ deviceId = "", onStatus }) {
+async function createProcessedMicrophoneStream({ deviceId = "", thresholdDb = DEFAULT_VOICE_THRESHOLD_DB, onStatus }) {
   const rawStream = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints(deviceId) });
   if (!window.AudioContext) return { stream: rawStream, rawStream, rnnoiseActive: false, cleanup: () => stopStream(rawStream) };
   const audio = createProcessedAudioGraph(rawStream);
@@ -131,6 +141,7 @@ async function createProcessedMicrophoneStream({ deviceId = "", onStatus }) {
     await audio.audioContext.audioWorklet.addModule("./js/voice-rnnoise-worklet.js");
     await audio.audioContext.audioWorklet.addModule("./js/voice-gate-worklet.js");
     const gate = new AudioWorkletNode(audio.audioContext, "voice-gate-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+    gate.port.postMessage({ type: "threshold", value: thresholdDb });
     const worklet = new AudioWorkletNode(audio.audioContext, "rnnoise-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
     const ready = new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("RNNoise timeout")), 3000);
@@ -144,20 +155,21 @@ async function createProcessedMicrophoneStream({ deviceId = "", onStatus }) {
     audio.input.connect(worklet).connect(gate);
     audio.connectToOutput(gate);
     onStatus?.("rnnoise");
-    return { stream: audio.destination.stream, rawStream, rnnoiseActive: true, cleanup: audio.cleanup };
+    return { stream: audio.destination.stream, rawStream, rnnoiseActive: true, setThreshold: (value) => gate.port.postMessage({ type: "threshold", value }), cleanup: audio.cleanup };
   } catch (error) {
     audio.input.disconnect();
     await audio.audioContext.audioWorklet.addModule("./js/voice-gate-worklet.js");
     const gate = new AudioWorkletNode(audio.audioContext, "voice-gate-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+    gate.port.postMessage({ type: "threshold", value: thresholdDb });
     audio.input.connect(gate);
     audio.connectToOutput(gate);
     onStatus?.("fallback");
-    return { stream: audio.destination.stream, rawStream, rnnoiseActive: false, cleanup: audio.cleanup };
+    return { stream: audio.destination.stream, rawStream, rnnoiseActive: false, setThreshold: (value) => gate.port.postMessage({ type: "threshold", value }), cleanup: audio.cleanup };
   }
 }
 
 export function createVoiceChatController({ getSessionId, getNickname, elements }) {
-  const state = { sessionId: "", joined: false, muted: false, monitoring: false, monitorAudio: null, stream: null, cleanupAudio: null, peers: new Map(), presence: {}, unsubPresence: null, unsubSignals: null, unsubSignalRemovals: null, heartbeat: null, roomId: "main", keybind: readKeybind(), capturing: false, selectedDeviceId: "" };
+  const state = { sessionId: "", joined: false, muted: false, monitoring: false, monitorAudio: null, stream: null, cleanupAudio: null, setAudioThreshold: null, peers: new Map(), presence: {}, unsubPresence: null, unsubSignals: null, unsubSignalRemovals: null, heartbeat: null, roomId: "main", keybind: readKeybind(), capturing: false, selectedDeviceId: "", thresholdDb: readVoiceThreshold() };
   function render(text = "") {
     elements.panel?.classList.toggle("hidden", !getSessionId());
     elements.join.textContent = state.joined ? "Quitter" : "Rejoindre";
@@ -173,6 +185,8 @@ export function createVoiceChatController({ getSessionId, getNickname, elements 
     }
     if (elements.deviceSelect) elements.deviceSelect.disabled = state.joined && !state.stream;
     elements.keyLabel.textContent = keyLabel(state.keybind);
+    if (elements.threshold && elements.threshold.value !== String(state.thresholdDb)) elements.threshold.value = String(state.thresholdDb);
+    if (elements.thresholdLabel) elements.thresholdLabel.textContent = `${state.thresholdDb} dB`;
     elements.status.textContent = text || (state.joined ? "Salon vocal actif." : "Salon vocal quitté.");
     renderUsers();
   }
@@ -243,16 +257,24 @@ export function createVoiceChatController({ getSessionId, getNickname, elements 
   async function join() {
     if (state.joined) return; if (!navigator.mediaDevices?.getUserMedia) return render("Micro indisponible.");
     elements.join.disabled = true; render("Micro…");
-    try { state.sessionId = safeKey(getSessionId()); const audio = await createProcessedMicrophoneStream({ deviceId: state.selectedDeviceId, onStatus: () => {} }); state.stream = audio.stream; state.cleanupAudio = audio.cleanup; state.joined = true; state.muted = false; await refreshDeviceList(); await writePresence(); await onDisconnect(ref(db, `${VOICE_PATH}/rooms/${state.roomId}/presence/${safeKey(state.sessionId || getSessionId())}`)).remove(); watch(); state.heartbeat = setInterval(() => writePresence().catch(console.warn), HEARTBEAT_MS); render(audio.rnnoiseActive ? "RNNoise actif." : "RNNoise indisponible : fallback micro."); } catch (error) { render(error?.name === "NotAllowedError" ? "Permission micro refusée." : "Erreur micro."); }
+    try { state.sessionId = safeKey(getSessionId()); const audio = await createProcessedMicrophoneStream({ deviceId: state.selectedDeviceId, thresholdDb: state.thresholdDb, onStatus: () => {} }); state.stream = audio.stream; state.cleanupAudio = audio.cleanup; state.setAudioThreshold = audio.setThreshold || null; state.joined = true; state.muted = false; await refreshDeviceList(); await writePresence(); await onDisconnect(ref(db, `${VOICE_PATH}/rooms/${state.roomId}/presence/${safeKey(state.sessionId || getSessionId())}`)).remove(); watch(); state.heartbeat = setInterval(() => writePresence().catch(console.warn), HEARTBEAT_MS); render(audio.rnnoiseActive ? "RNNoise actif." : "RNNoise indisponible : fallback micro."); } catch (error) { render(error?.name === "NotAllowedError" ? "Permission micro refusée." : "Erreur micro."); }
   }
   function stopMonitor() { state.monitorAudio?.pause(); if (state.monitorAudio) state.monitorAudio.srcObject = null; state.monitorAudio = null; state.monitoring = false; }
   function startMonitor() { if (!state.stream) return; const audio = state.monitorAudio || new Audio(); state.monitorAudio = audio; audio.autoplay = true; audio.playsInline = true; audio.srcObject = state.stream; audio.play?.().catch(() => {}); }
   function toggleMonitor() { if (!state.joined) return; state.monitoring = !state.monitoring; if (state.monitoring) startMonitor(); else stopMonitor(); render(); }
-  async function leave() { clearInterval(state.heartbeat); state.heartbeat = null; state.unsubPresence?.(); state.unsubSignals?.(); state.unsubSignalRemovals?.(); for (const id of [...state.peers.keys()]) closePeer(id, true); stopMonitor(); state.cleanupAudio?.(); state.stream = null; state.cleanupAudio = null; state.joined = false; await removePresence().catch(() => {}); state.sessionId = ""; render(); }
+  async function leave() { clearInterval(state.heartbeat); state.heartbeat = null; state.unsubPresence?.(); state.unsubSignals?.(); state.unsubSignalRemovals?.(); for (const id of [...state.peers.keys()]) closePeer(id, true); stopMonitor(); state.cleanupAudio?.(); state.stream = null; state.cleanupAudio = null; state.setAudioThreshold = null; state.joined = false; await removePresence().catch(() => {}); state.sessionId = ""; render(); }
   async function toggleMute() { if (!state.joined) return; state.muted = !state.muted; state.stream?.getAudioTracks().forEach((track) => { track.enabled = !state.muted; }); await writePresence().catch(() => {}); render(); }
+  function setThreshold(value) {
+    const threshold = clampVoiceThreshold(value);
+    if (!Number.isFinite(threshold)) return;
+    state.thresholdDb = threshold;
+    writeVoiceThreshold(threshold);
+    state.setAudioThreshold?.(threshold);
+    render();
+  }
   function beginCapture() { state.capturing = true; elements.keyHint.classList.remove("hidden"); }
   function setBinding(binding) { const conflict = binding.type === "keyboard" && ["Space", "Enter"].includes(binding.code); elements.keyConflict.classList.toggle("hidden", !conflict); state.keybind = binding; writeKeybind(binding); state.capturing = false; elements.keyHint.classList.add("hidden"); render(); }
   function handleShortcut(event) { if (isEditableTarget(event.target)) return; if (state.capturing) { const binding = eventToBinding(event); if (binding) { event.preventDefault(); setBinding(binding); } return; } if (bindingEquals(state.keybind, event)) { event.preventDefault(); toggleMute(); } }
-  elements.join.addEventListener("click", () => state.joined ? leave() : join()); elements.mute.addEventListener("click", toggleMute); elements.monitor?.addEventListener("click", toggleMonitor); elements.keyChange.addEventListener("click", beginCapture); elements.keyReset.addEventListener("click", () => setBinding(DEFAULT_MUTE_KEYBIND)); elements.deviceSelect?.addEventListener("change", async () => { state.selectedDeviceId = elements.deviceSelect.value; if (state.joined) { await leave(); await join(); } }); navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn)); window.addEventListener("keydown", handleShortcut); window.addEventListener("mouseup", handleShortcut); window.addEventListener("beforeunload", () => { state.cleanupAudio?.(); removePresence(); }); render(); refreshDeviceList().catch(console.warn);
+  elements.join.addEventListener("click", () => state.joined ? leave() : join()); elements.mute.addEventListener("click", toggleMute); elements.monitor?.addEventListener("click", toggleMonitor); elements.keyChange.addEventListener("click", beginCapture); elements.keyReset.addEventListener("click", () => setBinding(DEFAULT_MUTE_KEYBIND)); elements.deviceSelect?.addEventListener("change", async () => { state.selectedDeviceId = elements.deviceSelect.value; if (state.joined) { await leave(); await join(); } }); elements.threshold?.addEventListener("input", () => setThreshold(elements.threshold.value)); navigator.mediaDevices?.addEventListener?.("devicechange", () => refreshDeviceList().catch(console.warn)); window.addEventListener("keydown", handleShortcut); window.addEventListener("mouseup", handleShortcut); window.addEventListener("beforeunload", () => { state.cleanupAudio?.(); removePresence(); }); render(); refreshDeviceList().catch(console.warn);
   return { join, leave, refreshIdentity: writePresence, isJoined: () => state.joined };
 }
