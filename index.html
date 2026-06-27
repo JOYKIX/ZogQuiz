@@ -995,6 +995,27 @@ SNK OP1"></textarea></label>
                 </label>
                 <p id="admin-camera-status" class="message camera-status off">Cam désactivée.</p>
                 <video id="admin-camera-preview" class="guest-camera-preview hidden" autoplay muted playsinline></video>
+                <section id="admin-voice-panel" class="guest-voice-panel">
+                  <div class="panel-head compact-head">
+                    <div>
+                      <p class="eyebrow">Vocal</p>
+                    </div>
+                    <button id="admin-voice-join" class="btn btn-secondary" type="button">Rejoindre</button>
+                  </div>
+                  <label id="admin-voice-device-field" class="camera-device-field hidden">Micro
+                    <select id="admin-voice-device"></select>
+                  </label>
+                  <div class="voice-controls">
+                    <button id="admin-voice-mute" class="btn btn-primary" type="button">Mute</button>
+                    <button id="admin-voice-key-change" class="btn btn-secondary" type="button">Raccourci</button>
+                    <button id="admin-voice-key-reset" class="btn btn-ghost" type="button">Réinitialiser</button>
+                  </div>
+                  <p class="muted">Touche : <span id="admin-voice-key-label">M</span></p>
+                  <p id="admin-voice-key-hint" class="muted hidden">Appuyez sur une touche…</p>
+                  <p id="admin-voice-key-conflict" class="message error hidden">Conflit possible.</p>
+                  <p id="admin-voice-status" class="message camera-status off">Salon vocal quitté.</p>
+                  <ul id="admin-voice-users" class="voice-user-list"></ul>
+                </section>
               </section>
               <p id="camera-config-status" class="message"></p>
               <div id="camera-config-root" class="camera-config-root"></div>

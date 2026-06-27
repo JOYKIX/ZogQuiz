@@ -1,5 +1,6 @@
 import { db, ref, onValue, update } from "./firebase.js";
 import { createCameraPublisherController } from "./guest-camera-webrtc.js";
+import { createVoiceChatController } from "./voice-chat.js";
 import { ADMIN_CAMERA_ID, ADMIN_CAMERA_LABEL, CAMERA_CONFIGS_PATH, CAMERA_PRESENCE_PATH, CAMERA_ROUNDS, CAMERA_ROLE_OPTIONS, normalizeCameraConfig } from "./camera-config.js";
 import { GUEST_SESSIONS_PATH } from "./participants.js";
 
@@ -30,6 +31,39 @@ const adminCameraStatus = document.getElementById("admin-camera-status");
 const adminCameraPreview = document.getElementById("admin-camera-preview");
 const adminCameraDevice = document.getElementById("admin-camera-device");
 const adminCameraDeviceField = document.getElementById("admin-camera-device-field");
+const adminVoicePanel = document.getElementById("admin-voice-panel");
+const adminVoiceJoin = document.getElementById("admin-voice-join");
+const adminVoiceMute = document.getElementById("admin-voice-mute");
+const adminVoiceKeyChange = document.getElementById("admin-voice-key-change");
+const adminVoiceKeyReset = document.getElementById("admin-voice-key-reset");
+const adminVoiceKeyLabel = document.getElementById("admin-voice-key-label");
+const adminVoiceKeyHint = document.getElementById("admin-voice-key-hint");
+const adminVoiceKeyConflict = document.getElementById("admin-voice-key-conflict");
+const adminVoiceStatus = document.getElementById("admin-voice-status");
+const adminVoiceUsers = document.getElementById("admin-voice-users");
+const adminVoiceDevice = document.getElementById("admin-voice-device");
+const adminVoiceDeviceField = document.getElementById("admin-voice-device-field");
+
+if (adminVoicePanel && adminVoiceJoin && adminVoiceMute && adminVoiceKeyChange && adminVoiceKeyReset && adminVoiceKeyLabel && adminVoiceKeyHint && adminVoiceKeyConflict && adminVoiceStatus && adminVoiceUsers) {
+  createVoiceChatController({
+    getSessionId: () => ADMIN_CAMERA_ID,
+    getNickname: () => ADMIN_CAMERA_LABEL,
+    elements: {
+      panel: adminVoicePanel,
+      join: adminVoiceJoin,
+      mute: adminVoiceMute,
+      keyChange: adminVoiceKeyChange,
+      keyReset: adminVoiceKeyReset,
+      keyLabel: adminVoiceKeyLabel,
+      keyHint: adminVoiceKeyHint,
+      keyConflict: adminVoiceKeyConflict,
+      status: adminVoiceStatus,
+      users: adminVoiceUsers,
+      deviceSelect: adminVoiceDevice,
+      deviceField: adminVoiceDeviceField,
+    },
+  });
+}
 
 if (adminCameraButton && adminCameraStatus && adminCameraPreview) {
   createCameraPublisherController({
