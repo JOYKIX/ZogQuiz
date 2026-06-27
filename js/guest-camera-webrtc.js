@@ -218,7 +218,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     await refreshDeviceList();
     render("starting");
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
+      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: sourceType !== "admin" });
       await refreshDeviceList();
       render("active");
       await writePresence();
@@ -433,7 +433,7 @@ export function initCameraOverlay(roundKey) {
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
-    video.muted = true;
+    video.muted = guestId === ADMIN_CAMERA_ID;
     const name = document.createElement("span");
     name.className = "camera-name";
     name.textContent = slotName(slot, nickname);
