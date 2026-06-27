@@ -16,6 +16,8 @@ const GUEST_HEARTBEAT_MS = 15000;
 const OVERLAY_RETRY_MS = 3500;
 const PRESENCE_STALE_MS = 45000;
 const SIGNAL_TTL_MS = 120000;
+const VOICE_PATH = "voice";
+const VOICE_ROOM_ID = "main";
 
 function safeKey(value) {
   return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120);
@@ -218,7 +220,7 @@ export function createCameraPublisherController({ getSessionId, getNickname, ele
     await refreshDeviceList();
     render("starting");
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: sourceType !== "admin" });
+      state.stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false });
       await refreshDeviceList();
       render("active");
       await writePresence();
@@ -270,9 +272,11 @@ export function initCameraOverlay(roundKey) {
   const grid = document.getElementById("camera-grid");
   const status = document.getElementById("camera-overlay-status");
   const peers = new Map();
+  const voicePeers = new Map();
   const previewCards = new Map();
   let currentConfig = null;
   let presence = {};
+  let voicePresence = {};
   let guestSessions = {};
   let roundAnswers = { round2: {}, round3: {} };
   let roundStates = {};
@@ -353,6 +357,67 @@ export function initCameraOverlay(roundKey) {
     return Object.entries(presence)
       .filter(([, item]) => item?.active && now - Number(item.updatedAt || 0) < PRESENCE_STALE_MS)
       .sort((a, b) => String(a[1].nickname || a[0]).localeCompare(String(b[1].nickname || b[0]), "fr"));
+  }
+
+
+  function activeVoicePresenceEntries() {
+    const now = Date.now();
+    return Object.entries(voicePresence)
+      .filter(([id, item]) => id !== ADMIN_CAMERA_ID && item?.active && now - Number(item.updatedAt || 0) < PRESENCE_STALE_MS);
+  }
+
+  function closeVoicePeer(guestId, removeSignal = true) {
+    const entry = voicePeers.get(guestId);
+    if (!entry) return;
+    entry.unsubscribeAnswer?.();
+    entry.unsubscribeCandidates?.();
+    try { entry.pc?.close(); } catch {}
+    entry.audio?.remove();
+    if (removeSignal && entry.signalPath) remove(ref(db, entry.signalPath)).catch(() => {});
+    voicePeers.delete(guestId);
+  }
+
+  async function connectVoicePeer(guestId) {
+    if (guestId === ADMIN_CAMERA_ID || voicePeers.has(guestId)) return;
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    const signalPath = `${VOICE_PATH}/rooms/${VOICE_ROOM_ID}/signals/${safeKey(overlayId)}_${safeKey(guestId)}`;
+    const audio = new Audio();
+    audio.autoplay = true;
+    audio.playsInline = true;
+    const entry = { pc, signalPath, audio };
+    voicePeers.set(guestId, entry);
+
+    pc.ontrack = (event) => {
+      audio.srcObject = event.streams[0];
+      audio.play?.().catch(() => {});
+    };
+    pc.onicecandidate = (event) => {
+      const candidate = toPlainCandidate(event.candidate);
+      if (!candidate) return;
+      set(ref(db, `${signalPath}/callerCandidates/${safeKey(`${Date.now()}_${Math.random()}`)}`), candidate).catch(console.warn);
+    };
+    pc.onconnectionstatechange = () => {
+      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
+        setTimeout(() => closeVoicePeer(guestId, true), 2500);
+      }
+    };
+    entry.unsubscribeAnswer = onValue(ref(db, `${signalPath}/answer`), async (snap) => {
+      if (snap.val() && !pc.remoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(snap.val())).catch(console.warn);
+    });
+    entry.unsubscribeCandidates = onChildAdded(ref(db, `${signalPath}/calleeCandidates`), (snap) => pc.addIceCandidate(new RTCIceCandidate(snap.val())).catch(console.warn));
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
+    await pc.setLocalDescription(offer);
+    await set(ref(db, signalPath), { callerId: safeKey(overlayId), calleeId: safeKey(guestId), offer: toPlainDescription(pc.localDescription), createdAt: Date.now(), callerType: "camera-overlay" });
+    await onDisconnect(ref(db, signalPath)).remove();
+  }
+
+  function reconcileVoice(desiredIds) {
+    const activeVoiceIds = new Set(activeVoicePresenceEntries().map(([id]) => id));
+    const wantedIds = new Set([...desiredIds].filter((id) => id !== ADMIN_CAMERA_ID && activeVoiceIds.has(id)));
+    for (const guestId of [...voicePeers.keys()]) {
+      if (!wantedIds.has(guestId)) closeVoicePeer(guestId, true);
+    }
+    wantedIds.forEach((guestId) => connectVoicePeer(guestId).catch(console.warn));
   }
 
   function desiredGuests() {
@@ -525,6 +590,7 @@ export function initCameraOverlay(roundKey) {
       for (const guestId of [...peers.keys()]) {
         disconnectGuest(guestId).catch(console.warn);
       }
+      for (const guestId of [...voicePeers.keys()]) closeVoicePeer(guestId, true);
       renderPreviewCards();
       grid.classList.toggle("names-hidden", true);
       if (status) status.textContent = `${previewCards.size}/${currentConfig.cameraCount} emplacement(s) prévisualisé(s)`;
@@ -534,6 +600,7 @@ export function initCameraOverlay(roundKey) {
     grid.classList.toggle("names-hidden", true);
     const desired = desiredGuests();
     const desiredIds = new Set(desired.map((item) => item.guestId));
+    reconcileVoice(desiredIds);
     for (const guestId of [...peers.keys()]) {
       if (!desiredIds.has(guestId)) disconnectGuest(guestId).catch(console.warn);
     }
@@ -556,6 +623,10 @@ export function initCameraOverlay(roundKey) {
     presence = snap.val() || {};
     scheduleReconcile();
   });
+  onValue(ref(db, `${VOICE_PATH}/rooms/${VOICE_ROOM_ID}/presence`), (snap) => {
+    voicePresence = snap.val() || {};
+    scheduleReconcile();
+  });
   onValue(ref(db, "rooms/manche1/guestSessions"), (snap) => {
     guestSessions = snap.val() || {};
     updateAnswerOverlays();
@@ -575,6 +646,7 @@ export function initCameraOverlay(roundKey) {
   setInterval(reconcile, 10000);
   window.addEventListener("beforeunload", () => {
     peers.forEach((entry) => { if (entry.signalPath) remove(ref(db, entry.signalPath)); closePeer(entry); });
+    voicePeers.forEach((_, guestId) => closeVoicePeer(guestId, true));
     clearPreviewCards();
   });
 }
