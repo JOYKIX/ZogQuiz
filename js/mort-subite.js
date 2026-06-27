@@ -346,6 +346,7 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById } = {})
   let primaryRound5 = null;
   let legacyRound5 = null;
   let round5 = toRound5(defaultRound5);
+  let lastAdminBuzzSoundToken = null;
 
   const getAdminId = () => getCurrentAdminId?.() || "admin";
   const getDamage = () => clampPositiveNumber($("m5-damage")?.value || round5.settings.damage, round5.settings.damage);
@@ -404,6 +405,14 @@ export function initMortSubiteAdmin({ getCurrentAdminId, getSessionsById } = {})
     const attackerId = alive.includes(round5.duel.attackerId) ? round5.duel.attackerId : (alive.includes(round5.turn.currentPlayerId) ? round5.turn.currentPlayerId : alive[0] || null);
     const targetId = alive.includes(round5.duel.targetId) && round5.duel.targetId !== attackerId ? round5.duel.targetId : (alive.find((id) => id !== attackerId) || null);
     const buzzedName = getParticipantName(round5, round5.duel.buzzedBy, "");
+    const buzzSoundToken = round5.duel.buzzedBy ? `${round5.duel.buzzedBy}:${Number(round5.duel.buzzedAt || 0)}` : null;
+    if (!buzzSoundToken) {
+      lastAdminBuzzSoundToken = null;
+    } else if (buzzSoundToken !== lastAdminBuzzSoundToken) {
+      lastAdminBuzzSoundToken = buzzSoundToken;
+      const session = getSessionsById?.()?.[round5.duel.buzzedBy] || {};
+      playBuzzerSound(session.buzzerSound || "buzzer.mp3", session.buzzerVolume ?? 100);
+    }
 
     $("m5-status").textContent = `${formatPhase(round5.phase)} · Joueur actif : ${getParticipantName(round5, round5.turn.currentPlayerId, "—")}`;
     $("m5-buzz-live").textContent = round5.duel.buzzedBy ? `🔔 ${buzzedName}` : (round5.duel.buzzerOpen ? "Buzzer ouvert · aucun buzz" : "Aucun buzz");
