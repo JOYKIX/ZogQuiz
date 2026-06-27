@@ -15,6 +15,37 @@ import {
   remove,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
+const FIREBASE_WEBSOCKET_FAILURE_STORAGE_KEY = "firebase:previous_websocket_failure";
+
+function preventFirebaseWebsocketStorageQuotaCrash() {
+  if (typeof window === "undefined" || !window.Storage) return;
+
+  const originalSetItem = window.Storage.prototype.setItem;
+  if (originalSetItem.__zogQuizFirebaseQuotaGuard) return;
+
+  function guardedSetItem(key, value) {
+    try {
+      return originalSetItem.call(this, key, value);
+    } catch (error) {
+      if (String(key) !== FIREBASE_WEBSOCKET_FAILURE_STORAGE_KEY) {
+        throw error;
+      }
+
+      try {
+        this.removeItem(key);
+        return originalSetItem.call(this, key, value);
+      } catch {
+        return undefined;
+      }
+    }
+  }
+
+  guardedSetItem.__zogQuizFirebaseQuotaGuard = true;
+  window.Storage.prototype.setItem = guardedSetItem;
+}
+
+preventFirebaseWebsocketStorageQuotaCrash();
+
 const firebaseConfig = {
   apiKey: "AIzaSyCIKaDnFa6zFxSxSPgKHzd4lqWVYcpPpRw",
   authDomain: "zogquiz.firebaseapp.com",
