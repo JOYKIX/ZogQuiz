@@ -7,8 +7,9 @@ const HEARTBEAT_MS = 12000;
 const SIGNAL_TTL_MS = 120000;
 const DEFAULT_MUTE_KEYBIND = { type: "keyboard", code: "KeyM" };
 const STORAGE_KEY = "zogquiz.voiceMuteKeybind.v1";
-const COMPRESSOR_SETTINGS = { threshold: -24, knee: 24, ratio: 4, attack: 0.002, release: 0.12, outputGain: 1.15 };
-const LOW_CUT_FREQUENCY = 180;
+const COMPRESSOR_SETTINGS = { threshold: -24, knee: 24, ratio: 4, attack: 0.002, release: 0.12, outputGain: 1.12 };
+const LOW_CUT_FREQUENCY = 120;
+const HIGH_CUT_FREQUENCY = 7200;
 
 function safeKey(value) { return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120); }
 function plainDescription(description) { return description ? { type: description.type, sdp: description.sdp } : null; }
@@ -67,7 +68,7 @@ function createProcessedAudioGraph(rawStream) {
   highpass.type = "highpass";
   highpass.frequency.value = LOW_CUT_FREQUENCY;
   lowpass.type = "lowpass";
-  lowpass.frequency.value = 14000;
+  lowpass.frequency.value = HIGH_CUT_FREQUENCY;
   outputGain.gain.value = COMPRESSOR_SETTINGS.outputGain;
   return {
     audioContext,
@@ -80,7 +81,19 @@ function createProcessedAudioGraph(rawStream) {
 }
 
 function microphoneConstraints(deviceId = "") {
-  const constraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000, sampleSize: 24 };
+  const constraints = {
+    echoCancellation: { ideal: true },
+    noiseSuppression: { ideal: true },
+    autoGainControl: { ideal: true },
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 },
+    sampleSize: { ideal: 24 },
+    latency: { ideal: 0.02 },
+    googEchoCancellation: true,
+    googAutoGainControl: true,
+    googNoiseSuppression: true,
+    googHighpassFilter: true,
+  };
   return deviceId ? { ...constraints, deviceId: { exact: deviceId } } : constraints;
 }
 
