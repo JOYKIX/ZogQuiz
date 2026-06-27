@@ -1369,6 +1369,7 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .voice-controls { display: flex; flex-wrap: wrap; gap: .45rem; }
 .voice-controls .btn { flex: 1 1 auto; }
 #guest-voice-mute.is-muted { --btn-bg: var(--danger); --btn-color: #fff; }
+#guest-voice-monitor.is-active { --btn-bg: var(--accent); --btn-color: #111; }
 .voice-user-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
 .voice-user-list li { border: 2px solid var(--ink); background: #15151f; padding: .35rem .45rem; font-weight: 800; }
 .voice-user-list li.self { color: var(--accent); }
