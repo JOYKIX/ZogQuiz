@@ -1366,6 +1366,8 @@ tbody tr:hover td { background: rgba(9,200,215,.13); }
 .compact-panel > * { z-index: 1; }
 
 .guest-voice-panel { display: grid; gap: .65rem; }
+.voice-device-field { display: grid; gap: .25rem; font-weight: 900; }
+.voice-device-field select { width: 100%; }
 .voice-controls { display: flex; flex-wrap: wrap; gap: .45rem; }
 .voice-controls .btn { flex: 1 1 auto; }
 #guest-voice-mute.is-muted { --btn-bg: var(--danger); --btn-color: #fff; }
