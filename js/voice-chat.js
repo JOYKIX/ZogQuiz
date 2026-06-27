@@ -7,9 +7,10 @@ const HEARTBEAT_MS = 12000;
 const SIGNAL_TTL_MS = 120000;
 const DEFAULT_MUTE_KEYBIND = { type: "keyboard", code: "KeyM" };
 const STORAGE_KEY = "zogquiz.voiceMuteKeybind.v1";
-const COMPRESSOR_SETTINGS = { threshold: -24, knee: 24, ratio: 4, attack: 0.002, release: 0.12, outputGain: 1.12 };
-const LOW_CUT_FREQUENCY = 120;
-const HIGH_CUT_FREQUENCY = 7200;
+const COMPRESSOR_SETTINGS = { threshold: -30, knee: 18, ratio: 5.5, attack: 0.0015, release: 0.09, outputGain: 1.18 };
+const LOW_CUT_FREQUENCY = 95;
+const HIGH_CUT_FREQUENCY = 7600;
+const NOTCH_Q = 18;
 
 function safeKey(value) { return String(value || "").replace(/[.#$\[\]/]/g, "_").slice(0, 120); }
 function plainDescription(description) { return description ? { type: description.type, sdp: description.sdp } : null; }
@@ -61,21 +62,42 @@ function createProcessedAudioGraph(rawStream) {
   const audioContext = new AudioContext({ latencyHint: "interactive", sampleRate: 48000 });
   const source = audioContext.createMediaStreamSource(rawStream);
   const highpass = audioContext.createBiquadFilter();
+  const mainsNotch50 = audioContext.createBiquadFilter();
+  const mainsNotch60 = audioContext.createBiquadFilter();
+  const presence = audioContext.createBiquadFilter();
   const lowpass = audioContext.createBiquadFilter();
   const compressor = createVoiceCompressor(audioContext);
+  const limiter = audioContext.createDynamicsCompressor();
   const outputGain = audioContext.createGain();
   const destination = audioContext.createMediaStreamDestination();
   highpass.type = "highpass";
   highpass.frequency.value = LOW_CUT_FREQUENCY;
+  highpass.Q.value = 0.9;
+  mainsNotch50.type = "notch";
+  mainsNotch50.frequency.value = 50;
+  mainsNotch50.Q.value = NOTCH_Q;
+  mainsNotch60.type = "notch";
+  mainsNotch60.frequency.value = 60;
+  mainsNotch60.Q.value = NOTCH_Q;
+  presence.type = "peaking";
+  presence.frequency.value = 3200;
+  presence.Q.value = 0.75;
+  presence.gain.value = 1.6;
   lowpass.type = "lowpass";
   lowpass.frequency.value = HIGH_CUT_FREQUENCY;
+  lowpass.Q.value = 0.72;
+  limiter.threshold.value = -3;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 16;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.045;
   outputGain.gain.value = COMPRESSOR_SETTINGS.outputGain;
   return {
     audioContext,
     source,
     destination,
     input: source,
-    connectToOutput(node) { node.connect(highpass).connect(lowpass).connect(compressor).connect(outputGain).connect(destination); },
+    connectToOutput(node) { node.connect(highpass).connect(mainsNotch50).connect(mainsNotch60).connect(presence).connect(lowpass).connect(compressor).connect(limiter).connect(outputGain).connect(destination); },
     cleanup: () => { stopStream(destination.stream); stopStream(rawStream); audioContext.close(); },
   };
 }
@@ -84,13 +106,13 @@ function microphoneConstraints(deviceId = "") {
   const constraints = {
     echoCancellation: { ideal: true },
     noiseSuppression: { ideal: true },
-    autoGainControl: { ideal: true },
+    autoGainControl: { ideal: false },
     channelCount: { ideal: 1 },
     sampleRate: { ideal: 48000 },
     sampleSize: { ideal: 24 },
     latency: { ideal: 0.02 },
     googEchoCancellation: true,
-    googAutoGainControl: true,
+    googAutoGainControl: false,
     googNoiseSuppression: true,
     googHighpassFilter: true,
   };
@@ -195,7 +217,9 @@ export function createVoiceChatController({ getSessionId, getNickname, elements 
       const sender = pc.addTrack(track, state.stream);
       const parameters = sender.getParameters();
       parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
-      parameters.encodings[0].maxBitrate = 192000;
+      parameters.encodings[0].maxBitrate = 256000;
+      parameters.encodings[0].priority = "high";
+      parameters.encodings[0].networkPriority = "high";
       sender.setParameters(parameters).catch(() => {});
     });
     pc.ontrack = (event) => { const audio = entry.audio || new Audio(); entry.audio = audio; audio.autoplay = true; audio.playsInline = true; audio.srcObject = event.streams[0]; audio.play?.().catch(() => {}); };
