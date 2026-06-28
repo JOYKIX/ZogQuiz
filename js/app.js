@@ -1,4 +1,78 @@
-import { db, ref, set, get, onValue, push } from "./firebase.js";
+let db;
+let ref;
+let set;
+let get;
+let onValue;
+let push;
+
+function createLocalDatabaseAdapter() {
+  const prefix = "cinepaff_local_db:";
+  const listeners = new Map();
+  const normalizePath = (path) => String(path || "").replace(/^\/+|\/+$/g, "");
+  const storageKey = (path) => `${prefix}${normalizePath(path)}`;
+  const read = (path) => {
+    const raw = localStorage.getItem(storageKey(path));
+    return raw ? JSON.parse(raw) : null;
+  };
+  const write = (path, value) => {
+    localStorage.setItem(storageKey(path), JSON.stringify(value));
+    notify(path);
+  };
+  const makeSnapshot = (value) => ({ exists: () => value !== null && value !== undefined, val: () => value });
+  const readTree = (path) => {
+    const current = read(path);
+    if (current !== null) return current;
+
+    const root = `${storageKey(path)}/`;
+    const tree = {};
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(root)) continue;
+      const relative = key.slice(root.length).split("/")[0];
+      if (relative && tree[relative] === undefined) tree[relative] = read(`${normalizePath(path)}/${relative}`);
+    }
+    return Object.keys(tree).length ? tree : null;
+  };
+  const notify = (changedPath) => {
+    const normalized = normalizePath(changedPath);
+    listeners.forEach((callbacks, path) => {
+      if (normalized === path || normalized.startsWith(`${path}/`) || path.startsWith(`${normalized}/`)) {
+        callbacks.forEach((callback) => callback(makeSnapshot(readTree(path))));
+      }
+    });
+  };
+
+  return {
+    db: {},
+    ref: (_db, path) => ({ path: normalizePath(path) }),
+    set: async (target, value) => write(target.path, value),
+    get: async (target) => makeSnapshot(readTree(target.path)),
+    push: async (target, value) => {
+      const key = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      write(`${target.path}/${key}`, value);
+      return { key };
+    },
+    onValue: (target, callback) => {
+      const path = normalizePath(target.path);
+      if (!listeners.has(path)) listeners.set(path, new Set());
+      listeners.get(path).add(callback);
+      callback(makeSnapshot(readTree(path)));
+      return () => listeners.get(path)?.delete(callback);
+    },
+  };
+}
+
+async function loadDatabaseAdapter() {
+  try {
+    return await import("./firebase.js");
+  } catch (error) {
+    console.warn("Firebase indisponible, stockage local actif.", error);
+    return createLocalDatabaseAdapter();
+  }
+}
+
+const adapter = await loadDatabaseAdapter();
+({ db, ref, set, get, onValue, push } = adapter);
 
 const $ = (id) => document.getElementById(id);
 const state = { user: null, admins: {}, proposals: {}, selected: [null, null], tmdbToken: localStorage.getItem("cinepaff_tmdb_token") || "" };
@@ -16,8 +90,15 @@ function setMessage(el, text = "", type = "") { el.textContent = text; el.classN
 function isAdmin() { return Boolean(state.user && state.admins[state.user.id]); }
 function route() { return (location.hash.replace("#/", "") || "proposer").split("?")[0]; }
 
-async function hashPassword(password, salt = crypto.randomUUID()) {
+function createSalt() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return `salt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+async function hashPassword(password, salt = createSalt()) {
   const enc = new TextEncoder();
+  if (!crypto.subtle) {
+    return { salt, hash: btoa(`${salt}:${password}`) };
+  }
   const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: enc.encode(salt), iterations: 210000, hash: "SHA-256" }, key, 256);
   const hash = Array.from(new Uint8Array(bits)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -109,6 +190,7 @@ function bindSearch(index) {
 
 els.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  try {
   const id = normalizeId(els.loginId.value);
   const password = els.loginPassword.value;
   setMessage(els.loginMessage);
@@ -124,20 +206,24 @@ els.loginForm.addEventListener("submit", async (event) => {
   sessionStorage.setItem("cinepaff_user", id);
   els.loginForm.reset();
   renderSession();
+  } catch (error) { setMessage(els.loginMessage, error.message || "Erreur", "error"); }
 });
 els.logout.addEventListener("click", () => { state.user = null; sessionStorage.removeItem("cinepaff_user"); renderSession(); });
 els.tmdbToken.value = state.tmdbToken;
 els.tmdbForm.addEventListener("submit", (event) => { event.preventDefault(); state.tmdbToken = els.tmdbToken.value.trim(); localStorage.setItem("cinepaff_tmdb_token", state.tmdbToken); setMessage(els.tmdbMessage, "Enregistré", "ok"); });
 els.proposalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  try {
   if (!state.selected[0] || !state.selected[1]) return setMessage(els.proposalMessage, "2 films requis", "error");
   await set(ref(db, `cinepaff/proposals/${state.user.id}`), { userId: state.user.id, movies: state.selected, updatedAt: Date.now() });
   state.selected = [null, null];
   els.proposalForm.reset();
   renderSelected(0); renderSelected(1);
   setMessage(els.proposalMessage, "Proposé", "ok");
+  } catch (error) { setMessage(els.proposalMessage, error.message || "Erreur", "error"); }
 });
 els.drawButton.addEventListener("click", async () => {
+  try {
   if (!isAdmin()) return;
   const movies = Object.values(state.proposals).flatMap((proposal) => Object.values(proposal.movies || {}).map((movie) => ({ ...movie, by: proposal.userId })));
   if (!movies.length) return setMessage(els.drawMessage, "Aucun film", "error");
@@ -145,15 +231,18 @@ els.drawButton.addEventListener("click", async () => {
   await push(ref(db, "cinepaff/draws"), { movie, drawnBy: state.user.id, drawnAt: Date.now() });
   els.drawResult.innerHTML = `<span class="movie-title">${escapeHtml(movieLabel(movie))}</span><span class="movie-meta">${escapeHtml(movie.by)}</span>`;
   setMessage(els.drawMessage, "Tiré", "ok");
+  } catch (error) { setMessage(els.drawMessage, error.message || "Erreur", "error"); }
 });
 els.adminForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  try {
   if (!isAdmin()) return;
   const id = normalizeId(els.newAdminId.value);
   if (!id) return;
   await createAdmin(id, els.newAdminPassword.value, state.user.id);
   els.adminForm.reset();
   setMessage(els.adminMessage, "Ajouté", "ok");
+  } catch (error) { setMessage(els.adminMessage, error.message || "Erreur", "error"); }
 });
 
 bindSearch(0); bindSearch(1);
