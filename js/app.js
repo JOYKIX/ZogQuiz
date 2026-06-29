@@ -75,7 +75,51 @@ const adapter = await loadDatabaseAdapter();
 ({ db, ref, set, get, onValue, push } = adapter);
 
 const $ = (id) => document.getElementById(id);
-const state = { user: null, admins: {}, proposals: {}, selected: [null, null], tmdbToken: localStorage.getItem("cinepaff_tmdb_token") || "" };
+const USER_STORAGE_KEY = "cinepaff_user";
+const TMDB_TOKEN_STORAGE_KEY = "cinepaff_tmdb_token";
+let memoryUserId = "";
+let memoryTmdbToken = "";
+
+function readStorage(storage, key, fallback = "") {
+  try {
+    return storage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+function writeStorage(storage, key, value) {
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function removeStorage(storage, key) {
+  try {
+    storage.removeItem(key);
+  } catch {}
+}
+function readStoredUserId() {
+  return normalizeId(readStorage(sessionStorage, USER_STORAGE_KEY, memoryUserId));
+}
+function writeStoredUserId(id) {
+  memoryUserId = normalizeId(id);
+  writeStorage(sessionStorage, USER_STORAGE_KEY, memoryUserId);
+}
+function clearStoredUserId() {
+  memoryUserId = "";
+  removeStorage(sessionStorage, USER_STORAGE_KEY);
+}
+function readStoredTmdbToken() {
+  return readStorage(localStorage, TMDB_TOKEN_STORAGE_KEY, memoryTmdbToken);
+}
+function writeStoredTmdbToken(token) {
+  memoryTmdbToken = token;
+  writeStorage(localStorage, TMDB_TOKEN_STORAGE_KEY, token);
+}
+
+const state = { user: null, admins: {}, proposals: {}, selected: [null, null], tmdbToken: readStoredTmdbToken() };
 
 const els = {
   nav: $("main-nav"), currentUser: $("current-user"), logout: $("logout"), loginView: $("login-view"), appView: $("app-view"),
@@ -203,14 +247,15 @@ els.loginForm.addEventListener("submit", async (event) => {
   const accountSnap = await get(ref(db, `cinepaff/users/${id}`));
   if (!accountSnap.exists() || !(await verifyPassword(password, accountSnap.val().passwordHash))) return setMessage(els.loginMessage, "Connexion refusée", "error");
   state.user = { id };
-  sessionStorage.setItem("cinepaff_user", id);
+  writeStoredUserId(id);
+  if (!location.hash || route() === "admins" && !isAdmin()) location.hash = "#/proposer";
   els.loginForm.reset();
   renderSession();
   } catch (error) { setMessage(els.loginMessage, error.message || "Erreur", "error"); }
 });
-els.logout.addEventListener("click", () => { state.user = null; sessionStorage.removeItem("cinepaff_user"); renderSession(); });
+els.logout.addEventListener("click", () => { state.user = null; clearStoredUserId(); renderSession(); });
 els.tmdbToken.value = state.tmdbToken;
-els.tmdbForm.addEventListener("submit", (event) => { event.preventDefault(); state.tmdbToken = els.tmdbToken.value.trim(); localStorage.setItem("cinepaff_tmdb_token", state.tmdbToken); setMessage(els.tmdbMessage, "Enregistré", "ok"); });
+els.tmdbForm.addEventListener("submit", (event) => { event.preventDefault(); state.tmdbToken = els.tmdbToken.value.trim(); writeStoredTmdbToken(state.tmdbToken); setMessage(els.tmdbMessage, "Enregistré", "ok"); });
 els.proposalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
@@ -250,7 +295,7 @@ window.addEventListener("hashchange", renderRoute);
 onValue(ref(db, "cinepaff/admins"), (snap) => { state.admins = snap.val() || {}; renderAdmins(); renderSession(); });
 onValue(ref(db, "cinepaff/proposals"), (snap) => { state.proposals = snap.val() || {}; renderProposals(); });
 
-const savedUser = normalizeId(sessionStorage.getItem("cinepaff_user"));
+const savedUser = readStoredUserId();
 if (savedUser) state.user = { id: savedUser };
 if (!location.hash) location.hash = "#/proposer";
 renderSession();
